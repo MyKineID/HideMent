@@ -109,7 +109,7 @@ $("#exportCsv").addEventListener("click", () => {
       .map(csvCell)
       .join(","),
   );
-  download(`raphael-guard-antrian-${Date.now()}.csv`, "﻿" + [head.join(","), ...rows].join("\n"), "text/csv");
+  download(`tempest-antrian-${Date.now()}.csv`, "﻿" + [head.join(","), ...rows].join("\n"), "text/csv");
 });
 
 chrome.runtime.onMessage.addListener((msg: BroadcastMsg) => {

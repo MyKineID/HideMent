@@ -1,5 +1,5 @@
 /**
- * Evaluasi pipeline Raphael Guard (aturan lokal + 9router) terhadap dataset berlabel.
+ * Evaluasi pipeline Tempest (aturan lokal + 9router) terhadap dataset berlabel.
  *
  *   NINE_ROUTER_BASE_URL=https://host/v1 NINE_ROUTER_API_KEY=sk-... NINE_ROUTER_MODEL=xxx npm run eval [-- path/dataset.jsonl]
  *

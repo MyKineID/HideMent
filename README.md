@@ -1,17 +1,14 @@
-<p align="center">
-  <img src="docs/raphael.webp" alt="Raphael Guard" width="220" />
-</p>
+<img src="docs/raphael.webp" alt="Raphael" align="left" width="150" />
 
-<h1 align="center">Raphael Guard</h1>
+# Tempest
 
-<p align="center">
-  Ekstensi browser berbasis AI untuk mendeteksi <b>komentar berbahaya berbahasa Indonesia</b>,<br/>
-  mulai dari promosi judi online (judol), link phising, sampai hinaan dan perundungan.
-</p>
+**Penjaga kolom komentar berbahasa Indonesia.**
 
-<p align="center">
-  Chrome / Edge (Manifest V3) · YouTube · Instagram · TikTok · X
-</p>
+Ekstensi browser berbasis AI untuk mendeteksi promosi judi online (judol), link phising, dan komentar toxic seperti hinaan, perundungan, dan sarkasme.
+
+`Chrome / Edge (MV3)` · `YouTube` · `Instagram` · `TikTok` · `X`
+
+<br clear="left"/>
 
 ---
 
@@ -27,7 +24,7 @@ Jumlah komentarnya terlalu banyak untuk diperiksa manual. Akibatnya komentar ber
 
 ## Tujuan
 
-Raphael Guard **tidak** bertujuan menghapus semua komentar negatif. Tujuannya:
+Tempest **tidak** bertujuan menghapus semua komentar negatif. Tujuannya:
 
 1. **Mengurangi komentar yang benar-benar merugikan** pengguna dan kreator.
 2. **Tetap membiarkan kritik normal.** "Editingnya jelek" atau "argumennya lemah" adalah kritik, bukan serangan.
@@ -80,8 +77,8 @@ Ekstensi ini hemat dan cepat karena hanya komentar yang terlihat yang diperiksa,
 **Kebutuhan:** Node.js 18+ dan endpoint AI yang kompatibel dengan OpenAI. Proyek ini memakai 9router, tapi endpoint `/v1/chat/completions` lain juga bisa.
 
 ```bash
-git clone https://github.com/MyKineID/raphael-guard.git
-cd raphael-guard
+git clone https://github.com/MyKineID/tempest.git
+cd tempest
 npm install
 npm run build
 ```
@@ -135,7 +132,7 @@ Instagram dan TikTok sering mengubah struktur halamannya. Kalau komentar tidak t
 
 ## Kredit
 
-Ilustrasi Raphael digambar sendiri oleh pembuat proyek. Tema warnanya terinspirasi Rimuru & Diablo (*Tensei Shitara Slime Datta Ken*).
+Nama **Tempest** diambil dari Rimuru Tempest dan negara Jura Tempest Federation (*Tensei Shitara Slime Datta Ken*). Ilustrasi Raphael digambar sendiri oleh pembuat proyek. Tema warnanya terinspirasi Rimuru & Diablo.
 
 ## Lisensi
 

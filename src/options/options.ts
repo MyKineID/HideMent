@@ -181,7 +181,7 @@ async function init(): Promise<void> {
   $("#exportFeedback").addEventListener("click", async () => {
     const fb = ((await chrome.storage.local.get("feedback")).feedback ?? []) as unknown[];
     if (!fb.length) return setStatus(dataStatus, "Belum ada feedback.", "");
-    download(`raphael-guard-feedback-${Date.now()}.json`, JSON.stringify(fb, null, 2), "application/json");
+    download(`tempest-feedback-${Date.now()}.json`, JSON.stringify(fb, null, 2), "application/json");
     setStatus(dataStatus, `✓ ${fb.length} feedback diekspor`, "ok");
   });
   $("#clearCache").addEventListener("click", async () => {

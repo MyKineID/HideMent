@@ -1,4 +1,4 @@
-"""Generate the Raphael Guard toolbar icons (black base, Rimuru-blue ring, Diablo-red core)."""
+"""Generate the Tempest toolbar icons (black base, Rimuru-blue ring, Diablo-red core)."""
 import math
 import sys
 from pathlib import Path

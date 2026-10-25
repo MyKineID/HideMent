@@ -100,13 +100,20 @@ npm run build
 
 Folder [`research/`](research) berisi:
 
-- [`labeling-guide.md`](research/labeling-guide.md): definisi tiap label dan batas antara **komentar berbahaya** dan **kritik wajar**.
-- [`dataset/sample.jsonl`](research/dataset/sample.jsonl): contoh dataset berlabel.
-- `eval.ts`: menghitung precision, recall, dan F1 per kategori, serta **false positive pada komentar aman**.
+- [`labeling-guide.md`](research/labeling-guide.md): definisi tiap label, arah sentimen, dan batas antara **komentar berbahaya** dan **kritik wajar**.
+- [`dataset/sample.jsonl`](research/dataset/sample.jsonl): **105 komentar contoh** (sintetis, meniru gaya komentar YouTube, Instagram, TikTok, dan X). Tiap komentar diberi label kategori dan sentimen (positif / netral / negatif).
+- `label.ts`: **auto-label pakai AI.** Masukkan komentar mentah, lalu AI menentukan kategori, sentimen, skor, dan keyakinannya. Yang AI-nya ragu ditandai untuk dicek manusia.
+- `eval.ts`: menghitung precision, recall, dan F1 per kategori, **false positive pada komentar aman**, dan sebaran sentimen.
 
 ```bash
-NINE_ROUTER_BASE_URL=http://host:20128/v1 NINE_ROUTER_API_KEY=sk-... NINE_ROUTER_MODEL=nama-model npm run eval
+# atur koneksi AI sekali
+export NINE_ROUTER_BASE_URL=http://host:20128/v1 NINE_ROUTER_API_KEY=sk-... NINE_ROUTER_MODEL=nama-model
+
+npm run label -- research/raw/contoh-komentar.txt   # labeli komentar baru
+npm run eval                                         # ukur akurasi
 ```
+
+**Temuan awal dari dataset contoh:** sebagian besar komentar judol/phising justru **bernada positif** ("alhamdulillah wd terus"), sementara banyak komentar aman **bernada negatif** (kritik). Jadi analisis sentimen biasa tidak cukup untuk mendeteksi komentar berbahaya. Itulah alasan sistem ini mengklasifikasikan **niat dan dampak** komentar, bukan nadanya.
 
 Kontribusi dataset (komentar nyata yang sudah dianonimkan) sangat membantu meningkatkan akurasi.
 

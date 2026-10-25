@@ -21,6 +21,7 @@ const JUDOL_TERMS: Term[] = [
   { t: "situs", w: 15 }, { t: "link alternatif", w: 40 }, { t: "modal receh", w: 35 },
   { t: "modal kecil", w: 15 }, { t: "cuan", w: 10 }, { t: "jp paus", w: 45 }, { t: "jepe", w: 30 },
   { t: "jp terus", w: 40 }, { t: "lgsg jp", w: 40 }, { t: "langsung jp", w: 40 }, { t: "sensasional", w: 20 },
+  { t: "wd", w: 20 }, { t: "jp", w: 15 }, { t: "gugel", w: 10 },
   { t: "parlay", w: 35 }, { t: "sbobet", w: 45 }, { t: "slot online", w: 45 },
   { t: "game online terpercaya", w: 35 }, { t: "sweet bonanza", w: 40 }, { t: "gates of", w: 25 },
   { t: "toto macau", w: 50 }, { t: "bocoran", w: 15 },

@@ -15,6 +15,8 @@ import { chat } from "../src/background/api";
 interface Row {
   text: string;
   label: Category;
+  sentimen?: "positif" | "netral" | "negatif";
+  platform?: string;
   note?: string;
 }
 
@@ -90,6 +92,14 @@ rows.forEach((r, i) => {
   confusion[r.label][pred(i)] = (confusion[r.label][pred(i)] ?? 0) + 1;
 });
 
+const sentimentTable: Record<string, Record<string, number>> = {};
+for (const r of rows) {
+  if (!r.sentimen) continue;
+  const group = r.label === "aman" ? "aman" : (MODE_CATEGORIES.judol as Category[]).includes(r.label) ? "judol/phising" : "toxic";
+  sentimentTable[group] ??= { positif: 0, netral: 0, negatif: 0 };
+  sentimentTable[group][r.sentimen]++;
+}
+
 const errors = rows
   .map((r, i) => ({ text: r.text, gold: r.label, pred: pred(i), score: predictions.get(i)?.score, source: predictions.get(i)?.source, reason: predictions.get(i)?.reason }))
   .filter((e) => e.gold !== e.pred);
@@ -101,6 +111,10 @@ console.log("\nPer mode:");
 console.table(perMode);
 console.log("Per kategori:");
 console.table(perCategory);
+if (Object.keys(sentimentTable).length) {
+  console.log("Sebaran sentimen (label asli) — bukti bahwa nada ≠ bahaya:");
+  console.table(sentimentTable);
+}
 console.log(`False positive pada komentar aman: ${falsePositives.length}/${safeRows.length} (${((falsePositives.length / Math.max(1, safeRows.length)) * 100).toFixed(1)}%)`);
 if (errors.length) {
   console.log("\nKesalahan:");
@@ -109,5 +123,5 @@ if (errors.length) {
 
 await mkdir("research/results", { recursive: true });
 const out = `research/results/eval-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-await writeFile(out, JSON.stringify({ file, model: useAi ? api.model : null, n: rows.length, ruleDecided, perMode, perCategory, confusion, errors }, null, 2));
+await writeFile(out, JSON.stringify({ file, model: useAi ? api.model : null, n: rows.length, ruleDecided, perMode, perCategory, confusion, sentimentTable, errors }, null, 2));
 console.log(`\n✓ Hasil disimpan ke ${out}`);

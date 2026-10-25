@@ -10,7 +10,8 @@
     "dev": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "eval": "tsx research/eval.ts"
+    "eval": "tsx research/eval.ts",
+    "label": "tsx research/label.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.6",

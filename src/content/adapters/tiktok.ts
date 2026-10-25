@@ -24,6 +24,7 @@ export const tiktok: Adapter = {
     const t = el.querySelector<HTMLElement>(TEXT_SEL);
     return t ? { node: t, where: "row" } : null;
   },
+  getPermalink: () => null,
   getMenuButton: (el) =>
     el.querySelector<HTMLElement>('[data-e2e="comment-more-icon"], [class*="MoreIcon"], [aria-label*="more" i], [aria-label*="lainnya" i]'),
   reportReason: (c) => (c === "judol" ? "Perjudian" : c === "spam" ? "Spam" : genericReason(c)),

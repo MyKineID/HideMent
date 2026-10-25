@@ -20,6 +20,8 @@ export interface CommentInput {
   id: string;
   text: string;
   author?: string;
+  /** Link langsung ke komentar ini (permalink), kalau platform menyediakannya. */
+  url?: string;
 }
 
 export interface Verdict {
@@ -37,7 +39,10 @@ export interface QueueItem {
   key: string;
   tabId: number;
   platform: Platform;
+  /** Permalink komentar; sama dengan pageUrl kalau platform tidak punya permalink per komentar. */
   url: string;
+  /** Halaman tempat komentar ditemukan. */
+  pageUrl?: string;
   commentId: string;
   author: string;
   text: string;

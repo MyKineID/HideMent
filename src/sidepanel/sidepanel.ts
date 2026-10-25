@@ -216,6 +216,12 @@ list.addEventListener("click", async (e) => {
       await startReport(it);
       break;
     case "focus": {
+      if (it.url && it.url !== it.pageUrl) {
+        const src = await chrome.tabs.get(it.tabId).catch(() => null);
+        await chrome.tabs.create({ url: it.url, active: true, ...(src ? { index: src.index + 1, windowId: src.windowId, openerTabId: src.id } : {}) });
+        flash(btn, "Dibuka");
+        break;
+      }
       flash(btn, "Mencari…", 8000);
       const found = await send<boolean>({ type: "focusComment", tabId: it.tabId, commentId: it.commentId, text: it.text }).catch(() => null);
       if (found === null) {

@@ -14,6 +14,8 @@ export interface Adapter {
   getTextEl(el: HTMLElement): HTMLElement | null;
   getBadgeSlot(el: HTMLElement): BadgeSlot | null;
   getMenuButton(el: HTMLElement): HTMLElement | null;
+  /** Link langsung ke komentar (biasanya dari tautan timestamp). null kalau tidak ada. */
+  getPermalink(el: HTMLElement): string | null;
   reportReason(category: Category): string;
   /** Halaman satu postingan/video (tempat Pindai Cepat dijalankan otomatis). */
   isPostPage(url: URL): boolean;

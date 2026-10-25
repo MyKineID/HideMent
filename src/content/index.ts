@@ -72,7 +72,7 @@ function queueForAnalysis(el: HTMLElement): void {
   const text = adapter.getText(el).slice(0, MAX_TEXT);
   if (!text) return;
   sentFingerprints.add(el.dataset.rgFp ?? text);
-  outbox.set(id, { id, text, author: adapter.getAuthor(el) });
+  outbox.set(id, { id, text, author: adapter.getAuthor(el), url: adapter.getPermalink(el) ?? undefined });
   clearTimeout(sendTimer);
   sendTimer = setTimeout(flush, outbox.size >= MAX_PER_MESSAGE ? 0 : SEND_DELAY_MS);
 }

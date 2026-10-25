@@ -14,6 +14,7 @@ export const x: Adapter = {
     return t ? { node: t, where: "row" } : null;
   },
   getMenuButton: (el) => el.querySelector<HTMLElement>('[data-testid="caret"]'),
+  getPermalink: (el) => el.querySelector<HTMLAnchorElement>('a[href*="/status/"] time')?.closest("a")?.href ?? null,
   reportReason: (c) => (c === "judol" || c === "spam" ? "Spam" : genericReason(c)),
   isPostPage: (url) => /\/status\/\d+/.test(url.pathname),
 };

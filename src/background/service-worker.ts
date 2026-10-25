@@ -62,7 +62,7 @@ function record(tabId: number, platform: Platform, url: string, c: CommentInput,
   const prev = queue.find((q) => q.key === key);
   queue = queue.filter((q) => q.key !== key);
   queue.unshift({
-    key, tabId, platform, url, commentId: c.id, author: c.author ?? "", text: c.text.slice(0, 1000),
+    key, tabId, platform, url: c.url ?? url, pageUrl: url, commentId: c.id, author: c.author ?? "", text: c.text.slice(0, 1000),
     verdict: v, priority, at: Date.now(),
     report: prev?.report ?? (settings.report.autoQueue && priority === "tinggi" ? "pending" : undefined),
   });

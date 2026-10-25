@@ -14,6 +14,8 @@ export const youtube: Adapter = {
     return node ? { node, where: "inline" } : null;
   },
   getMenuButton: (el) => el.querySelector<HTMLElement>("#action-menu button, ytd-menu-renderer button"),
+  getPermalink: (el) =>
+    el.querySelector<HTMLAnchorElement>('#published-time-text a, a[href*="lc="]')?.href ?? null,
   reportReason: (c) =>
     c === "judol" || c === "spam" || c === "phishing" || c === "scam"
       ? "Spam atau menyesatkan"

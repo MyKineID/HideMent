@@ -52,6 +52,7 @@ export const instagram: Adapter = {
     const t = textElOf(el);
     return t ? { node: t, where: "row" } : null;
   },
+  getPermalink: (el) => el.querySelector("time")?.closest<HTMLAnchorElement>("a[href]")?.href ?? null,
   getMenuButton: (el) =>
     el.querySelector<HTMLElement>('svg[aria-label*="option" i], svg[aria-label*="opsi" i]')?.closest<HTMLElement>('[role="button"], button') ?? null,
   reportReason: (c) =>

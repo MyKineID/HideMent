@@ -109,6 +109,11 @@ details.adv[open] > summary { margin-bottom: 14px; }
 
 /* presets */
 .preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+.preset-grid.two { grid-template-columns: 1fr 1fr; }
+.mini-num { width: 150px; flex: none; }
+.fast-tag { padding: 1px 5px 2px; font: 600 10px var(--px); letter-spacing: 0.08em; color: var(--ink); background: var(--amber); }
+.model .fast-tag { margin-left: auto; }
+.model[aria-selected="true"] .fast-tag { background: var(--ink); color: var(--amber); }
 .preset { display: grid; gap: 4px; padding: 14px; text-align: left; color: var(--text); font: inherit; cursor: pointer; }
 .preset b { font: 600 15px var(--px); }
 .preset small { font-size: 12px; color: var(--muted); }

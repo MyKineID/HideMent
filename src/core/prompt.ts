@@ -41,8 +41,8 @@ Prinsip penting:
 - Skor: 0-29 aman/ringan, 30-59 meragukan, 60-79 berbahaya, 80-100 sangat berbahaya/jelas.
 - "alasan" maksimal 12 kata, bahasa Indonesia.
 
-Balas HANYA JSON valid tanpa teks lain dengan format:
-{"r":[{"i":"<id>","k":"<kategori>","s":<skor>,"a":"<alasan>"}]}`;
+Format jawaban: JSON Lines. SATU baris JSON per komentar, urut sesuai input, tanpa pembungkus, tanpa markdown, tanpa teks lain:
+{"i":"<id>","k":"<kategori>","s":<skor>,"a":"<alasan>"}`;
 }
 
 export function buildUserPrompt(items: AiItem[]): string {
@@ -72,30 +72,56 @@ export function extractJson(text: string): unknown {
   }
 }
 
-export function parseAiResponse(text: string, ids: string[], modes: Record<Mode, boolean>): Verdict[] {
+export function parseVerdictRow(row: Record<string, unknown>, modes: Record<Mode, boolean>): Verdict | null {
+  const id = String(row.i ?? row.id ?? "");
+  if (!id) return null;
+  let category = String(row.k ?? row.category ?? row.kategori ?? "aman").toLowerCase() as Category;
+  if (!ALL_CATEGORIES.has(category)) category = "aman";
+  const mode = modeOf(category);
+  if (category !== "aman" && !modes[mode]) category = "aman";
+  const rawScore = Number(row.s ?? row.score ?? row.skor ?? 0);
+  const score = Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore))) : 0;
+  return {
+    id,
+    mode: category === "aman" ? (modes.toxic ? "toxic" : "judol") : mode,
+    category,
+    score: category === "aman" ? Math.min(score, 29) : score,
+    reason: String(row.a ?? row.reason ?? row.alasan ?? "").slice(0, 160),
+    source: "ai",
+  };
+}
+
+/** Ambil semua baris objek JSON (format JSON Lines). Baris yang bukan JSON diabaikan. */
+export function parseJsonLines(text: string): Record<string, unknown>[] {
+  const rows: Record<string, unknown>[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim().replace(/,$/, "");
+    if (!line.startsWith("{") || !line.endsWith("}")) continue;
+    try {
+      const o = JSON.parse(line);
+      if (o && typeof o === "object" && !Array.isArray(o)) rows.push(o);
+    } catch {
+      /* baris belum lengkap / bukan JSON */
+    }
+  }
+  return rows;
+}
+
+function rowsFrom(text: string): Record<string, unknown>[] {
+  const lines = parseJsonLines(text).filter((r) => "i" in r || "id" in r);
+  if (lines.length) return lines;
   const data = extractJson(text) as Record<string, unknown> | unknown[];
-  const rows = (Array.isArray(data) ? data : (data.r ?? data.results ?? data.hasil ?? [])) as Record<string, unknown>[];
+  return (Array.isArray(data) ? data : ((data.r ?? data.results ?? data.hasil ?? [data]) as unknown[])) as Record<string, unknown>[];
+}
+
+export function parseAiResponse(text: string, ids: string[], modes: Record<Mode, boolean>): Verdict[] {
   const wanted = new Set(ids);
   const out: Verdict[] = [];
-
-  for (const row of rows) {
-    const id = String(row.i ?? row.id ?? "");
-    if (!wanted.has(id)) continue;
-    let category = String(row.k ?? row.category ?? row.kategori ?? "aman").toLowerCase() as Category;
-    if (!ALL_CATEGORIES.has(category)) category = "aman";
-    const mode = modeOf(category);
-    if (category !== "aman" && !modes[mode]) category = "aman";
-    const rawScore = Number(row.s ?? row.score ?? row.skor ?? 0);
-    const score = Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore))) : 0;
-    out.push({
-      id,
-      mode: category === "aman" ? (modes.toxic ? "toxic" : "judol") : mode,
-      category,
-      score: category === "aman" ? Math.min(score, 29) : score,
-      reason: String(row.a ?? row.reason ?? row.alasan ?? "").slice(0, 160),
-      source: "ai",
-    });
-    wanted.delete(id);
+  for (const row of rowsFrom(text)) {
+    const v = parseVerdictRow(row, modes);
+    if (!v || !wanted.has(v.id)) continue;
+    out.push(v);
+    wanted.delete(v.id);
   }
   return out;
 }

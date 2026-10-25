@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "eval": "tsx research/eval.ts",
-    "label": "tsx research/label.ts"
+    "label": "tsx research/label.ts",
+    "bench": "tsx research/bench.ts"
   },
   "devDependencies": {
     "@fontsource/pixelify-sans": "^5.3.0",

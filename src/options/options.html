@@ -37,6 +37,7 @@
       <nav class="nav" aria-label="Bagian pengaturan">
         <a href="#koneksi"><span data-icon="link"></span>Koneksi</a>
         <a href="#mode"><span data-icon="power"></span>Mode</a>
+        <a href="#pindai"><span data-icon="search"></span>Pemindaian</a>
         <a href="#tampilan"><span data-icon="eye"></span>Tampilan</a>
         <a href="#platform"><span data-icon="grid"></span>Platform</a>
         <a href="#ambang"><span data-icon="gauge"></span>Ambang skor</a>
@@ -85,6 +86,7 @@
               <input id="modelFilter" type="search" placeholder="Cari model…" autocomplete="off" />
             </div>
             <div id="modelList" class="model-list frame inset" role="listbox" aria-label="Daftar model"></div>
+            <p class="hint">⚡ Model yang ditandai <span class="fast-tag">CEPAT</span> adalah keluarga flash/lite, paling responsif untuk Tempest. Hasil benchmark di 9router: <code>gemini-3.5-flash-lite</code> &amp; <code>gemini-3.1-flash-lite-preview</code>.</p>
           </div>
 
           <div class="step frame">
@@ -101,7 +103,7 @@
           <div class="field-grid three">
             <div><label class="label" for="timeout">Timeout (detik)</label><input id="timeout" type="number" min="5" max="180" /></div>
             <div><label class="label" for="batchSize">Komentar / request</label><input id="batchSize" type="number" min="1" max="50" /></div>
-            <div><label class="label" for="concurrency">Request paralel</label><input id="concurrency" type="number" min="1" max="6" /></div>
+            <div><label class="label" for="concurrency">Request paralel</label><input id="concurrency" type="number" min="1" max="8" /></div>
           </div>
           <p class="hint">Komentar per request lebih besar = lebih hemat, tapi tiap respons lebih lama.</p>
         </details>
@@ -131,9 +133,31 @@
         </div>
       </section>
 
-      <!-- 03 TAMPILAN -->
+      <!-- 03 PEMINDAIAN -->
+      <section id="pindai" class="sec">
+        <header class="sec-head"><span class="sec-no">03</span><h2>Pemindaian</h2></header>
+        <p class="sec-desc">Cara Tempest mengambil komentar dari halaman.</p>
+        <div class="preset-grid two" role="radiogroup" aria-label="Metode pemindaian">
+          <button type="button" class="preset frame" data-scan="scroll" role="radio">
+            <b>Scroll biasa</b><small>Komentar dianalisis saat terlihat di layar ketika kamu scroll. Paling hemat.</small>
+          </button>
+          <button type="button" class="preset frame" data-scan="fast" role="radio">
+            <b>⚡ Pindai cepat</b><small>Saat membuka postingan, Tempest otomatis memuat &amp; menganalisis semua komentar tanpa kamu scroll.</small>
+          </button>
+        </div>
+        <div class="frame card">
+          <label class="toggle"><span class="t-main"><span class="t-title">Ikut buka balasan</span><span class="t-desc">Klik "Tampilkan balasan" saat Pindai Cepat, karena judol sering bersembunyi di balasan.</span></span><input class="switch" type="checkbox" data-key="scan.replies" /></label>
+          <div class="toggle">
+            <span class="t-main"><span class="t-title">Batas komentar per pindai</span><span class="t-desc">Pindai Cepat berhenti setelah jumlah ini atau saat komentar habis.</span></span>
+            <div class="mini-num"><input id="scanMax" type="number" min="50" max="2000" step="50" aria-label="Batas komentar" /></div>
+          </div>
+        </div>
+        <p class="hint">Pindai Cepat juga bisa dijalankan kapan saja dari tombol ⚡ di popup atau Dashboard, apa pun metode yang dipilih.</p>
+      </section>
+
+      <!-- 04 TAMPILAN -->
       <section id="tampilan" class="sec">
-        <header class="sec-head"><span class="sec-no">03</span><h2>Tampilan</h2></header>
+        <header class="sec-head"><span class="sec-no">04</span><h2>Tampilan</h2></header>
         <p class="sec-desc">Apa yang terjadi pada komentar berbahaya <b>prioritas tinggi</b>. Prioritas sedang cukup ditandai.</p>
 
         <div class="preset-grid" id="presets" role="radiogroup" aria-label="Aksi">
@@ -166,7 +190,7 @@
 
       <!-- 04 PLATFORM -->
       <section id="platform" class="sec">
-        <header class="sec-head"><span class="sec-no">04</span><h2>Platform</h2></header>
+        <header class="sec-head"><span class="sec-no">05</span><h2>Platform</h2></header>
         <div class="plat-grid">
           <label class="plat frame"><span data-icon="youtube" data-size="24"></span><b>YouTube</b><input class="switch" type="checkbox" data-key="platforms.youtube" /></label>
           <label class="plat frame"><span data-icon="instagram" data-size="24"></span><b>Instagram</b><input class="switch" type="checkbox" data-key="platforms.instagram" /></label>
@@ -177,7 +201,7 @@
 
       <!-- 05 AMBANG -->
       <section id="ambang" class="sec">
-        <header class="sec-head"><span class="sec-no">05</span><h2>Ambang skor</h2></header>
+        <header class="sec-head"><span class="sec-no">06</span><h2>Ambang skor</h2></header>
         <p class="sec-desc">AI memberi skor bahaya 0–100. Geser untuk menentukan batas prioritas.</p>
         <div class="frame card">
           <div class="meter" aria-hidden="true">
@@ -201,7 +225,7 @@
 
       <!-- 06 LAPOR -->
       <section id="lapor" class="sec">
-        <header class="sec-head"><span class="sec-no">06</span><h2>Lapor</h2></header>
+        <header class="sec-head"><span class="sec-no">07</span><h2>Lapor</h2></header>
         <p class="sec-desc">Tempest membantu membuka menu laporan dan memilih alasannya. <b>Tombol kirim selalu kamu yang tekan</b>, supaya salah deteksi AI tidak melaporkan orang yang tidak bersalah dan akunmu tidak dianggap melakukan laporan massal oleh platform.</p>
         <div class="frame card">
           <label class="toggle"><span class="t-main"><span class="t-title">Antrian lapor semi-otomatis</span><span class="t-desc">Komentar prioritas TINGGI otomatis masuk antrian di Dashboard. Klik "Lapor berikutnya" → Tempest scroll ke komentar, buka menu, klik Laporkan, dan pilih alasan.</span></span><input class="switch red" type="checkbox" data-key="report.autoQueue" /></label>
@@ -217,7 +241,7 @@
 
       <!-- 07 DAFTAR -->
       <section id="daftar" class="sec">
-        <header class="sec-head"><span class="sec-no">07</span><h2>Daftar kustom</h2></header>
+        <header class="sec-head"><span class="sec-no">08</span><h2>Daftar kustom</h2></header>
         <div class="field-grid">
           <div class="frame card">
             <label class="label" for="whitelist">Akun tepercaya <span class="count" id="whitelistCount"></span></label>
@@ -234,7 +258,7 @@
 
       <!-- 08 DATA -->
       <section id="data" class="sec">
-        <header class="sec-head"><span class="sec-no">08</span><h2>Data riset</h2></header>
+        <header class="sec-head"><span class="sec-no">09</span><h2>Data riset</h2></header>
         <div class="frame card data-rows">
           <div class="data-row">
             <div class="grow"><b>Feedback "bukan berbahaya"</b><small id="fbCount">—</small></div>

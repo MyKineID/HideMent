@@ -38,3 +38,10 @@ body > * + * { margin-top: 14px; }
 .dlg-text { font-size: 12px; }
 
 .actions { display: flex; gap: 10px; padding-top: 2px; }
+
+.scan { display: grid; gap: 8px; }
+.scan .btn { width: 100%; }
+.scan-prog { display: flex; align-items: center; gap: 10px; font: 500 12px var(--px); color: var(--muted); }
+.scan-prog span:first-child { flex: 1; }
+.scan-meter { width: 80px; height: 12px; padding: 2px; background: var(--ink-2); border: 2px solid var(--line-hi); }
+.scan-meter i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--cyan) 0 6px, transparent 6px 8px); }

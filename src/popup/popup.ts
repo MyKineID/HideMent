@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type DeepPartial, type Settings } from "../core/settings";
 import type { Platform } from "../core/types";
-import { send, type StatusInfo, type TabMsg } from "../shared/messages";
+import { send, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
 import { $, bindToggles, refreshToggles } from "../shared/dom";
 import { hydrateIcons, type IconName } from "../shared/pixel-icons";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
@@ -37,6 +37,7 @@ async function init(): Promise<void> {
     const t = $<HTMLInputElement>("#siteToggle");
     t.checked = settings.platforms[match[1]];
     t.addEventListener("change", () => saveSettings({ platforms: { [match[1]]: t.checked } }));
+    $("#scanBlock").hidden = false;
   } else {
     site.textContent = "Buka YouTube, IG, TikTok, atau X";
   }
@@ -69,7 +70,7 @@ async function init(): Promise<void> {
     else if (!st.configured) line = ["AI belum terhubung, baru deteksi judol lokal yang aktif. Atur di ⚙.", "err"];
     else if (st.lastError) line = [st.lastError, "err"];
     else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.`, "ok"];
-    else line = [`Siap. Model ${st.model}${st.lastLatencyMs ? ` · ${st.lastLatencyMs} ms` : ""}.`, "ok"];
+    else line = [`Siap. Model ${st.model}${st.lastTtftMs ? ` · hasil pertama ${(st.lastTtftMs / 1000).toFixed(1)} dtk` : ""}.`, "ok"];
     const key = line.join("|");
     if (key !== lastLine) {
       lastLine = key;
@@ -84,6 +85,29 @@ async function init(): Promise<void> {
     if (tab?.windowId !== undefined) await chrome.sidePanel.open({ windowId: tab.windowId });
     window.close();
   });
+  let scanning = false;
+  const scanBtn = $<HTMLButtonElement>("#fastScan");
+  scanBtn.addEventListener("click", async () => {
+    if (tab?.id === undefined) return;
+    if (scanning) {
+      chrome.tabs.sendMessage(tab.id, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
+      return;
+    }
+    const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
+    if (!r?.ok) say(dlg, r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.", "err");
+  });
+  chrome.runtime.onMessage.addListener((msg: ScanProgress, sender) => {
+    if (msg.type !== "scanProgress" || sender.tab?.id !== tab?.id) return;
+    scanning = msg.state === "running";
+    scanBtn.textContent = scanning ? "■ Hentikan pemindaian" : "⚡ Pindai semua komentar";
+    scanBtn.classList.toggle("danger", !scanning);
+    scanBtn.classList.toggle("ghost", scanning);
+    $("#scanProg").hidden = false;
+    $("#scanText").textContent =
+      msg.state === "running" ? `Memuat… ${msg.loaded} komentar` : msg.state === "error" ? (msg.note ?? "Gagal") : `Selesai · ${msg.loaded} komentar`;
+    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
+  });
+
   $("#rescan").addEventListener("click", () => {
     if (tab?.id !== undefined) chrome.tabs.sendMessage(tab.id, { type: "rescan" } satisfies TabMsg).catch(() => undefined);
   });

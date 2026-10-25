@@ -41,6 +41,8 @@ Kedua mode bisa dinyalakan bersamaan atau terpisah.
 
 ## Fitur
 
+- **Dua metode pemindaian**: *Scroll biasa* (komentar dianalisis saat terlihat) atau **⚡ Pindai Cepat**, yang otomatis memuat semua komentar sebuah postingan, termasuk balasannya, lalu menganalisis semuanya tanpa kamu perlu scroll.
+- **Hasil semi-instan**: AI menjawab lewat *streaming* satu baris per komentar, jadi badge muncul satu per satu begitu hasilnya siap.
 - **Badge + skor risiko** di samping komentar (Tinggi / Sedang), lengkap dengan alasannya.
 - **Highlight, blur, atau sembunyikan.** Semuanya bisa dinyalakan/dimatikan dan diatur per kategori. Komentar yang diblur bisa dibuka dengan klik.
 - **Dashboard Antrian** di side panel: daftar komentar berbahaya dari semua tab, diurutkan dari risiko tertinggi, bisa difilter dan diekspor ke CSV.
@@ -69,7 +71,20 @@ AI via 9router (API OpenAI-compatible) ── dikirim berkelompok, ±20 komentar
 Badge · highlight · blur · Dashboard Antrian
 ```
 
-Ekstensi ini hemat dan cepat karena hanya komentar yang terlihat yang diperiksa, judol yang jelas tidak perlu ke AI, dan hasil penilaian disimpan di cache.
+Ekstensi ini hemat dan cepat karena judol yang jelas tidak perlu ke AI, hasil penilaian disimpan di cache, dan komentar dikirim dalam batch kecil (8) secara paralel dengan jawaban streaming.
+
+### Model yang disarankan
+
+Hasil `npm run bench` (20 komentar, 9router, Oktober 2026):
+
+| Model | Hasil pertama | Total | Berbahaya vs aman | Kategori |
+|---|---|---|---|---|
+| `gemini-3.1-flash-lite-preview` | 4,6 dtk | 5,7 dtk | 100% | 100% |
+| `gemini-3.8-flash-low` | 3,2 dtk | 6,3 dtk | 100% | 95% |
+| `gemini-3.5-flash-lite` | 5,1 dtk | 6,4 dtk | 100% | 95% |
+| `gemini-3-flash-preview` | 8,6 dtk | 10,6 dtk | 100% | 95% |
+
+Dengan batch 5 komentar, `gemini-3.5-flash-lite` menjawab dalam ±1,6 detik. Model flash/lite ditandai **CEPAT** di halaman Pengaturan.
 
 ## Instalasi
 
@@ -111,6 +126,7 @@ export NINE_ROUTER_BASE_URL=http://host:20128/v1 NINE_ROUTER_API_KEY=sk-... NINE
 
 npm run label -- research/raw/contoh-komentar.txt   # labeli komentar baru
 npm run eval                                         # ukur akurasi
+npm run bench -- model-a model-b                     # bandingkan kecepatan & akurasi model
 ```
 
 **Temuan awal dari dataset contoh:** sebagian besar komentar judol/phising justru **bernada positif** ("alhamdulillah wd terus"), sementara banyak komentar aman **bernada negatif** (kritik). Jadi analisis sentimen biasa tidak cukup untuk mendeteksi komentar berbahaya. Itulah alasan sistem ini mengklasifikasikan **niat dan dampak** komentar, bukan nadanya.

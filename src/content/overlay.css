@@ -165,3 +165,29 @@
 
 @keyframes rg-flash { 0%, 100% { outline-color: transparent; } 50% { outline-color: #5ce1e6; } }
 .rg-flash { outline: 4px solid transparent; outline-offset: 2px; animation: rg-flash 0.5s steps(2) 4; }
+
+/* ── bar progres Pindai Cepat ───────────────────── */
+.rg-scanbar {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  padding: 12px 14px 10px;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #e8ecf5;
+  background: #0b0d14;
+  border: 2px solid #e8ecf5;
+  box-shadow: inset 0 0 0 2px #0b0d14, inset 0 0 0 4px #3a4560, 4px 4px 0 #000;
+}
+.rg-sb-name { position: absolute; top: -11px; left: 12px; padding: 2px 8px; font: 600 11px/1.2 "TempestPixel", ui-monospace, monospace; letter-spacing: 0.12em; color: #07080d; background: #5ce1e6; }
+.rg-sb-text { flex: 1; white-space: nowrap; font: 600 13px/1.2 "TempestPixel", ui-monospace, monospace; }
+.rg-sb-meter { width: 90px; height: 12px; padding: 2px; background: #07080d; border: 2px solid #262c3d; }
+.rg-sb-meter i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, #5ce1e6 0 6px, transparent 6px 8px); transition: width 0.2s steps(4); }
+.rg-scanbar[data-state="done"] { border-color: #5ce1e6; }
+.rg-scanbar[data-state="error"], .rg-scanbar[data-state="stopped"] { border-color: #ff7b86; }
+.rg-scanbar[data-state="error"] .rg-sb-name, .rg-scanbar[data-state="stopped"] .rg-sb-name { background: #ff7b86; }
+.rg-scanbar .rg-btn { flex: none; padding: 6px 10px 7px; }

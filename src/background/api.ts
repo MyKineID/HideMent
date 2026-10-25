@@ -119,3 +119,102 @@ export async function chat(api: Settings["api"], system: string, user: string): 
   if (!content) throw new ApiError("Respons AI kosong");
   return { content, latencyMs: Date.now() - started };
 }
+
+export interface StreamResult extends ChatResult {
+  /** Waktu sampai token pertama diterima (ms). */
+  ttftMs: number;
+}
+
+/**
+ * Chat dengan streaming (SSE). `onText` dipanggil setiap ada potongan teks baru,
+ * sehingga hasil per komentar bisa diproses sebelum jawaban AI selesai.
+ * Kalau server tidak mendukung streaming, jawaban biasa diteruskan sekali di akhir.
+ */
+export async function chatStream(
+  api: Settings["api"],
+  system: string,
+  user: string,
+  onText: (chunk: string) => void,
+): Promise<StreamResult> {
+  const base = trimBase(api.baseUrl);
+  const started = Date.now();
+  const ctrl = new AbortController();
+  let timer = setTimeout(() => ctrl.abort(), api.timeoutMs);
+  const resetIdle = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => ctrl.abort(), api.timeoutMs);
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers: headers(api.apiKey),
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        model: api.model,
+        temperature: 0,
+        stream: true,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if ((e as Error).name === "AbortError") throw new ApiError(`Tidak ada respons dalam ${Math.round(api.timeoutMs / 1000)} detik`, undefined, true);
+    throw new ApiError(`Tidak bisa terhubung ke ${new URL(base).host}: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    clearTimeout(timer);
+    throw new ApiError(`HTTP ${res.status}: ${await errorText(res)}`, res.status);
+  }
+
+  let content = "";
+  let ttftMs = 0;
+  const push = (t: string) => {
+    if (!t) return;
+    if (!ttftMs) ttftMs = Date.now() - started;
+    content += t;
+    onText(t);
+  };
+
+  try {
+    if (!(res.headers.get("content-type") ?? "").includes("event-stream") || !res.body) {
+      const data = await res.json();
+      push(data.choices?.[0]?.message?.content ?? data.choices?.[0]?.text ?? "");
+    } else {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        resetIdle();
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (payload === "[DONE]") continue;
+          try {
+            const j = JSON.parse(payload);
+            push(j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.text ?? "");
+          } catch {
+            /* potongan SSE tidak lengkap */
+          }
+        }
+      }
+    }
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw new ApiError(`Respons berhenti lebih dari ${Math.round(api.timeoutMs / 1000)} detik`, undefined, true);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!content) throw new ApiError("Respons AI kosong");
+  return { content, latencyMs: Date.now() - started, ttftMs };
+}

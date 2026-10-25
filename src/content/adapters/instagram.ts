@@ -56,4 +56,5 @@ export const instagram: Adapter = {
     el.querySelector<HTMLElement>('svg[aria-label*="option" i], svg[aria-label*="opsi" i]')?.closest<HTMLElement>('[role="button"], button') ?? null,
   reportReason: (c) =>
     c === "judol" || c === "spam" ? "Spam" : c === "scam" || c === "phishing" ? "Penipuan atau kecurangan" : genericReason(c),
+  isPostPage: (url) => /^\/(p|reel|reels)\//.test(url.pathname),
 };

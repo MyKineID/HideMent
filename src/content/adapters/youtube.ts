@@ -26,4 +26,5 @@ export const youtube: Adapter = {
             : c === "aman"
               ? genericReason(c)
               : "Pelecehan atau penindasan",
+  isPostPage: (url) => /^\/(watch|shorts\/)/.test(url.pathname),
 };

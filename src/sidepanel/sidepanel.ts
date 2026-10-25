@@ -1,5 +1,5 @@
 import { CATEGORY_LABEL, type QueueItem } from "../core/types";
-import { send, type BroadcastMsg, type ReportResult } from "../shared/messages";
+import { send, type BroadcastMsg, type ReportResult, type ScanProgress, type TabMsg } from "../shared/messages";
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
 import { $, download } from "../shared/dom";
 import { hydrateIcons, pixelIcon } from "../shared/pixel-icons";
@@ -207,7 +207,36 @@ $("#exportCsv").addEventListener("click", () => {
   download(`tempest-antrian-${Date.now()}.csv`, "﻿" + [head.join(","), ...rows].join("\n"), "text/csv");
 });
 
-chrome.runtime.onMessage.addListener((msg: BroadcastMsg) => {
+let scanTab: number | undefined;
+let scanning = false;
+const scanBtn = $<HTMLButtonElement>("#fastScan");
+scanBtn.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (scanning && scanTab !== undefined) {
+    chrome.tabs.sendMessage(scanTab, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
+    return;
+  }
+  if (tab?.id === undefined) return;
+  scanTab = tab.id;
+  const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
+  if (!r?.ok) scanBtn.textContent = r?.note ?? "Buka postingan YouTube / IG / TikTok / X dulu";
+});
+
+chrome.runtime.onMessage.addListener((msg: BroadcastMsg | ScanProgress, sender) => {
+  if (msg.type === "scanProgress") {
+    if (scanTab !== undefined && sender.tab?.id !== scanTab) return;
+    scanTab = sender.tab?.id;
+    scanning = msg.state === "running";
+    scanBtn.textContent = scanning
+      ? `■ Stop · ${msg.loaded} komentar dimuat`
+      : msg.state === "error"
+        ? (msg.note ?? "Gagal memindai")
+        : `✓ ${msg.loaded} komentar dipindai · pindai lagi`;
+    scanBtn.classList.toggle("ghost", scanning);
+    $("#scanMeter").hidden = false;
+    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
+    return;
+  }
   if (msg.type === "queueUpdated") {
     queue = msg.queue;
     render();

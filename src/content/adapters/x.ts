@@ -15,4 +15,5 @@ export const x: Adapter = {
   },
   getMenuButton: (el) => el.querySelector<HTMLElement>('[data-testid="caret"]'),
   reportReason: (c) => (c === "judol" || c === "spam" ? "Spam" : genericReason(c)),
+  isPostPage: (url) => /\/status\/\d+/.test(url.pathname),
 };

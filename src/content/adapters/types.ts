@@ -15,6 +15,8 @@ export interface Adapter {
   getBadgeSlot(el: HTMLElement): BadgeSlot | null;
   getMenuButton(el: HTMLElement): HTMLElement | null;
   reportReason(category: Category): string;
+  /** Halaman satu postingan/video (tempat Pindai Cepat dijalankan otomatis). */
+  isPostPage(url: URL): boolean;
 }
 
 export function textOf(el: Element | null | undefined): string {

@@ -60,6 +60,7 @@ function renderModels(): void {
         prov.textContent = m.slice(0, slash + 1);
         b.append(prov, m.slice(slash + 1));
       } else b.textContent = m;
+      if (/flash-lite|flash-low|lite-preview/i.test(m)) b.append(Object.assign(document.createElement("span"), { className: "fast-tag", textContent: "CEPAT" }));
       b.addEventListener("click", async () => {
         await save({ api: { model: m } }, `Model diganti ke ${m}.`);
         renderModels();
@@ -148,6 +149,7 @@ function clampNum(input: HTMLInputElement, min: number, max: number, fallback: n
 function renderPresets(): void {
   const current = presetOf(settings);
   document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.preset === current)));
+  document.querySelectorAll<HTMLElement>("[data-scan]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.scan === settings.scan.method)));
 }
 
 function renderCategoryActions(): void {
@@ -208,6 +210,7 @@ function fillForm(): void {
   $<HTMLInputElement>("#timeout").value = String(Math.round(settings.api.timeoutMs / 1000));
   $<HTMLInputElement>("#batchSize").value = String(settings.api.batchSize);
   $<HTMLInputElement>("#concurrency").value = String(settings.api.concurrency);
+  $<HTMLInputElement>("#scanMax").value = String(settings.scan.max);
   $<HTMLInputElement>("#high").value = String(settings.thresholds.high);
   $<HTMLInputElement>("#medium").value = String(settings.thresholds.medium);
   renderMeter(settings.thresholds.high, settings.thresholds.medium);
@@ -266,7 +269,8 @@ async function init(): Promise<void> {
   const advanced: [string, number, number, number, (v: number) => DeepPartial<Settings>][] = [
     ["#timeout", 5, 180, 30, (v) => ({ api: { timeoutMs: v * 1000 } })],
     ["#batchSize", 1, 50, 20, (v) => ({ api: { batchSize: v } })],
-    ["#concurrency", 1, 6, 2, (v) => ({ api: { concurrency: v } })],
+    ["#concurrency", 1, 8, 4, (v) => ({ api: { concurrency: v } })],
+    ["#scanMax", 50, 2000, 300, (v) => ({ scan: { max: v } })],
   ];
   for (const [sel, min, max, fb, patch] of advanced) {
     $<HTMLInputElement>(sel).addEventListener("change", (e) => save(patch(clampNum(e.target as HTMLInputElement, min, max, fb))));
@@ -276,6 +280,14 @@ async function init(): Promise<void> {
     b.addEventListener("click", async () => {
       const p = b.dataset.preset as Preset;
       await save(presetPatch(p), { tandai: "Komentar berbahaya cukup ditandai.", blur: "Komentar berbahaya akan diblur.", sembunyi: "Komentar berbahaya akan disembunyikan." }[p]);
+      renderPresets();
+    }),
+  );
+
+  document.querySelectorAll<HTMLElement>("[data-scan]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const method = b.dataset.scan as Settings["scan"]["method"];
+      await save({ scan: { method } }, method === "fast" ? "Pindai Cepat aktif. Komentar postingan akan dimuat otomatis." : "Kembali ke scroll biasa.");
       renderPresets();
     }),
   );

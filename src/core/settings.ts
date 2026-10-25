@@ -23,6 +23,14 @@ export interface Settings {
     showSafeBadge: boolean;
   };
   categoryAction: Partial<Record<Category, ActionKind>>;
+  scan: {
+    /** "scroll" = analisis komentar yang terlihat saat di-scroll; "fast" = otomatis memuat & menganalisis semua komentar postingan. */
+    method: "scroll" | "fast";
+    /** Batas jumlah komentar yang dimuat Pindai Cepat. */
+    max: number;
+    /** Ikut buka balasan ("Tampilkan balasan"). */
+    replies: boolean;
+  };
   report: {
     /** Tombol "Bantu laporkan" di popover komentar. */
     assist: boolean;
@@ -41,8 +49,8 @@ export const DEFAULT_SETTINGS: Settings = {
     apiKey: "",
     model: "",
     timeoutMs: 30000,
-    batchSize: 20,
-    concurrency: 2,
+    batchSize: 8,
+    concurrency: 4,
   },
   modes: { judol: true, toxic: true },
   platforms: { youtube: true, instagram: true, tiktok: true, x: true },
@@ -55,6 +63,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showSafeBadge: false,
   },
   categoryAction: { spam: "highlight" },
+  scan: { method: "scroll", max: 300, replies: true },
   report: { assist: true, autoQueue: false },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
@@ -62,7 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "settings";
-const SCHEMA = 2;
+const SCHEMA = 3;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -83,7 +92,10 @@ export async function loadSettings(): Promise<Settings> {
   const raw = await chrome.storage.local.get([KEY, "schema"]);
   const stored = (raw[KEY] ?? {}) as Partial<Settings>;
   if (raw[KEY] && raw.schema !== SCHEMA) {
-    stored.categoryAction = { ...DEFAULT_SETTINGS.categoryAction };
+    if (!raw.schema || Number(raw.schema) < 2) stored.categoryAction = { ...DEFAULT_SETTINGS.categoryAction };
+    if (stored.api && stored.api.batchSize === 20 && stored.api.concurrency === 2) {
+      stored.api = { ...stored.api, batchSize: DEFAULT_SETTINGS.api.batchSize, concurrency: DEFAULT_SETTINGS.api.concurrency };
+    }
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
   }
   return merge(DEFAULT_SETTINGS, stored);

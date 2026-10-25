@@ -27,4 +27,5 @@ export const tiktok: Adapter = {
   getMenuButton: (el) =>
     el.querySelector<HTMLElement>('[data-e2e="comment-more-icon"], [class*="MoreIcon"], [aria-label*="more" i], [aria-label*="lainnya" i]'),
   reportReason: (c) => (c === "judol" ? "Perjudian" : c === "spam" ? "Spam" : genericReason(c)),
+  isPostPage: (url) => /\/(video|photo)\/\d+/.test(url.pathname),
 };

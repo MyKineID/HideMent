@@ -11,15 +11,26 @@ export type Msg =
   | { type: "focusComment"; tabId: number; commentId: string }
   | { type: "removeQueueItem"; key: string }
   | { type: "startReport"; key: string }
-  | { type: "setReportStatus"; key: string; status: ReportStatus };
+  | { type: "setReportStatus"; key: string; status: ReportStatus }
+  | ScanProgress;
 
 export type TabMsg =
   | { type: "verdicts"; verdicts: Verdict[] }
   | { type: "focusComment"; commentId: string }
   | { type: "reportComment"; commentId: string; verdict: Verdict }
+  | { type: "fastScan" }
+  | { type: "stopScan" }
   | { type: "rescan" };
 
 export type BroadcastMsg = { type: "queueUpdated"; queue: QueueItem[] };
+
+export interface ScanProgress {
+  type: "scanProgress";
+  state: "running" | "done" | "stopped" | "error";
+  loaded: number;
+  max: number;
+  note?: string;
+}
 
 /** Sampai tahap mana alur lapor otomatis berjalan sebelum diserahkan ke pengguna. */
 export type ReportStage = "reason" | "dialog" | "menu" | "none";
@@ -37,6 +48,7 @@ export interface StatusInfo {
   requests: number;
   failures: number;
   lastLatencyMs: number;
+  lastTtftMs: number;
   lastError: string;
 }
 

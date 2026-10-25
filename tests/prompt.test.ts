@@ -34,3 +34,16 @@ describe("parse respons AI", () => {
     expect(v).toEqual([expect.objectContaining({ id: "1", category: "ancaman", score: 100 })]);
   });
 });
+
+describe("format JSON Lines (streaming)", () => {
+  it("membaca satu verdict per baris", () => {
+    const text = '{"i":"1","k":"judol","s":95,"a":"promosi slot"}\n{"i":"2","k":"aman","s":5,"a":"kritik"}\n';
+    const v = parseAiResponse(text, ["1", "2"], both);
+    expect(v.map((x) => x.category)).toEqual(["judol", "aman"]);
+  });
+
+  it("mengabaikan code fence & baris yang belum lengkap", () => {
+    const text = '```jsonl\n{"i":"1","k":"hinaan","s":80,"a":"x"}\n{"i":"2","k":"sa';
+    expect(parseAiResponse(text, ["1", "2"], both)).toHaveLength(1);
+  });
+});

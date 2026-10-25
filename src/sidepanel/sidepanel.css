@@ -58,3 +58,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .rtag.skipped { color: var(--dim); }
 .item.reporting { outline: 2px solid var(--red-soft); outline-offset: 2px; }
 .item-actions { flex-wrap: wrap; }
+
+.scanrow { display: flex; align-items: center; gap: 10px; }
+.scan-meter { width: 70px; height: 14px; padding: 2px; background: var(--ink-2); border: 2px solid var(--line-hi); }
+.scan-meter i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--cyan) 0 6px, transparent 6px 8px); }

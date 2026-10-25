@@ -10,7 +10,7 @@ body > * + * { margin-top: 14px; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--panel); border: 2px solid var(--line-hi); box-shadow: 4px 4px 0 var(--shadow); }
 .stat { padding: 10px 4px 8px; text-align: center; }
 .stat + .stat { border-left: 2px dashed var(--line); }
-.stat b { display: block; font: 700 24px/1 var(--px); color: var(--cyan); }
+.stat b { display: block; font: 18px/1.1 var(--num); color: var(--cyan); }
 .stat span { display: block; margin-top: 4px; font: 500 10px var(--px); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .stat.high b { color: var(--red-soft); }
 .stat.mid b { color: var(--amber); }
@@ -40,8 +40,11 @@ body > * + * { margin-top: 14px; }
 .actions { display: flex; gap: 10px; padding-top: 2px; }
 
 .scan { display: grid; gap: 8px; }
-.scan .btn { width: 100%; }
-.scan-prog { display: flex; align-items: center; gap: 10px; font: 500 12px var(--px); color: var(--muted); }
+#fastScan.busy { --bg: var(--panel-3); --fg: var(--cyan); filter: none; cursor: progress; }
+#fastScan.busy .pxi { animation: blink 0.8s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.2; } }
+.scan-prog { display: flex; align-items: center; gap: 10px; font: 500 12px var(--px); color: var(--text); }
+.scan-prog b { font: 9px var(--num); color: var(--cyan); }
 .scan-prog span:first-child { flex: 1; }
 .scan-meter { width: 80px; height: 12px; padding: 2px; background: var(--ink-2); border: 2px solid var(--line-hi); }
 .scan-meter i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--cyan) 0 6px, transparent 6px 8px); }

@@ -16,9 +16,10 @@
       <span class="total" id="total"></span>
     </div>
     <div class="scanrow">
-      <button id="fastScan" class="btn sm grow" type="button">⚡ Pindai semua komentar di tab ini</button>
-      <span class="scan-meter" id="scanMeter" hidden><i id="scanFill"></i></span>
+      <button id="fastScan" class="btn sm grow" type="button"><span data-icon="bolt" data-size="14"></span><span class="lbl">Pindai semua komentar</span></button>
+      <button id="stopScan" class="btn danger sm icon" type="button" title="Hentikan pemindaian" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
     </div>
+    <div class="scanstat"><span id="scanStatus" class="scan-status" hidden></span><span class="scan-meter" id="scanMeter" hidden><i id="scanFill"></i></span></div>
     <div class="seg" id="modeFilter">
       <button data-v="all" aria-pressed="true" type="button">Semua</button>
       <button data-v="judol" aria-pressed="false" type="button" class="red">Judol</button>
@@ -35,7 +36,7 @@
         <option value="sedang">Sedang</option>
       </select>
       <select id="sort" aria-label="Urutan">
-        <option value="risk">Risiko ↓</option>
+        <option value="risk">Risiko tertinggi</option>
         <option value="time">Terbaru</option>
       </select>
     </div>
@@ -43,13 +44,13 @@
       <div class="rbar-idle" id="rIdle">
         <span data-icon="flag" data-size="16" class="r-ico"></span>
         <div class="grow"><b>Antrian lapor</b><small id="rCount"></small></div>
-        <button id="rNext" class="btn danger sm" type="button">▶ Lapor berikutnya</button>
+        <button id="rNext" class="btn danger sm" type="button"><span data-icon="play" data-size="12"></span>Lapor berikutnya</button>
       </div>
       <div class="rbar-active" id="rActive" hidden>
-        <div class="r-head"><span class="tag tinggi">Melapor</span><b id="rTarget" class="grow"></b><button id="rStop" class="r-stop" type="button" aria-label="Hentikan sesi lapor">×</button></div>
+        <div class="r-head"><span class="tag tinggi">Melapor</span><b id="rTarget" class="grow"></b><button id="rStop" class="r-stop" type="button" aria-label="Hentikan sesi lapor" title="Hentikan sesi lapor"><span data-icon="close" data-size="12"></span></button></div>
         <p id="rNote" class="r-note"></p>
         <div class="r-actions">
-          <button id="rDone" class="btn ghost sm grow" type="button">Tandai sudah, lanjut</button>
+          <button id="rDone" class="btn ghost sm grow" type="button"><span data-icon="check" data-size="12"></span>Tandai sudah, lanjut</button>
           <button id="rSkip" class="btn ghost sm" type="button">Lewati</button>
         </div>
       </div>
@@ -83,10 +84,10 @@
       <p class="text"></p>
       <p class="reason"></p>
       <div class="item-actions">
-        <button class="btn danger sm" data-a="report" type="button">Lapor</button>
-        <button class="btn ghost sm" data-a="focus" type="button">Lihat</button>
-        <button class="btn ghost sm" data-a="copy" type="button">Salin</button>
-        <button class="btn ghost sm" data-a="done" type="button">Selesai</button>
+        <button class="btn danger sm" data-a="report" type="button"><span data-icon="flag" data-size="12"></span><span class="lbl">Lapor</span></button>
+        <button class="btn ghost sm" data-a="focus" type="button"><span data-icon="eye" data-size="12"></span><span class="lbl">Lihat</span></button>
+        <button class="btn ghost sm" data-a="copy" type="button"><span data-icon="copy" data-size="12"></span><span class="lbl">Salin</span></button>
+        <button class="btn ghost sm" data-a="done" type="button"><span data-icon="check" data-size="12"></span><span class="lbl">Selesai</span></button>
       </div>
     </article>
   </template>

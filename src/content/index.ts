@@ -151,6 +151,29 @@ function scheduleAutoScan(): void {
   autoScanTimer = setTimeout(() => void scanner?.run(), 1800);
 }
 
+/** Cari komentar: lewat id dulu, lalu teksnya. Kalau sudah dihapus dari DOM (X/TikTok), gulir halaman untuk mencarinya. */
+async function findComment(id: string, text: string): Promise<HTMLElement | null> {
+  if (!adapter) return null;
+  const byId = elements.get(id);
+  if (byId?.isConnected) return byId;
+  const needle = text.trim().slice(0, 120);
+  const byText = () => adapter.findComments(document).find((el) => adapter.getText(el).startsWith(needle)) ?? null;
+  let hit = byText();
+  if (hit) return hit;
+  const startY = scrollY;
+  window.scrollTo({ top: 0 });
+  for (let i = 0; i < 40 && !hit; i++) {
+    await new Promise((r) => setTimeout(r, 300));
+    hit = byText();
+    if (hit) break;
+    const before = scrollY;
+    window.scrollBy(0, innerHeight * 0.8);
+    if (scrollY === before) break;
+  }
+  if (!hit) window.scrollTo({ top: startY });
+  return hit;
+}
+
 function scheduleScan(): void {
   if (scanTimer) return;
   scanTimer = setTimeout(() => {
@@ -206,8 +229,11 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
   if (msg.type === "stopScan") scanner?.stop();
   if (msg.type === "verdicts") msg.verdicts.forEach(applyOne);
   if (msg.type === "focusComment") {
-    const el = elements.get(msg.commentId);
-    if (el?.isConnected) focusElement(el);
+    void findComment(msg.commentId, msg.text).then((el) => {
+      if (el) focusElement(el);
+      sendResponse(Boolean(el));
+    });
+    return true;
   }
   if (msg.type === "rescan") {
     verdicts.clear();

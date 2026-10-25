@@ -1,3 +1,4 @@
+@font-face { font-family: "TempestNum"; src: url("chrome-extension://__MSG_@@extension_id__/assets/fonts/pxnum.woff2") format("woff2"); font-display: swap; }
 @font-face { font-family: "TempestPixel"; src: url("chrome-extension://__MSG_@@extension_id__/assets/fonts/pixelify-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 /* ── chip badge: [LEVEL │ Kategori │ skor ▮▮▮▯▯] ───────────── */
 .rg-chiprow { display: flex !important; margin: 2px 0 6px !important; }
@@ -30,9 +31,9 @@
 .rg-b-lvl { text-transform: uppercase; letter-spacing: 0.08em; color: #fff; background: #e0283a; }
 .rg-b-cat { color: #ffd1d6; border-left: 2px solid #000; }
 .rg-b-score { gap: 5px; color: #ff7b86; background: #07080d; border-left: 2px solid #000; }
-.rg-b-num { min-width: 14px; text-align: right; }
+.rg-b-num { min-width: 14px; text-align: right; font: 9px/1 "TempestNum", ui-monospace, monospace; color: #fff; }
 .rg-b-meter { display: flex; gap: 1px; }
-.rg-b-meter > span { width: 3px; height: 8px; background: #262c3d; }
+.rg-b-meter > span { width: 3px; height: 8px; background: #3a4560; }
 .rg-b-meter > span.on { background: currentColor; }
 
 .rg-p-sedang .rg-b-lvl { color: #07080d; background: #f5a524; }
@@ -55,6 +56,7 @@
 .rg-revealed { filter: none !important; }
 
 .rg-hidden-host { display: none !important; }
+.rg-hidden-bar span::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; background: #ff7b86; }
 .rg-hidden-bar {
   display: flex;
   align-items: center;
@@ -98,7 +100,8 @@
 }
 .rg-pop * { box-sizing: border-box; }
 .rg-pop-name { position: absolute; top: -11px; left: 12px; padding: 2px 8px; font: 600 11px/1.2 "TempestPixel", ui-monospace, monospace; letter-spacing: 0.12em; color: #07080d; background: #5ce1e6; }
-.rg-pop-x { all: unset; position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 20px; height: 20px; font: 600 16px/1 "TempestPixel", ui-monospace, monospace; color: #8b93a7; cursor: pointer; }
+.rg-pop-x { all: unset; position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 20px; height: 20px; color: #8b93a7; cursor: pointer; }
+.rg-pop-x svg { display: block; }
 .rg-pop-x:hover { color: #07080d; background: #ff7b86; }
 
 .rg-pop-head { display: flex; align-items: center; gap: 8px; padding-right: 24px; }
@@ -111,11 +114,11 @@
 
 .rg-pop-scorebar { display: flex; align-items: center; gap: 10px; margin: 12px 0 12px; }
 .rg-pop-meter { display: flex; flex: 1; gap: 2px; padding: 2px; color: #ff7b86; background: #07080d; border: 2px solid #262c3d; }
-.rg-pop-meter > span { flex: 1; height: 8px; background: #1a1f2c; }
+.rg-pop-meter > span { flex: 1; height: 8px; background: #262c3d; }
 .rg-pop-meter > span.on { background: currentColor; }
 .rg-pop.rg-p-sedang .rg-pop-meter { color: #f5a524; }
 .rg-pop.rg-p-aman .rg-pop-meter { color: #5ce1e6; }
-.rg-pop-num { font: 600 13px/1 "TempestPixel", ui-monospace, monospace; color: #e8ecf5; }
+.rg-pop-num { font: 10px/1 "TempestNum", ui-monospace, monospace; color: #fff; white-space: nowrap; }
 
 .rg-pop-rows { display: grid; grid-template-columns: 58px 1fr; gap: 6px 10px; margin: 0; padding: 10px 0 0; border-top: 2px dashed #262c3d; }
 .rg-pop-rows dt { margin: 0; font: 600 11px/1.6 "TempestPixel", ui-monospace, monospace; letter-spacing: 0.06em; text-transform: uppercase; color: #5b6377; }
@@ -185,6 +188,7 @@
 }
 .rg-sb-name { position: absolute; top: -11px; left: 12px; padding: 2px 8px; font: 600 11px/1.2 "TempestPixel", ui-monospace, monospace; letter-spacing: 0.12em; color: #07080d; background: #5ce1e6; }
 .rg-sb-text { flex: 1; white-space: nowrap; font: 600 13px/1.2 "TempestPixel", ui-monospace, monospace; }
+.rg-sb-text b { font: 10px/1 "TempestNum", ui-monospace, monospace; color: #5ce1e6; }
 .rg-sb-meter { width: 90px; height: 12px; padding: 2px; background: #07080d; border: 2px solid #262c3d; }
 .rg-sb-meter i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, #5ce1e6 0 6px, transparent 6px 8px); transition: width 0.2s steps(4); }
 .rg-scanbar[data-state="done"] { border-color: #5ce1e6; }

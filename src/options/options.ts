@@ -34,7 +34,7 @@ function renderConnTag(state?: "ok" | "err"): void {
     tag.textContent = "Gagal terhubung";
   } else if (configured) {
     tag.className = "tag ok";
-    tag.textContent = "● Terhubung";
+    tag.textContent = "Terhubung";
   } else {
     tag.className = "tag off";
     tag.textContent = "Belum terhubung";
@@ -124,11 +124,11 @@ async function testApi(): Promise<void> {
   const ticker = setInterval(() => (out.textContent = `Menunggu jawaban model… ${++waited} dtk`), 1000);
   try {
     const r = await send<{ latencyMs: number }>({ type: "testConnection" });
-    out.textContent = `✓ ${settings.api.model} · ${r.latencyMs} ms`;
+    out.textContent = `Berhasil · ${settings.api.model} · ${r.latencyMs} ms`;
     renderConnTag();
     tell(`Model merespons dalam ${r.latencyMs} ms. Siap menganalisis komentar.`);
   } catch (e) {
-    out.textContent = "✗ gagal";
+    out.textContent = "Gagal";
     renderConnTag("err");
     tell((e as Error).message, "err");
   } finally {

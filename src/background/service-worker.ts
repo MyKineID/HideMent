@@ -178,10 +178,14 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
     case "clearCache":
       await clearCache();
       return true;
-    case "focusComment":
-      await chrome.tabs.update(msg.tabId, { active: true });
-      sendToTab(msg.tabId, { type: "focusComment", commentId: msg.commentId });
-      return true;
+    case "focusComment": {
+      const tab = await chrome.tabs.update(msg.tabId, { active: true });
+      if (tab?.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
+      const found = await chrome.tabs
+        .sendMessage(msg.tabId, { type: "focusComment", commentId: msg.commentId, text: msg.text } satisfies TabMsg)
+        .catch(() => false);
+      return Boolean(found);
+    }
     case "getStatus": {
       const tabId = msg.tabId ?? sender.tab?.id;
       const info: StatusInfo = {

@@ -143,7 +143,7 @@ export async function runReportFlow(el: HTMLElement, adapter: Adapter, v: Verdic
 
   const menuBtn = adapter.getMenuButton(el);
   if (!menuBtn) {
-    toast("Bantu laporkan", 'Menu ⋯ komentar ini tidak ditemukan. Buka manual lalu pilih "Laporkan".', label);
+    toast("Bantu laporkan", 'Menu titik tiga komentar ini tidak ditemukan. Buka manual lalu pilih "Laporkan".', label);
     return { stage: "none", reason, note: "Tombol menu tidak ditemukan" };
   }
   menuBtn.click();
@@ -169,7 +169,7 @@ export async function runReportFlow(el: HTMLElement, adapter: Adapter, v: Verdic
     if (option) {
       option.click();
       mark(option);
-      picked = picked ? `${picked} → ${textOf(option)}` : textOf(option);
+      picked = picked ? `${picked} / ${textOf(option)}` : textOf(option);
       await sleep(250);
     }
 

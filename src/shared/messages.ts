@@ -8,7 +8,7 @@ export type Msg =
   | { type: "clearQueue" }
   | { type: "clearCache" }
   | { type: "getStatus"; tabId?: number }
-  | { type: "focusComment"; tabId: number; commentId: string }
+  | { type: "focusComment"; tabId: number; commentId: string; text: string }
   | { type: "removeQueueItem"; key: string }
   | { type: "startReport"; key: string }
   | { type: "setReportStatus"; key: string; status: ReportStatus }
@@ -17,7 +17,7 @@ export type Msg =
 
 export type TabMsg =
   | { type: "verdicts"; verdicts: Verdict[] }
-  | { type: "focusComment"; commentId: string }
+  | { type: "focusComment"; commentId: string; text: string }
   | { type: "reportComment"; commentId: string; verdict: Verdict }
   | { type: "fastScan" }
   | { type: "stopScan" }

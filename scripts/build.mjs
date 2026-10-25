@@ -33,6 +33,7 @@ async function copyStatic() {
   for (const w of [400, 500, 600, 700]) {
     await cp(`${FONT_DIR}/pixelify-sans-latin-${w}-normal.woff2`, `${OUT}/assets/fonts/pixelify-${w}.woff2`);
   }
+  await cp("node_modules/@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2", `${OUT}/assets/fonts/pxnum.woff2`);
   if (!existsSync("static/assets/raphael-pixel.png")) {
     console.log("ℹ static/assets/raphael-pixel.png belum ada — jalankan scripts/make-portrait.py");
   }

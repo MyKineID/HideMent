@@ -4,6 +4,8 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .t-ico { color: var(--cyan); }
 .title-row h1 { font-size: 20px; flex: 1; }
 .total { font: 500 12px var(--px); color: var(--muted); }
+.total b, #highTag b { font: 9px var(--num); color: var(--text); margin-right: 4px; }
+#highTag b { color: inherit; }
 .seg { box-shadow: 3px 3px 0 var(--shadow); }
 .filters { display: flex; gap: 8px; }
 .filters .psel { flex: none; }
@@ -19,7 +21,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .cat { flex: 1; font: 600 15px var(--px); }
 .item.judol .cat { color: var(--red-soft); }
 .item.toxic .cat { color: #9fd3ff; }
-.score { min-width: 36px; padding: 2px 6px 3px; font: 700 15px var(--px); text-align: center; color: var(--ink); background: var(--amber); }
+.score { min-width: 38px; padding: 5px 6px 4px; font: 11px/1 var(--num); text-align: center; color: var(--ink); background: var(--amber); }
 .item.tinggi .score { background: var(--red-soft); }
 .meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--muted); overflow: hidden; white-space: nowrap; }
 .plat-ico { color: var(--dim); }
@@ -28,7 +30,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .text { margin: 10px 0 8px; padding: 8px 10px; font-size: 13px; background: var(--ink-2); border: 2px solid var(--line); white-space: pre-wrap; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
 .text.open { display: block; }
 .reason { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
-.reason::before { content: "▸ "; color: var(--cyan); }
+.reason::before { content: ""; display: inline-block; width: 4px; height: 8px; margin-right: 6px; background: var(--cyan); clip-path: polygon(0 0, 100% 50%, 0 100%); }
 .item-actions { display: flex; gap: 10px; }
 
 .empty { flex: 1; display: grid; align-content: center; justify-items: center; gap: 20px; padding: 24px; }
@@ -45,7 +47,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .rbar small { display: block; font-size: 12px; color: var(--muted); }
 .r-head { display: flex; align-items: center; gap: 8px; }
 .r-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 13px var(--sans); }
-.r-stop { width: 22px; height: 22px; padding: 0 0 2px; font: 700 16px/1 var(--px); color: var(--muted); background: var(--panel-3); border: 2px solid var(--line-hi); cursor: pointer; }
+.r-stop { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--muted); background: var(--panel-3); border: 2px solid var(--line-hi); cursor: pointer; }
 .r-stop:hover { color: var(--ink); background: var(--red-soft); }
 .r-note { margin: 8px 0 10px; font-size: 12px; color: var(--text); }
 .r-note.err { color: var(--red-soft); }
@@ -60,5 +62,12 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .item-actions { flex-wrap: wrap; }
 
 .scanrow { display: flex; align-items: center; gap: 10px; }
+.scanstat { display: flex; align-items: center; gap: 10px; min-height: 0; }
+.scanstat:has(> :not([hidden])) { min-height: 16px; }
+.scan-status { flex: 1; font: 500 12px var(--px); color: var(--muted); }
+.scan-status b { font: 9px var(--num); color: var(--cyan); margin-right: 6px; }
+#fastScan.busy { --bg: var(--panel-3); --fg: var(--cyan); filter: none; cursor: progress; }
+#fastScan.busy .pxi { animation: blink 0.8s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.2; } }
 .scan-meter { width: 70px; height: 14px; padding: 2px; background: var(--ink-2); border: 2px solid var(--line-hi); }
 .scan-meter i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--cyan) 0 6px, transparent 6px 8px); }

@@ -23,7 +23,10 @@
   </section>
 
   <section class="block scan" id="scanBlock" hidden>
-    <button id="fastScan" class="btn danger grow" type="button">⚡ Pindai semua komentar</button>
+    <div class="row">
+      <button id="fastScan" class="btn danger grow" type="button"><span data-icon="bolt" data-size="14"></span><span class="lbl">Pindai semua komentar</span></button>
+      <button id="stopScan" class="btn ghost icon" type="button" title="Hentikan pemindaian" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
+    </div>
     <div class="scan-prog" id="scanProg" hidden><span id="scanText"></span><span class="scan-meter"><i id="scanFill"></i></span></div>
   </section>
 
@@ -56,7 +59,7 @@
   </div>
 
   <footer class="actions">
-    <button id="openPanel" class="btn grow" type="button"><span data-icon="queue" data-size="14"></span>Antrian</button>
+    <button id="openPanel" class="btn grow" type="button"><span data-icon="queue" data-size="14"></span>Buka antrian</button>
     <button id="rescan" class="btn ghost icon" type="button" title="Pindai ulang halaman" aria-label="Pindai ulang"><span data-icon="refresh" data-size="16"></span></button>
     <button id="openOptions" class="btn ghost icon" type="button" title="Pengaturan" aria-label="Pengaturan"><span data-icon="gear" data-size="16"></span></button>
   </footer>

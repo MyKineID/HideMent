@@ -67,13 +67,14 @@ export class FastScanner {
     }
     const done = p.state !== "running";
     this.bar.dataset.state = p.state;
-    this.bar.querySelector(".rg-sb-text")!.textContent = done
-      ? p.state === "stopped"
-        ? `Dihentikan · ${p.loaded} komentar dipindai`
-        : p.state === "error"
-          ? p.note ?? "Komentar tidak ditemukan"
-          : `Selesai · ${p.loaded} komentar dipindai`
-      : `Memindai komentar… ${p.loaded}`;
+    const text = this.bar.querySelector<HTMLElement>(".rg-sb-text")!;
+    if (p.state === "error") text.textContent = p.note ?? "Komentar tidak ditemukan";
+    else {
+      text.textContent = p.state === "running" ? "Memindai komentar " : p.state === "stopped" ? "Dihentikan · " : "Selesai · ";
+      const b = document.createElement("b");
+      b.textContent = String(p.loaded);
+      text.append(b, p.state === "running" ? "" : " komentar");
+    }
     this.bar.querySelector<HTMLElement>(".rg-sb-meter i")!.style.width = `${Math.min(100, (p.loaded / p.max) * 100)}%`;
     this.bar.querySelector("button")!.hidden = done;
     if (done) {

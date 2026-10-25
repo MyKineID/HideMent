@@ -67,7 +67,7 @@ async function init(): Promise<void> {
 
     let line: [string, "ok" | "err" | "info"];
     if (!settings.enabled) line = ["Tempest sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
-    else if (!st.configured) line = ["AI belum terhubung, baru deteksi judol lokal yang aktif. Atur di ⚙.", "err"];
+    else if (!st.configured) line = ["AI belum terhubung, baru deteksi judol lokal yang aktif. Atur lewat tombol pengaturan di bawah.", "err"];
     else if (st.lastError) line = [st.lastError, "err"];
     else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.`, "ok"];
     else line = [`Siap. Model ${st.model}${st.lastTtftMs ? ` · hasil pertama ${(st.lastTtftMs / 1000).toFixed(1)} dtk` : ""}.`, "ok"];
@@ -85,26 +85,27 @@ async function init(): Promise<void> {
     if (tab?.windowId !== undefined) await chrome.sidePanel.open({ windowId: tab.windowId });
     window.close();
   });
-  let scanning = false;
   const scanBtn = $<HTMLButtonElement>("#fastScan");
+  const stopBtn = $<HTMLButtonElement>("#stopScan");
   scanBtn.addEventListener("click", async () => {
-    if (tab?.id === undefined) return;
-    if (scanning) {
-      chrome.tabs.sendMessage(tab.id, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
-      return;
-    }
+    if (tab?.id === undefined || scanBtn.disabled) return;
     const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
     if (!r?.ok) say(dlg, r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.", "err");
   });
+  stopBtn.addEventListener("click", () => {
+    if (tab?.id !== undefined) chrome.tabs.sendMessage(tab.id, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
+  });
   chrome.runtime.onMessage.addListener((msg: ScanProgress, sender) => {
     if (msg.type !== "scanProgress" || sender.tab?.id !== tab?.id) return;
-    scanning = msg.state === "running";
-    scanBtn.textContent = scanning ? "■ Hentikan pemindaian" : "⚡ Pindai semua komentar";
-    scanBtn.classList.toggle("danger", !scanning);
-    scanBtn.classList.toggle("ghost", scanning);
+    const running = msg.state === "running";
+    scanBtn.disabled = running;
+    scanBtn.classList.toggle("busy", running);
+    scanBtn.querySelector(".lbl")!.textContent = running ? "Memindai komentar…" : "Pindai semua komentar";
+    stopBtn.hidden = !running;
     $("#scanProg").hidden = false;
-    $("#scanText").textContent =
-      msg.state === "running" ? `Memuat… ${msg.loaded} komentar` : msg.state === "error" ? (msg.note ?? "Gagal") : `Selesai · ${msg.loaded} komentar`;
+    const text = $("#scanText");
+    if (msg.state === "error") text.textContent = msg.note ?? "Gagal memindai";
+    else text.innerHTML = `<b>${msg.loaded}</b> ${running ? "komentar dimuat" : msg.state === "stopped" ? "dipindai · dihentikan" : "komentar dipindai"}`;
     $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
   });
 

@@ -2,6 +2,7 @@ import { priorityOf, type ActionKind, type Settings } from "../core/settings";
 import { CATEGORY_LABEL, type Priority, type Verdict } from "../core/types";
 import type { Adapter } from "./adapters/types";
 import { runReportFlow } from "./report-helper";
+import { pixelIcon } from "../shared/pixel-icons";
 
 const MARK_CLASSES = ["rg-hl-tinggi", "rg-hl-sedang", "rg-hl-aman", "rg-hidden-host"];
 const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan lokal", ai: "AI · 9router", cache: "AI (cache)" };
@@ -80,7 +81,7 @@ function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLEle
   pop.setAttribute("role", "dialog");
   pop.innerHTML = `
     <div class="rg-pop-name">TEMPEST</div>
-    <button type="button" class="rg-pop-x" data-a="close" aria-label="Tutup">×</button>
+    <button type="button" class="rg-pop-x" data-a="close" aria-label="Tutup">${pixelIcon("close", 12)}</button>
     <div class="rg-pop-head"><span class="rg-pop-lvl"></span><span class="rg-pop-title"></span></div>
     <div class="rg-pop-scorebar"><span class="rg-pop-num"></span></div>
     <dl class="rg-pop-rows">
@@ -142,7 +143,7 @@ function applyHide(el: HTMLElement, v: Verdict): void {
   const bar = document.createElement("div");
   bar.className = "rg-hidden-bar";
   bar.innerHTML = `<span></span><button type="button">Tampilkan</button>`;
-  bar.querySelector("span")!.textContent = `■ Disembunyikan · ${CATEGORY_LABEL[v.category]} · ${v.score}`;
+  bar.querySelector("span")!.textContent = `Disembunyikan · ${CATEGORY_LABEL[v.category]} · ${v.score}`;
   bar.querySelector("button")!.addEventListener("click", (e) => {
     e.stopPropagation();
     el.classList.remove("rg-hidden-host");

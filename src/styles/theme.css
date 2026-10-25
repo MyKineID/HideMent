@@ -2,6 +2,8 @@
 @font-face { font-family: "Pixelify"; src: url("../assets/fonts/pixelify-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Pixelify"; src: url("../assets/fonts/pixelify-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Pixelify"; src: url("../assets/fonts/pixelify-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+/* Angka pakai Press Start 2P: digit 5 / 8 / S jelas berbeda, berbeda dengan Pixelify. */
+@font-face { font-family: "PxNum"; src: url("../assets/fonts/pxnum.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 
 :root {
   color-scheme: dark;
@@ -25,6 +27,7 @@
   --dim: #5b6377;
   --shadow: #000;
   --px: "Pixelify", ui-monospace, monospace;
+  --num: "PxNum", ui-monospace, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
 }
@@ -41,6 +44,8 @@ body {
   background-size: 4px 4px;
   -webkit-font-smoothing: antialiased;
 }
+
+.num { font-family: var(--num) !important; font-weight: 400 !important; letter-spacing: 0; }
 
 h1, h2, h3, .px-font { font-family: var(--px); font-weight: 600; letter-spacing: 0.02em; margin: 0; }
 

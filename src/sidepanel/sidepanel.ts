@@ -74,7 +74,7 @@ async function startReport(it: QueueItem): Promise<void> {
       submit: `Alasan "${r.reason}" sudah dipilih dan tombol kirim sudah difokuskan. Tekan Enter atau klik Kirim di halaman. Tempest lanjut otomatis setelah itu.`,
       reason: `Alasan "${r.reason}" sudah dipilih. Periksa di halaman, tekan Berikutnya / Kirim, lalu klik "Sudah dilapor".`,
       dialog: `Form laporan sudah terbuka. Pilih alasan "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
-      menu: `Menu sudah dibuka. Pilih "Laporkan" → "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
+      menu: `Menu sudah dibuka. Pilih "Laporkan", lalu "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
       none: r.note || "Tidak bisa membuka menu laporan otomatis.",
     }[r.stage];
     setNote(msg, r.stage === "none");
@@ -95,50 +95,111 @@ async function finishReport(status: "done" | "skipped"): Promise<void> {
   else render();
 }
 
+/* Kartu dipakai ulang per kunci (bukan dibuat ulang) supaya tombol yang sedang diklik tidak terganti
+   saat antrian diperbarui setiap beberapa ratus milidetik ketika memindai. */
+const nodes = new Map<string, HTMLElement>();
+let pointerDown = false;
+let renderPending = false;
+
+function setText(el: Element | null, text: string): void {
+  if (el && el.textContent !== text) el.textContent = text;
+}
+
+function makeNode(it: QueueItem): HTMLElement {
+  const node = tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
+  node.dataset.key = it.key;
+  const plat = node.querySelector<HTMLElement>(".plat-ico")!;
+  plat.innerHTML = pixelIcon(it.platform, 12);
+  plat.title = PLATFORM_LABEL[it.platform];
+  const text = node.querySelector<HTMLElement>(".text")!;
+  text.addEventListener("click", () => text.classList.toggle("open"));
+  hydrateIcons(node);
+  return node;
+}
+
+function fillNode(node: HTMLElement, it: QueueItem): void {
+  node.className = `item ${it.priority} ${it.verdict.mode}${it.key === reportingKey ? " reporting" : ""}`;
+  const prio = node.querySelector<HTMLElement>(".prio")!;
+  prio.className = `tag prio ${it.priority}`;
+  setText(prio, it.priority === "tinggi" ? "Tinggi" : "Sedang");
+  setText(node.querySelector(".cat"), CATEGORY_LABEL[it.verdict.category]);
+  setText(node.querySelector(".score"), String(it.verdict.score));
+  setText(node.querySelector(".author"), it.author ? `@${it.author}` : "anonim");
+  setText(node.querySelector(".time"), ago(it.at));
+  setText(node.querySelector(".text"), it.text);
+  setText(node.querySelector(".reason"), `${it.verdict.reason || "—"} (${it.verdict.source === "rule" ? "aturan lokal" : "AI"})`);
+  const rtag = node.querySelector<HTMLElement>(".rtag")!;
+  rtag.hidden = !it.report;
+  if (it.report) {
+    rtag.className = `rtag ${it.report}`;
+    setText(rtag, RTAG[it.report]);
+  }
+  node.querySelector<HTMLElement>('[data-a="report"]')!.hidden = !settings.report.assist && !settings.report.autoQueue;
+}
+
 function render(): void {
+  if (pointerDown) {
+    renderPending = true;
+    return;
+  }
   renderReportBar();
   const rows = filtered();
   const high = queue.filter((q) => q.priority === "tinggi").length;
-  $("#total").textContent = `${queue.length} komentar`;
+  $("#total").innerHTML = `<b>${queue.length}</b>komentar`;
   const tag = $("#highTag");
   tag.hidden = high === 0;
-  tag.textContent = `${high} tinggi`;
+  tag.innerHTML = `<b>${high}</b>tinggi`;
   $("#empty").hidden = rows.length > 0;
   list.hidden = rows.length === 0;
   $("#emptyText").textContent = queue.length
     ? "Tidak ada komentar yang cocok dengan filter ini."
     : "Belum ada komentar berbahaya. Buka kolom komentar di YouTube, Instagram, TikTok, atau X.";
 
-  list.replaceChildren(
-    ...rows.map((it) => {
-      const node = tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
-      node.classList.add(it.priority, it.verdict.mode);
-      node.dataset.key = it.key;
-      const prio = node.querySelector(".prio")!;
-      prio.classList.add(it.priority);
-      prio.textContent = it.priority === "tinggi" ? "Tinggi" : "Sedang";
-      node.querySelector(".cat")!.textContent = CATEGORY_LABEL[it.verdict.category];
-      node.querySelector(".score")!.textContent = String(it.verdict.score);
-      const plat = node.querySelector<HTMLElement>(".plat-ico")!;
-      plat.innerHTML = pixelIcon(it.platform, 12);
-      plat.title = PLATFORM_LABEL[it.platform];
-      node.querySelector(".author")!.textContent = it.author ? `@${it.author}` : "anonim";
-      node.querySelector(".time")!.textContent = ago(it.at);
-      const text = node.querySelector<HTMLElement>(".text")!;
-      text.textContent = it.text;
-      text.addEventListener("click", () => text.classList.toggle("open"));
-      const rtag = node.querySelector<HTMLElement>(".rtag")!;
-      if (it.report) {
-        rtag.hidden = false;
-        rtag.className = `rtag ${it.report}`;
-        rtag.textContent = RTAG[it.report];
-      }
-      if (!settings.report.assist && !settings.report.autoQueue) node.querySelector('[data-a="report"]')!.remove();
-      node.classList.toggle("reporting", it.key === reportingKey);
-      node.querySelector(".reason")!.textContent = `${it.verdict.reason || "—"} (${it.verdict.source === "rule" ? "aturan lokal" : "AI"})`;
-      return node;
-    }),
-  );
+  const keep = new Set(rows.map((r) => r.key));
+  for (const [key, node] of nodes) {
+    if (!keep.has(key)) {
+      node.remove();
+      nodes.delete(key);
+    }
+  }
+  rows.forEach((it, i) => {
+    let node = nodes.get(it.key);
+    if (!node) nodes.set(it.key, (node = makeNode(it)));
+    fillNode(node, it);
+    if (list.children[i] !== node) list.insertBefore(node, list.children[i] ?? null);
+  });
+}
+
+list.addEventListener("pointerdown", () => (pointerDown = true));
+addEventListener("pointerup", () => {
+  pointerDown = false;
+  if (renderPending) {
+    renderPending = false;
+    setTimeout(render, 0);
+  }
+});
+
+function flash(btn: HTMLButtonElement, label: string, ms = 1800): void {
+  const span = btn.querySelector<HTMLElement>(".lbl") ?? btn;
+  const prev = span.dataset.label ?? span.textContent ?? "";
+  span.dataset.label = prev;
+  span.textContent = label;
+  setTimeout(() => (span.textContent = prev), ms);
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = Object.assign(document.createElement("textarea"), { value: text });
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.append(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
 }
 
 list.addEventListener("click", async (e) => {
@@ -146,26 +207,33 @@ list.addEventListener("click", async (e) => {
   const key = btn?.closest<HTMLElement>(".item")?.dataset.key;
   const it = queue.find((q) => q.key === key);
   if (!btn || !it) return;
-  if (btn.dataset.a === "report") {
-    if (!it.report || it.report !== "pending") {
-      it.report = "pending";
-      await send({ type: "setReportStatus", key: it.key, status: "pending" });
+  switch (btn.dataset.a) {
+    case "report":
+      if (it.report !== "pending") {
+        it.report = "pending";
+        await send({ type: "setReportStatus", key: it.key, status: "pending" });
+      }
+      await startReport(it);
+      break;
+    case "focus": {
+      flash(btn, "Mencari…", 8000);
+      const found = await send<boolean>({ type: "focusComment", tabId: it.tabId, commentId: it.commentId, text: it.text }).catch(() => null);
+      if (found === null) {
+        await chrome.tabs.create({ url: it.url });
+        flash(btn, "Dibuka");
+      } else flash(btn, found ? "Ketemu" : "Tidak ada");
+      break;
     }
-    await startReport(it);
-  }
-  if (btn.dataset.a === "focus") {
-    await send({ type: "focusComment", tabId: it.tabId, commentId: it.commentId }).catch(async () => {
-      await chrome.tabs.create({ url: it.url });
-    });
-  }
-  if (btn.dataset.a === "copy") {
-    await navigator.clipboard.writeText(`[${CATEGORY_LABEL[it.verdict.category]} ${it.verdict.score}] @${it.author}: ${it.text}\n${it.url}`);
-    btn.textContent = "Disalin";
-  }
-  if (btn.dataset.a === "done") {
-    queue = queue.filter((q) => q.key !== it.key);
-    render();
-    await send({ type: "removeQueueItem", key: it.key });
+    case "copy": {
+      const ok = await copyText(`[${CATEGORY_LABEL[it.verdict.category]} ${it.verdict.score}] @${it.author}: ${it.text}\n${it.url}`);
+      flash(btn, ok ? "Disalin" : "Gagal");
+      break;
+    }
+    case "done":
+      queue = queue.filter((q) => q.key !== it.key);
+      render();
+      await send({ type: "removeQueueItem", key: it.key });
+      break;
   }
 });
 
@@ -211,23 +279,46 @@ $("#exportCsv").addEventListener("click", () => {
 let scanTab: number | undefined;
 let scanning = false;
 const scanBtn = $<HTMLButtonElement>("#fastScan");
+const scanLabel = scanBtn.querySelector<HTMLElement>(".lbl")!;
+const stopBtn = $<HTMLButtonElement>("#stopScan");
+const scanStatus = $("#scanStatus");
+
 scanBtn.addEventListener("click", async () => {
+  if (scanning) return;
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (scanning && scanTab !== undefined) {
-    chrome.tabs.sendMessage(scanTab, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
-    return;
-  }
   if (tab?.id === undefined) return;
   scanTab = tab.id;
   const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
-  if (!r?.ok) scanBtn.textContent = r?.note ?? "Buka postingan YouTube / IG / TikTok / X dulu";
+  if (!r?.ok) {
+    scanStatus.hidden = false;
+    scanStatus.textContent = r?.note ?? "Buka postingan YouTube / IG / TikTok / X dulu.";
+  }
 });
+stopBtn.addEventListener("click", () => {
+  if (scanTab !== undefined) chrome.tabs.sendMessage(scanTab, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
+});
+
+function renderScan(msg: ScanProgress): void {
+  scanning = msg.state === "running";
+  scanBtn.disabled = scanning;
+  scanBtn.classList.toggle("busy", scanning);
+  scanLabel.textContent = scanning ? "Memindai komentar…" : "Pindai semua komentar";
+  stopBtn.hidden = !scanning;
+  $("#scanMeter").hidden = false;
+  $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
+  scanStatus.hidden = false;
+  scanStatus.innerHTML =
+    msg.state === "error"
+      ? ""
+      : `<b>${msg.loaded}</b>${scanning ? "komentar dimuat" : msg.state === "stopped" ? "komentar dipindai · dihentikan" : "komentar dipindai · selesai"}`;
+  if (msg.state === "error") scanStatus.textContent = msg.note ?? "Gagal memindai";
+}
 
 chrome.runtime.onMessage.addListener((msg: BroadcastMsg | ScanProgress | { type: "reportSubmitted"; commentId: string }, sender) => {
   if (msg.type === "reportSubmitted") {
     const active = queue.find((q) => q.key === reportingKey);
     if (active && active.commentId === msg.commentId && active.tabId === sender.tab?.id) {
-      setNote("✓ Laporan terkirim. Lanjut ke komentar berikutnya…");
+      setNote("Laporan terkirim. Lanjut ke komentar berikutnya…");
       setTimeout(() => void finishReport("done"), 1200);
     }
     return;
@@ -235,15 +326,7 @@ chrome.runtime.onMessage.addListener((msg: BroadcastMsg | ScanProgress | { type:
   if (msg.type === "scanProgress") {
     if (scanTab !== undefined && sender.tab?.id !== scanTab) return;
     scanTab = sender.tab?.id;
-    scanning = msg.state === "running";
-    scanBtn.textContent = scanning
-      ? `■ Stop · ${msg.loaded} komentar dimuat`
-      : msg.state === "error"
-        ? (msg.note ?? "Gagal memindai")
-        : `✓ ${msg.loaded} komentar dipindai · pindai lagi`;
-    scanBtn.classList.toggle("ghost", scanning);
-    $("#scanMeter").hidden = false;
-    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
+    renderScan(msg);
     return;
   }
   if (msg.type === "queueUpdated") {
@@ -278,4 +361,6 @@ void send<QueueItem[]>({ type: "getQueue" }).then((q) => {
   queue = q;
   render();
 });
-setInterval(() => list.querySelectorAll(".time").length && render(), 30000);
+setInterval(() => {
+  for (const it of queue) setText(nodes.get(it.key)?.querySelector(".time") ?? null, ago(it.at));
+}, 30000);

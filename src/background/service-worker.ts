@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, isApiConfigured, loadSettings, onSettingsChanged, pri
 import type { CommentInput, Platform, QueueItem, Verdict } from "../core/types";
 import { hashText } from "../core/normalize";
 import type { Msg, StatusInfo, TabMsg } from "../shared/messages";
-import { chat, listModels } from "./api";
+import { ApiError, chat, listModels } from "./api";
 import { Batcher } from "./batcher";
 import { cacheKey, clearCache, getCached, setCached } from "./cache";
 
@@ -120,8 +120,18 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
     case "listModels":
       return listModels(msg.baseUrl, msg.apiKey);
     case "testConnection": {
-      const res = await chat(settings.api, 'Balas hanya JSON: {"ok":true}', "tes");
-      return { ok: true, latencyMs: res.latencyMs, reply: res.content.slice(0, 120) };
+      const api = { ...settings.api, timeoutMs: Math.min(settings.api.timeoutMs, 15000) };
+      try {
+        const res = await chat(api, 'Balas hanya JSON: {"ok":true}', "tes");
+        return { ok: true, latencyMs: res.latencyMs, reply: res.content.slice(0, 120) };
+      } catch (e) {
+        if (e instanceof ApiError && e.timeout) {
+          throw new Error(
+            `Model "${api.model}" tidak merespons dalam ${api.timeoutMs / 1000} detik. Server-nya terhubung, tapi model ini kemungkinan sedang bermasalah di 9router. Coba pilih model lain.`,
+          );
+        }
+        throw e;
+      }
     }
     case "getQueue":
       await queueReady;

@@ -1,7 +1,11 @@
 import type { Settings } from "../core/settings";
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status?: number) {
+  constructor(
+    message: string,
+    readonly status?: number,
+    readonly timeout = false,
+  ) {
     super(message);
   }
 }
@@ -22,7 +26,7 @@ async function request(url: string, init: RequestInit, timeoutMs: number): Promi
   try {
     return await fetch(url, { ...init, signal: ctrl.signal });
   } catch (e) {
-    if ((e as Error).name === "AbortError") throw new ApiError(`Timeout setelah ${Math.round(timeoutMs / 1000)} detik`);
+    if ((e as Error).name === "AbortError") throw new ApiError(`Tidak ada respons dalam ${Math.round(timeoutMs / 1000)} detik`, undefined, true);
     throw new ApiError(`Tidak bisa terhubung ke ${new URL(url).host}: ${(e as Error).message}`);
   } finally {
     clearTimeout(timer);

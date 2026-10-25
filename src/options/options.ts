@@ -117,7 +117,9 @@ async function testApi(): Promise<void> {
   const out = $("#testResult");
   if (!settings.api.model) return tell("Pilih model dulu di langkah 2.", "err");
   btn.disabled = true;
+  let waited = 0;
   out.textContent = "Menguji…";
+  const ticker = setInterval(() => (out.textContent = `Menunggu jawaban model… ${++waited} dtk`), 1000);
   try {
     const r = await send<{ latencyMs: number }>({ type: "testConnection" });
     out.textContent = `✓ ${settings.api.model} · ${r.latencyMs} ms`;
@@ -128,6 +130,7 @@ async function testApi(): Promise<void> {
     renderConnTag("err");
     tell((e as Error).message, "err");
   } finally {
+    clearInterval(ticker);
     btn.disabled = false;
   }
 }

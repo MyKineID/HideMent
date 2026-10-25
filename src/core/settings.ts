@@ -48,18 +48,14 @@ export const DEFAULT_SETTINGS: Settings = {
     clickToReveal: true,
     showSafeBadge: false,
   },
-  categoryAction: {
-    judol: "blur",
-    phishing: "blur",
-    scam: "blur",
-    spam: "highlight",
-  },
+  categoryAction: { spam: "highlight" },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
   customKeywords: [],
 };
 
 const KEY = "settings";
+const SCHEMA = 2;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -77,13 +73,18 @@ function merge<T>(base: T, patch: unknown): T {
 }
 
 export async function loadSettings(): Promise<Settings> {
-  const raw = await chrome.storage.local.get(KEY);
-  return merge(DEFAULT_SETTINGS, raw[KEY] ?? {});
+  const raw = await chrome.storage.local.get([KEY, "schema"]);
+  const stored = (raw[KEY] ?? {}) as Partial<Settings>;
+  if (raw[KEY] && raw.schema !== SCHEMA) {
+    stored.categoryAction = { ...DEFAULT_SETTINGS.categoryAction };
+    await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
+  }
+  return merge(DEFAULT_SETTINGS, stored);
 }
 
 export async function saveSettings(patch: DeepPartial<Settings>): Promise<Settings> {
   const next = merge(await loadSettings(), patch);
-  await chrome.storage.local.set({ [KEY]: next });
+  await chrome.storage.local.set({ [KEY]: next, schema: SCHEMA });
   return next;
 }
 

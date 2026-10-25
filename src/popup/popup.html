@@ -7,35 +7,53 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <header class="brand">
-    <div class="brand-mark"></div>
+  <header class="head">
+    <img class="face" src="../assets/raphael-pixel.png" alt="" />
     <div class="grow">
-      <div class="brand-title">Tempest</div>
-      <div class="brand-sub" id="site">—</div>
+      <div class="name">TEMPEST</div>
+      <div class="site" id="site">—</div>
     </div>
-    <label class="switch"><input type="checkbox" data-key="enabled" title="Aktif / nonaktif" /></label>
+    <input class="switch" type="checkbox" data-key="enabled" title="Aktif / nonaktif di semua situs" aria-label="Aktifkan Tempest" />
   </header>
 
-  <section class="card stats">
+  <section class="stats">
     <div class="stat"><b id="scanned">0</b><span>Dipindai</span></div>
-    <div class="stat red"><b id="high">0</b><span>Tinggi</span></div>
-    <div class="stat amber"><b id="medium">0</b><span>Sedang</span></div>
+    <div class="stat high"><b id="high">0</b><span>Tinggi</span></div>
+    <div class="stat mid"><b id="medium">0</b><span>Sedang</span></div>
   </section>
 
-  <section class="card">
-    <label class="switch red"><span class="lbl"><b>🎰 Anti Judol / Phising</b></span><input type="checkbox" data-key="modes.judol" /></label>
-    <label class="switch"><span class="lbl"><b>🛡 Anti Toxic</b></span><input type="checkbox" data-key="modes.toxic" /></label>
-    <label class="switch"><span class="lbl">Blur komentar berbahaya</span><input type="checkbox" data-key="display.blur" /></label>
-    <label class="switch"><span class="lbl">Sembunyikan total</span><input type="checkbox" data-key="display.hide" /></label>
-    <label class="switch" id="siteRow" hidden><span class="lbl">Aktif di situs ini</span><input type="checkbox" id="siteToggle" /></label>
+  <section class="block">
+    <div class="block-title">Mode</div>
+    <div class="modes">
+      <label class="mode red"><input type="checkbox" data-key="modes.judol" /><span data-icon="seven" data-size="16"></span><b>Judol</b><i></i></label>
+      <label class="mode"><input type="checkbox" data-key="modes.toxic" /><span data-icon="shield" data-size="16"></span><b>Toxic</b><i></i></label>
+    </div>
   </section>
 
-  <div id="apiState" class="status"></div>
+  <section class="block">
+    <div class="block-title">Aksi</div>
+    <div class="seg" id="presets">
+      <button type="button" data-preset="tandai" aria-pressed="false">Tandai</button>
+      <button type="button" data-preset="blur" aria-pressed="false">Blur</button>
+      <button type="button" data-preset="sembunyi" aria-pressed="false">Sembunyi</button>
+    </div>
+  </section>
 
-  <footer class="row actions">
-    <button id="openPanel" class="grow" type="button">📋 Dashboard Antrian</button>
-    <button id="rescan" class="ghost" type="button" title="Pindai ulang halaman">⟳</button>
-    <button id="openOptions" class="ghost" type="button" title="Pengaturan">⚙</button>
+  <label class="site-row" id="siteRow" hidden>
+    <span data-icon="grid" data-size="14" id="siteIcon"></span>
+    <span class="grow">Aktif di <b id="siteName"></b></span>
+    <input class="switch" type="checkbox" id="siteToggle" />
+  </label>
+
+  <div class="dlg" id="dlg" hidden>
+    <span class="dlg-name">RAPHAEL</span>
+    <div class="grow"><span class="dlg-title"></span><span class="dlg-text"></span></div>
+  </div>
+
+  <footer class="actions">
+    <button id="openPanel" class="btn grow" type="button"><span data-icon="queue" data-size="14"></span>Antrian</button>
+    <button id="rescan" class="btn ghost icon" type="button" title="Pindai ulang halaman" aria-label="Pindai ulang"><span data-icon="refresh" data-size="16"></span></button>
+    <button id="openOptions" class="btn ghost icon" type="button" title="Pengaturan" aria-label="Pengaturan"><span data-icon="gear" data-size="16"></span></button>
   </footer>
   <script src="popup.js"></script>
 </body>

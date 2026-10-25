@@ -9,56 +9,63 @@
 </head>
 <body>
   <header class="head">
-    <div class="brand">
-      <div class="brand-mark"></div>
-      <div>
-        <div class="brand-title">Antrian Moderasi</div>
-        <div class="brand-sub" id="summary">—</div>
-      </div>
+    <div class="title-row">
+      <span data-icon="queue" data-size="18" class="t-ico"></span>
+      <h1>Antrian</h1>
+      <span class="tag tinggi" id="highTag" hidden></span>
+      <span class="total" id="total"></span>
+    </div>
+    <div class="seg" id="modeFilter">
+      <button data-v="all" aria-pressed="true" type="button">Semua</button>
+      <button data-v="judol" aria-pressed="false" type="button" class="red">Judol</button>
+      <button data-v="toxic" aria-pressed="false" type="button">Toxic</button>
     </div>
     <div class="filters">
-      <div class="seg" id="modeFilter">
-        <button data-v="all" class="on" type="button">Semua</button>
-        <button data-v="judol" type="button">🎰 Judol</button>
-        <button data-v="toxic" type="button">🛡 Toxic</button>
+      <div class="search grow">
+        <span data-icon="search" data-size="14"></span>
+        <input id="search" type="search" placeholder="Cari teks / akun…" />
       </div>
-      <div class="row">
-        <select id="prioFilter" class="grow">
-          <option value="all">Semua prioritas</option>
-          <option value="tinggi">Tinggi saja</option>
-          <option value="sedang">Sedang saja</option>
-        </select>
-        <select id="sort" class="grow">
-          <option value="risk">Urut: risiko tertinggi</option>
-          <option value="time">Urut: terbaru</option>
-        </select>
-      </div>
-      <input id="search" type="text" placeholder="Cari teks / akun…" />
+      <select id="prioFilter" aria-label="Filter prioritas">
+        <option value="all">Semua</option>
+        <option value="tinggi">Tinggi</option>
+        <option value="sedang">Sedang</option>
+      </select>
+      <select id="sort" aria-label="Urutan">
+        <option value="risk">Risiko ↓</option>
+        <option value="time">Terbaru</option>
+      </select>
     </div>
   </header>
+
   <main id="list" class="list"></main>
+
   <div id="empty" class="empty" hidden>
-    <div class="empty-ico">✦</div>
-    <p>Belum ada komentar berbahaya.<br />Buka kolom komentar di YouTube, Instagram, TikTok, atau X.</p>
+    <img src="../assets/raphael-pixel.png" alt="" />
+    <div class="dlg">
+      <span class="dlg-name">RAPHAEL</span>
+      <div><span class="dlg-title">«Jawaban»</span><span class="dlg-text" id="emptyText"></span></div>
+    </div>
   </div>
-  <footer class="foot row">
-    <button id="exportCsv" class="ghost grow" type="button">⬇ Ekspor CSV</button>
-    <button id="clear" class="danger" type="button">Kosongkan</button>
+
+  <footer class="foot">
+    <button id="exportCsv" class="btn ghost sm grow" type="button">Ekspor CSV</button>
+    <button id="clear" class="btn danger sm" type="button">Kosongkan</button>
   </footer>
+
   <template id="itemTpl">
     <article class="item">
       <div class="item-top">
-        <span class="pill prio"></span>
+        <span class="tag prio"></span>
         <span class="cat"></span>
         <span class="score"></span>
       </div>
-      <div class="meta"><span class="plat"></span> · <span class="author"></span> · <span class="time"></span></div>
+      <div class="meta"><span class="plat-ico"></span><span class="author"></span><span class="dot">·</span><span class="time"></span></div>
       <p class="text"></p>
       <p class="reason"></p>
       <div class="item-actions">
-        <button class="ghost" data-a="focus" type="button">↗ Lihat</button>
-        <button class="ghost" data-a="copy" type="button">Salin</button>
-        <button class="ghost" data-a="done" type="button">✓ Selesai</button>
+        <button class="btn ghost sm" data-a="focus" type="button">Lihat</button>
+        <button class="btn ghost sm" data-a="copy" type="button">Salin</button>
+        <button class="btn ghost sm" data-a="done" type="button">Selesai</button>
       </div>
     </article>
   </template>

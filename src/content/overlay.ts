@@ -27,16 +27,11 @@ export function clearMarks(el: HTMLElement, adapter: Adapter): void {
   t?.removeAttribute("data-rg-reveal");
 }
 
-function icon(priority: Priority | "aman"): string {
-  return priority === "tinggi" ? "⛔" : priority === "sedang" ? "⚠" : "✓";
-}
-
 function buildBadge(v: Verdict, priority: Priority | "aman", el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks): HTMLElement {
   const badge = document.createElement("span");
   badge.className = `rg-badge rg-p-${priority}`;
   badge.title = `${CATEGORY_LABEL[v.category]} · skor ${v.score}\n${v.reason}\n(${SOURCE_LABEL[v.source]})`;
   badge.innerHTML = `<span class="rg-badge-ico"></span><span class="rg-badge-txt"></span>`;
-  badge.querySelector(".rg-badge-ico")!.textContent = icon(priority);
   badge.querySelector(".rg-badge-txt")!.textContent =
     v.category === "aman" ? "Aman" : `${CATEGORY_LABEL[v.category]} · ${v.score}`;
   badge.addEventListener("click", (e) => {
@@ -61,7 +56,7 @@ function togglePopover(badge: HTMLElement, v: Verdict, el: HTMLElement, adapter:
     <div class="rg-pop-reason"></div>
     <div class="rg-pop-src"></div>
     <div class="rg-pop-actions">
-      <button type="button" data-a="report">🚩 Bantu laporkan</button>
+      <button type="button" data-a="report">Bantu laporkan</button>
       <button type="button" data-a="dismiss">Bukan berbahaya</button>
     </div>`;
   pop.querySelector(".rg-pop-title")!.textContent = CATEGORY_LABEL[v.category];
@@ -107,7 +102,7 @@ function applyHide(el: HTMLElement, v: Verdict): void {
   const bar = document.createElement("div");
   bar.className = "rg-hidden-bar";
   bar.innerHTML = `<span></span><button type="button">Tampilkan</button>`;
-  bar.querySelector("span")!.textContent = `⛔ Komentar disembunyikan: ${CATEGORY_LABEL[v.category]} (${v.score})`;
+  bar.querySelector("span")!.textContent = `■ Disembunyikan · ${CATEGORY_LABEL[v.category]} · ${v.score}`;
   bar.querySelector("button")!.addEventListener("click", (e) => {
     e.stopPropagation();
     el.classList.remove("rg-hidden-host");

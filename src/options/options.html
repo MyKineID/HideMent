@@ -8,103 +8,242 @@
   <link rel="stylesheet" href="options.css" />
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <div class="brand-mark"></div>
-      <div>
-        <div class="brand-title">Tempest</div>
-        <div class="brand-sub">Sistem Deteksi Komentar Berbahaya Berbahasa Indonesia</div>
-      </div>
-    </div>
-    <label class="switch master"><span class="lbl">Aktif</span><input type="checkbox" data-key="enabled" /></label>
-  </header>
+  <div class="bg-art" aria-hidden="true"></div>
 
-  <main class="grid">
-    <section class="card span-2">
-      <h2>Koneksi 9router</h2>
-      <div class="cols">
-        <label class="field"><span>Base URL (OpenAI-compatible, mis. http://vps-kiwora:20128/v1)</span>
-          <input id="baseUrl" type="url" placeholder="https://9router.domainkamu.com/v1" spellcheck="false" />
-        </label>
-        <label class="field"><span>API Key</span>
-          <div class="row">
-            <input id="apiKey" class="grow" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false" />
-            <button id="toggleKey" class="ghost" type="button" title="Tampilkan / sembunyikan">👁</button>
-          </div>
-        </label>
-      </div>
-      <label class="field"><span>Model <em id="modelCount"></em></span>
-        <div class="row">
-          <input id="modelFilter" class="filter" type="text" placeholder="Cari model…" />
-          <select id="model" class="grow"><option value="">— Ambil daftar model dulu —</option></select>
-          <button id="fetchModels" type="button">⟳ Ambil Model</button>
+  <div class="app">
+    <aside class="side">
+      <div class="logo">
+        <img src="../assets/icon-48.png" alt="" width="28" height="28" />
+        <div>
+          <div class="logo-name">TEMPEST</div>
+          <div class="logo-ver">v<span id="ver"></span> · penjaga komentar</div>
         </div>
+      </div>
+
+      <figure class="portrait frame">
+        <img src="../assets/raphael-pixel.png" alt="Potret pixel Raphael" />
+        <figcaption>
+          <span class="pc-name">RAPHAEL</span>
+          <span class="pc-role">Asisten analisis</span>
+        </figcaption>
+      </figure>
+
+      <label class="power frame" title="Nyalakan / matikan Tempest di semua situs">
+        <span class="power-ico" data-icon="power" data-size="16"></span>
+        <span class="grow"><b>Sistem</b><small id="powerState">AKTIF</small></span>
+        <input class="switch" type="checkbox" data-key="enabled" />
       </label>
-      <div class="cols three">
-        <label class="field"><span>Timeout (detik)</span><input id="timeout" type="number" min="5" max="180" /></label>
-        <label class="field"><span>Komentar per request</span><input id="batchSize" type="number" min="1" max="50" /></label>
-        <label class="field"><span>Request paralel</span><input id="concurrency" type="number" min="1" max="6" /></label>
-      </div>
-      <div class="row">
-        <button id="saveApi" type="button">Simpan Koneksi</button>
-        <button id="testApi" class="ghost" type="button">Tes Koneksi</button>
-        <span id="apiStatus" class="status grow"></span>
-      </div>
-    </section>
 
-    <section class="card">
-      <h2>Mode Deteksi</h2>
-      <label class="switch red mode-card"><span class="lbl"><b>🎰 Anti Judol / Link Phising</b><small>Promosi judi online, situs merek+angka, link palsu, penipuan, spam.</small></span><input type="checkbox" data-key="modes.judol" /></label>
-      <label class="switch mode-card"><span class="lbl"><b>🛡 Anti Hate Komen / Toxic</b><small>Hinaan, perundungan, SARA, ancaman, pelecehan, sarkasme merendahkan. Kritik wajar tetap aman.</small></span><input type="checkbox" data-key="modes.toxic" /></label>
-    </section>
+      <nav class="nav" aria-label="Bagian pengaturan">
+        <a href="#koneksi"><span data-icon="link"></span>Koneksi</a>
+        <a href="#mode"><span data-icon="power"></span>Mode</a>
+        <a href="#tampilan"><span data-icon="eye"></span>Tampilan</a>
+        <a href="#platform"><span data-icon="grid"></span>Platform</a>
+        <a href="#ambang"><span data-icon="gauge"></span>Ambang skor</a>
+        <a href="#daftar"><span data-icon="list"></span>Daftar kustom</a>
+        <a href="#data"><span data-icon="disk"></span>Data riset</a>
+      </nav>
+    </aside>
 
-    <section class="card">
-      <h2>Platform</h2>
-      <label class="switch"><span class="lbl">YouTube</span><input type="checkbox" data-key="platforms.youtube" /></label>
-      <label class="switch"><span class="lbl">Instagram</span><input type="checkbox" data-key="platforms.instagram" /></label>
-      <label class="switch"><span class="lbl">TikTok</span><input type="checkbox" data-key="platforms.tiktok" /></label>
-      <label class="switch"><span class="lbl">X / Twitter</span><input type="checkbox" data-key="platforms.x" /></label>
-    </section>
+    <main class="main">
+      <!-- 01 KONEKSI -->
+      <section id="koneksi" class="sec">
+        <header class="sec-head">
+          <span class="sec-no">01</span>
+          <h2>Koneksi AI</h2>
+          <span id="connTag" class="tag off">Belum terhubung</span>
+        </header>
+        <p class="sec-desc">Tempest memakai server 9router kamu untuk menganalisis komentar. Tanpa koneksi, hanya deteksi judol lokal yang berjalan.</p>
 
-    <section class="card">
-      <h2>Tampilan &amp; Aksi</h2>
-      <label class="switch"><span class="lbl">Badge + skor<small>Label kategori &amp; skor risiko di samping nama.</small></span><input type="checkbox" data-key="display.showBadge" /></label>
-      <label class="switch"><span class="lbl">Highlight<small>Garis warna merah/kuning pada komentar.</small></span><input type="checkbox" data-key="display.highlight" /></label>
-      <label class="switch"><span class="lbl">Blur<small>Teks berbahaya prioritas tinggi diblur.</small></span><input type="checkbox" data-key="display.blur" /></label>
-      <label class="switch"><span class="lbl">Klik untuk melihat<small>Teks blur bisa dibuka dengan klik.</small></span><input type="checkbox" data-key="display.clickToReveal" /></label>
-      <label class="switch"><span class="lbl">Sembunyikan total<small>Ganti komentar dengan bar "disembunyikan".</small></span><input type="checkbox" data-key="display.hide" /></label>
-      <label class="switch"><span class="lbl">Tampilkan badge "Aman"<small>Untuk riset/debug: tandai juga komentar aman.</small></span><input type="checkbox" data-key="display.showSafeBadge" /></label>
-    </section>
+        <div class="steps">
+          <div class="step frame">
+            <div class="step-head"><span class="step-no">1</span><h3>Server</h3></div>
+            <div class="field-grid">
+              <div>
+                <label class="label" for="baseUrl">Base URL</label>
+                <input id="baseUrl" type="url" placeholder="http://vps-kiwora:20128/v1" spellcheck="false" autocomplete="off" />
+              </div>
+              <div>
+                <label class="label" for="apiKey">API key</label>
+                <div class="row">
+                  <input id="apiKey" class="grow" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" />
+                  <button id="toggleKey" class="btn ghost icon" type="button" title="Tampilkan / sembunyikan key" data-icon="eye"></button>
+                </div>
+              </div>
+            </div>
+            <div class="row step-actions">
+              <button id="connect" class="btn" type="button"><span data-icon="link" data-size="14"></span>Hubungkan</button>
+              <span class="hint grow">Chrome akan meminta izin akses ke server ini.</span>
+            </div>
+          </div>
 
-    <section class="card">
-      <h2>Aksi per Kategori <small class="hint">(prioritas tinggi)</small></h2>
-      <div id="categoryActions" class="cat-table"></div>
-      <p class="hint">Prioritas sedang selalu cukup di-highlight. Saklar Blur/Sembunyikan di samping adalah saklar utama.</p>
-    </section>
+          <div class="step frame" id="modelStep">
+            <div class="step-head"><span class="step-no">2</span><h3>Model</h3><span id="modelCount" class="step-meta"></span></div>
+            <div class="search">
+              <span data-icon="search" data-size="14"></span>
+              <input id="modelFilter" type="search" placeholder="Cari model…" autocomplete="off" />
+            </div>
+            <div id="modelList" class="model-list frame inset" role="listbox" aria-label="Daftar model"></div>
+          </div>
 
-    <section class="card">
-      <h2>Ambang Skor</h2>
-      <label class="field"><span>Prioritas <b class="pill tinggi">Tinggi</b> mulai skor <output id="highOut"></output></span><input id="high" type="range" min="50" max="100" /></label>
-      <label class="field"><span>Prioritas <b class="pill sedang">Sedang</b> mulai skor <output id="mediumOut"></output></span><input id="medium" type="range" min="10" max="90" /></label>
-    </section>
+          <div class="step frame">
+            <div class="step-head"><span class="step-no">3</span><h3>Uji</h3></div>
+            <div class="row">
+              <button id="testApi" class="btn ghost" type="button"><span data-icon="check" data-size="14"></span>Tes koneksi</button>
+              <span id="testResult" class="hint grow"></span>
+            </div>
+          </div>
+        </div>
 
-    <section class="card">
-      <h2>Daftar Kustom</h2>
-      <label class="field"><span>Whitelist akun tepercaya (satu per baris, tanpa @)</span><textarea id="whitelist" placeholder="namachannel"></textarea></label>
-      <label class="field"><span>Kata kunci judol/spam tambahan (satu per baris)</span><textarea id="customKeywords" placeholder="nama situs baru"></textarea></label>
-    </section>
+        <details class="adv">
+          <summary>Pengaturan lanjutan</summary>
+          <div class="field-grid three">
+            <div><label class="label" for="timeout">Timeout (detik)</label><input id="timeout" type="number" min="5" max="180" /></div>
+            <div><label class="label" for="batchSize">Komentar / request</label><input id="batchSize" type="number" min="1" max="50" /></div>
+            <div><label class="label" for="concurrency">Request paralel</label><input id="concurrency" type="number" min="1" max="6" /></div>
+          </div>
+          <p class="hint">Komentar per request lebih besar = lebih hemat, tapi tiap respons lebih lama.</p>
+        </details>
+      </section>
 
-    <section class="card span-2">
-      <h2>Data Riset</h2>
-      <div class="row">
-        <button id="exportFeedback" class="ghost" type="button">⬇ Ekspor feedback "Bukan berbahaya" (JSON)</button>
-        <button id="clearCache" class="ghost" type="button">Hapus cache verdict</button>
-        <button id="resetAll" class="danger" type="button">Reset semua pengaturan</button>
-        <span id="dataStatus" class="status grow"></span>
-      </div>
-    </section>
-  </main>
-  <footer class="foot">Tempest · Ilustrasi Raphael digambar sendiri oleh pembuat proyek</footer>
+      <!-- 02 MODE -->
+      <section id="mode" class="sec">
+        <header class="sec-head"><span class="sec-no">02</span><h2>Mode deteksi</h2></header>
+        <p class="sec-desc">Pilih jenis komentar yang mau dideteksi. Keduanya bisa aktif bersamaan.</p>
+        <div class="mode-grid">
+          <label class="mode-card frame red">
+            <input type="checkbox" data-key="modes.judol" />
+            <span class="mc-ico" data-icon="seven" data-size="32"></span>
+            <span class="mc-title">Anti Judol</span>
+            <span class="mc-sub">&amp; link phising</span>
+            <span class="mc-desc">Promosi judi online, situs merek+angka, link palsu, penipuan, spam.</span>
+            <span class="mc-state"></span>
+          </label>
+          <label class="mode-card frame">
+            <input type="checkbox" data-key="modes.toxic" />
+            <span class="mc-ico" data-icon="shield" data-size="32"></span>
+            <span class="mc-title">Anti Toxic</span>
+            <span class="mc-sub">&amp; hate komen</span>
+            <span class="mc-desc">Hinaan, perundungan, SARA, ancaman, pelecehan, sarkasme. Kritik wajar tetap aman.</span>
+            <span class="mc-state"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- 03 TAMPILAN -->
+      <section id="tampilan" class="sec">
+        <header class="sec-head"><span class="sec-no">03</span><h2>Tampilan</h2></header>
+        <p class="sec-desc">Apa yang terjadi pada komentar berbahaya <b>prioritas tinggi</b>. Prioritas sedang cukup ditandai.</p>
+
+        <div class="preset-grid" id="presets" role="radiogroup" aria-label="Aksi">
+          <button type="button" class="preset frame" data-preset="tandai" role="radio">
+            <span class="pv pv-tandai"><i></i><i></i><i></i></span>
+            <b>Tandai</b><small>Badge + garis warna</small>
+          </button>
+          <button type="button" class="preset frame" data-preset="blur" role="radio">
+            <span class="pv pv-blur"><i></i><i></i><i></i></span>
+            <b>Blur</b><small>Teks diburamkan</small>
+          </button>
+          <button type="button" class="preset frame" data-preset="sembunyi" role="radio">
+            <span class="pv pv-hide"><i></i><i></i><i></i></span>
+            <b>Sembunyikan</b><small>Diganti bar tipis</small>
+          </button>
+        </div>
+
+        <div class="frame card">
+          <label class="toggle"><span class="t-main"><span class="t-title">Badge kategori + skor</span><span class="t-desc">Label kecil di samping nama akun.</span></span><input class="switch" type="checkbox" data-key="display.showBadge" /></label>
+          <label class="toggle"><span class="t-main"><span class="t-title">Garis warna</span><span class="t-desc">Garis merah/kuning di sisi komentar.</span></span><input class="switch" type="checkbox" data-key="display.highlight" /></label>
+          <label class="toggle"><span class="t-main"><span class="t-title">Klik untuk melihat</span><span class="t-desc">Komentar yang diblur bisa dibuka dengan sekali klik.</span></span><input class="switch" type="checkbox" data-key="display.clickToReveal" /></label>
+          <label class="toggle"><span class="t-main"><span class="t-title">Tandai komentar aman</span><span class="t-desc">Untuk riset/debug: tampilkan badge biru di komentar aman.</span></span><input class="switch" type="checkbox" data-key="display.showSafeBadge" /></label>
+        </div>
+
+        <details class="adv">
+          <summary>Atur per kategori</summary>
+          <div id="categoryActions" class="cat-table"></div>
+        </details>
+      </section>
+
+      <!-- 04 PLATFORM -->
+      <section id="platform" class="sec">
+        <header class="sec-head"><span class="sec-no">04</span><h2>Platform</h2></header>
+        <div class="plat-grid">
+          <label class="plat frame"><span data-icon="youtube" data-size="24"></span><b>YouTube</b><input class="switch" type="checkbox" data-key="platforms.youtube" /></label>
+          <label class="plat frame"><span data-icon="instagram" data-size="24"></span><b>Instagram</b><input class="switch" type="checkbox" data-key="platforms.instagram" /></label>
+          <label class="plat frame"><span data-icon="tiktok" data-size="24"></span><b>TikTok</b><input class="switch" type="checkbox" data-key="platforms.tiktok" /></label>
+          <label class="plat frame"><span data-icon="x" data-size="24"></span><b>X</b><input class="switch" type="checkbox" data-key="platforms.x" /></label>
+        </div>
+      </section>
+
+      <!-- 05 AMBANG -->
+      <section id="ambang" class="sec">
+        <header class="sec-head"><span class="sec-no">05</span><h2>Ambang skor</h2></header>
+        <p class="sec-desc">AI memberi skor bahaya 0–100. Geser untuk menentukan batas prioritas.</p>
+        <div class="frame card">
+          <div class="meter" aria-hidden="true">
+            <div class="m-zone m-low"><span>Aman</span></div>
+            <div class="m-zone m-mid"><span>Sedang</span></div>
+            <div class="m-zone m-high"><span>Tinggi</span></div>
+          </div>
+          <div class="meter-scale"><span>0</span><span>50</span><span>100</span></div>
+          <div class="field-grid">
+            <div>
+              <label class="label" for="medium">Sedang mulai <output id="mediumOut"></output></label>
+              <input id="medium" class="range amber" type="range" min="10" max="90" />
+            </div>
+            <div>
+              <label class="label" for="high">Tinggi mulai <output id="highOut"></output></label>
+              <input id="high" class="range red" type="range" min="20" max="100" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 06 DAFTAR -->
+      <section id="daftar" class="sec">
+        <header class="sec-head"><span class="sec-no">06</span><h2>Daftar kustom</h2></header>
+        <div class="field-grid">
+          <div class="frame card">
+            <label class="label" for="whitelist">Akun tepercaya <span class="count" id="whitelistCount"></span></label>
+            <textarea id="whitelist" placeholder="satu akun per baris, tanpa @"></textarea>
+            <p class="hint">Komentar dari akun ini tidak pernah ditandai.</p>
+          </div>
+          <div class="frame card">
+            <label class="label" for="customKeywords">Kata kunci judol <span class="count" id="customKeywordsCount"></span></label>
+            <textarea id="customKeywords" placeholder="nama situs baru, satu per baris"></textarea>
+            <p class="hint">Langsung dihitung oleh deteksi lokal, tanpa AI.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 07 DATA -->
+      <section id="data" class="sec">
+        <header class="sec-head"><span class="sec-no">07</span><h2>Data riset</h2></header>
+        <div class="frame card data-rows">
+          <div class="data-row">
+            <div class="grow"><b>Feedback "bukan berbahaya"</b><small id="fbCount">—</small></div>
+            <button id="exportFeedback" class="btn ghost sm" type="button">Ekspor JSON</button>
+          </div>
+          <div class="data-row">
+            <div class="grow"><b>Cache hasil analisis</b><small>Hapus kalau mau komentar dianalisis ulang.</small></div>
+            <button id="clearCache" class="btn ghost sm" type="button">Hapus cache</button>
+          </div>
+          <div class="data-row">
+            <div class="grow"><b>Reset semua pengaturan</b><small>Termasuk Base URL dan API key.</small></div>
+            <button id="resetAll" class="btn danger sm" type="button">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="foot">Tempest · ilustrasi Raphael digambar sendiri oleh pembuat proyek</footer>
+    </main>
+  </div>
+
+  <div id="dlg" class="dlg toast" hidden role="status" aria-live="polite">
+    <span class="dlg-name">RAPHAEL</span>
+    <img class="dlg-face" src="../assets/raphael-pixel.png" alt="" />
+    <div class="grow"><span class="dlg-title"></span><span class="dlg-text"></span></div>
+  </div>
+
   <script src="options.js"></script>
 </body>
 </html>

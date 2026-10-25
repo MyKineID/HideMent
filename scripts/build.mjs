@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 
 const watch = process.argv.includes("--watch");
 const OUT = "dist";
+const FONT_DIR = "node_modules/@fontsource/pixelify-sans/files";
 
 const entries = {
   background: "src/background/service-worker.ts",
@@ -28,8 +29,12 @@ async function copyStatic() {
   const manifest = JSON.parse(await readFile("static/manifest.json", "utf8"));
   manifest.version = pkg.version;
   await writeFile(`${OUT}/manifest.json`, JSON.stringify(manifest, null, 2));
-  if (!existsSync("static/assets/raphael-bg.webp")) {
-    console.log("ℹ static/assets/raphael-bg.webp belum ada — latar memakai gradien biru/merah.");
+  await mkdir(`${OUT}/assets/fonts`, { recursive: true });
+  for (const w of [400, 500, 600, 700]) {
+    await cp(`${FONT_DIR}/pixelify-sans-latin-${w}-normal.woff2`, `${OUT}/assets/fonts/pixelify-${w}.woff2`);
+  }
+  if (!existsSync("static/assets/raphael-pixel.png")) {
+    console.log("ℹ static/assets/raphael-pixel.png belum ada — jalankan scripts/make-portrait.py");
   }
 }
 

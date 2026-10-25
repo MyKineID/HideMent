@@ -1,48 +1,80 @@
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type DeepPartial, type Settings } from "../core/settings";
 import type { Platform } from "../core/types";
 import { send, type StatusInfo, type TabMsg } from "../shared/messages";
-import { $, bindToggles, refreshToggles, setStatus } from "../shared/dom";
+import { $, bindToggles, refreshToggles } from "../shared/dom";
+import { hydrateIcons, type IconName } from "../shared/pixel-icons";
+import { presetOf, presetPatch, type Preset } from "../shared/presets";
+import { say } from "../shared/raphael";
 
 const PLATFORM_HOSTS: [RegExp, Platform, string][] = [
   [/(^|\.)youtube\.com$/, "youtube", "YouTube"],
   [/(^|\.)instagram\.com$/, "instagram", "Instagram"],
   [/(^|\.)tiktok\.com$/, "tiktok", "TikTok"],
-  [/(^|\.)(x|twitter)\.com$/, "x", "X / Twitter"],
+  [/(^|\.)(x|twitter)\.com$/, "x", "X"],
 ];
 
 let settings: Settings = DEFAULT_SETTINGS;
+let lastLine = "";
+
+function renderPresets(): void {
+  const p = presetOf(settings);
+  document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === p)));
+}
 
 async function init(): Promise<void> {
   settings = await loadSettings();
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const host = tab?.url ? new URL(tab.url).hostname : "";
+  const host = tab?.url?.startsWith("http") ? new URL(tab.url).hostname : "";
   const match = PLATFORM_HOSTS.find(([re]) => re.test(host));
 
-  $("#site").textContent = match ? `${match[2]} · terpantau` : "Buka YouTube / IG / TikTok / X";
+  const site = $("#site");
   if (match) {
-    const row = $("#siteRow");
-    row.hidden = false;
+    site.innerHTML = `Memantau <b></b>`;
+    site.querySelector("b")!.textContent = match[2];
+    $("#siteRow").hidden = false;
+    $("#siteName").textContent = match[2];
+    $("#siteIcon").dataset.icon = match[1] as IconName;
     const t = $<HTMLInputElement>("#siteToggle");
     t.checked = settings.platforms[match[1]];
     t.addEventListener("change", () => saveSettings({ platforms: { [match[1]]: t.checked } }));
+  } else {
+    site.textContent = "Buka YouTube, IG, TikTok, atau X";
   }
+  hydrateIcons();
 
   bindToggles(document, () => settings, (p) => void saveSettings(p as DeepPartial<Settings>).then((s) => (settings = s)));
+  renderPresets();
+  document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      settings = await saveSettings(presetPatch(b.dataset.preset as Preset));
+      renderPresets();
+    }),
+  );
   onSettingsChanged((s) => {
     settings = s;
     refreshToggles(document, s);
+    renderPresets();
   });
 
+  const dlg = $("#dlg");
   const refresh = async () => {
     const st = await send<StatusInfo>({ type: "getStatus", tabId: tab?.id }).catch(() => null);
     if (!st) return;
     $("#scanned").textContent = String(st.tabCounts.scanned);
     $("#high").textContent = String(st.tabCounts.high);
     $("#medium").textContent = String(st.tabCounts.medium);
-    const el = $("#apiState");
-    if (!st.configured) setStatus(el, "⚠ 9router belum diatur: hanya aturan lokal (judol) yang aktif", "err");
-    else if (st.lastError) setStatus(el, `✗ ${st.lastError}`, "err");
-    else setStatus(el, `● ${st.model}${st.lastLatencyMs ? ` · ${st.lastLatencyMs} ms` : ""}`, "ok");
+
+    let line: [string, "ok" | "err" | "info"];
+    if (!settings.enabled) line = ["Tempest sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
+    else if (!st.configured) line = ["AI belum terhubung, baru deteksi judol lokal yang aktif. Atur di ⚙.", "err"];
+    else if (st.lastError) line = [st.lastError, "err"];
+    else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.`, "ok"];
+    else line = [`Siap. Model ${st.model}${st.lastLatencyMs ? ` · ${st.lastLatencyMs} ms` : ""}.`, "ok"];
+    const key = line.join("|");
+    if (key !== lastLine) {
+      lastLine = key;
+      say(dlg, line[0], line[1]);
+    }
   };
   await refresh();
   setInterval(refresh, 1500);

@@ -37,7 +37,7 @@ export function openReportHelper(el: HTMLElement, adapter: Adapter, v: Verdict):
   const reason = adapter.reportReason(v.category);
   const btn = adapter.getMenuButton(el);
   const t = toast("");
-  t.innerHTML = `<b>🚩 Bantu laporkan</b><div class="rg-toast-body"></div><div class="rg-toast-reason"></div><small>Kamu tetap memilih &amp; mengirim laporan sendiri.</small>`;
+  t.innerHTML = `<b>Bantu laporkan</b><div class="rg-toast-body"></div><div class="rg-toast-reason"></div><small>Kamu tetap memilih &amp; mengirim laporan sendiri.</small>`;
   t.querySelector(".rg-toast-body")!.textContent = btn
     ? `Menu komentar sudah dibuka. Pilih "Laporkan", lalu alasan:`
     : `Buka menu ⋯ pada komentar ini, pilih "Laporkan", lalu alasan:`;

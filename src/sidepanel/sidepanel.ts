@@ -1,6 +1,7 @@
 import { CATEGORY_LABEL, type QueueItem } from "../core/types";
 import { send, type BroadcastMsg } from "../shared/messages";
 import { $, download } from "../shared/dom";
+import { hydrateIcons, pixelIcon } from "../shared/pixel-icons";
 
 const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok", x: "X" };
 
@@ -33,9 +34,15 @@ function filtered(): QueueItem[] {
 function render(): void {
   const rows = filtered();
   const high = queue.filter((q) => q.priority === "tinggi").length;
-  $("#summary").textContent = `${queue.length} komentar · ${high} prioritas tinggi`;
+  $("#total").textContent = `${queue.length} komentar`;
+  const tag = $("#highTag");
+  tag.hidden = high === 0;
+  tag.textContent = `${high} tinggi`;
   $("#empty").hidden = rows.length > 0;
   list.hidden = rows.length === 0;
+  $("#emptyText").textContent = queue.length
+    ? "Tidak ada komentar yang cocok dengan filter ini."
+    : "Belum ada komentar berbahaya. Buka kolom komentar di YouTube, Instagram, TikTok, atau X.";
 
   list.replaceChildren(
     ...rows.map((it) => {
@@ -44,10 +51,12 @@ function render(): void {
       node.dataset.key = it.key;
       const prio = node.querySelector(".prio")!;
       prio.classList.add(it.priority);
-      prio.textContent = it.priority === "tinggi" ? "TINGGI" : "SEDANG";
+      prio.textContent = it.priority === "tinggi" ? "Tinggi" : "Sedang";
       node.querySelector(".cat")!.textContent = CATEGORY_LABEL[it.verdict.category];
       node.querySelector(".score")!.textContent = String(it.verdict.score);
-      node.querySelector(".plat")!.textContent = PLATFORM_LABEL[it.platform];
+      const plat = node.querySelector<HTMLElement>(".plat-ico")!;
+      plat.innerHTML = pixelIcon(it.platform, 12);
+      plat.title = PLATFORM_LABEL[it.platform];
       node.querySelector(".author")!.textContent = it.author ? `@${it.author}` : "anonim";
       node.querySelector(".time")!.textContent = ago(it.at);
       const text = node.querySelector<HTMLElement>(".text")!;
@@ -71,7 +80,7 @@ list.addEventListener("click", async (e) => {
   }
   if (btn.dataset.a === "copy") {
     await navigator.clipboard.writeText(`[${CATEGORY_LABEL[it.verdict.category]} ${it.verdict.score}] @${it.author}: ${it.text}\n${it.url}`);
-    btn.textContent = "✓ Disalin";
+    btn.textContent = "Disalin";
   }
   if (btn.dataset.a === "done") {
     queue = queue.filter((q) => q.key !== it.key);
@@ -84,7 +93,7 @@ $("#modeFilter").addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-v]");
   if (!b) return;
   mode = b.dataset.v as typeof mode;
-  $("#modeFilter").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  $("#modeFilter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   render();
 });
 ["#prioFilter", "#sort"].forEach((s) => $(s).addEventListener("change", render));
@@ -119,6 +128,7 @@ chrome.runtime.onMessage.addListener((msg: BroadcastMsg) => {
   }
 });
 
+hydrateIcons();
 void send<QueueItem[]>({ type: "getQueue" }).then((q) => {
   queue = q;
   render();

@@ -6,7 +6,8 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .total { font: 500 12px var(--px); color: var(--muted); }
 .seg { box-shadow: 3px 3px 0 var(--shadow); }
 .filters { display: flex; gap: 8px; }
-.filters select { width: auto; padding: 7px 28px 7px 8px; font-size: 13px; }
+.filters .psel { flex: none; }
+.filters .psel-btn { padding: 7px 9px; font-size: 13px; }
 .search { position: relative; }
 .search .pxi { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--dim); }
 .search input { padding: 7px 8px 7px 30px; font-size: 13px; }

@@ -130,7 +130,7 @@ details.adv[open] > summary { margin-bottom: 14px; }
 .cat-table .cat-name { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .cat-table .cat-name::before { content: ""; width: 8px; height: 8px; background: var(--blue); }
 .cat-table .cat-name.judol::before { background: var(--red); }
-.cat-table select { padding: 6px 30px 6px 10px; font-size: 13px; }
+.cat-table .psel-btn { padding: 6px 10px; font-size: 13px; }
 
 /* platforms */
 .plat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }

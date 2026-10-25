@@ -6,6 +6,7 @@ import { $, bindToggles, download, refreshToggles } from "../shared/dom";
 import { hydrateIcons } from "../shared/pixel-icons";
 import { say } from "../shared/raphael";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
+import { confirmDialog, enhanceAll, enhanceSelect } from "../shared/ui";
 
 let settings: Settings = DEFAULT_SETTINGS;
 let allModels: string[] = [];
@@ -170,6 +171,7 @@ function renderCategoryActions(): void {
         tell(`${CATEGORY_LABEL[cat]}: ${sel.selectedOptions[0].text.toLowerCase()}.`);
       });
       host.append(name, sel);
+      enhanceSelect(sel);
     }
   }
 }
@@ -243,6 +245,7 @@ function setupScrollSpy(): void {
 
 async function init(): Promise<void> {
   hydrateIcons();
+  enhanceAll();
   $("#ver").textContent = chrome.runtime.getManifest?.().version ?? "";
   settings = await loadSettings();
   allModels = ((await chrome.storage.local.get("modelCache")).modelCache ?? []) as string[];
@@ -312,7 +315,13 @@ async function init(): Promise<void> {
     tell("Cache dihapus. Komentar akan dianalisis ulang.");
   });
   $("#resetAll").addEventListener("click", async () => {
-    if (!confirm("Reset semua pengaturan, termasuk Base URL dan API key?")) return;
+    const ok = await confirmDialog({
+      title: "Konfirmasi",
+      message: "Reset semua pengaturan ke awal? Base URL, API key, dan pilihan model juga ikut terhapus.",
+      confirmText: "Reset",
+      danger: true,
+    });
+    if (!ok) return;
     await chrome.storage.local.set({ settings: DEFAULT_SETTINGS, modelCache: [] });
     settings = DEFAULT_SETTINGS;
     allModels = [];

@@ -2,6 +2,7 @@ import { CATEGORY_LABEL, type QueueItem } from "../core/types";
 import { send, type BroadcastMsg } from "../shared/messages";
 import { $, download } from "../shared/dom";
 import { hydrateIcons, pixelIcon } from "../shared/pixel-icons";
+import { confirmDialog, enhanceAll } from "../shared/ui";
 
 const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok", x: "X" };
 
@@ -100,7 +101,14 @@ $("#modeFilter").addEventListener("click", (e) => {
 $("#search").addEventListener("input", render);
 
 $("#clear").addEventListener("click", async () => {
-  if (!queue.length || !confirm("Kosongkan seluruh antrian?")) return;
+  if (!queue.length) return;
+  const ok = await confirmDialog({
+    title: "Konfirmasi",
+    message: `Kosongkan ${queue.length} komentar dari antrian? Komentar di halaman tetap ditandai.`,
+    confirmText: "Kosongkan",
+    danger: true,
+  });
+  if (!ok) return;
   await send({ type: "clearQueue" });
   queue = [];
   render();
@@ -129,6 +137,7 @@ chrome.runtime.onMessage.addListener((msg: BroadcastMsg) => {
 });
 
 hydrateIcons();
+enhanceAll();
 void send<QueueItem[]>({ type: "getQueue" }).then((q) => {
   queue = q;
   render();

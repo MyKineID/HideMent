@@ -31,6 +31,8 @@ export interface Verdict {
   source: VerdictSource;
 }
 
+export type ReportStatus = "pending" | "done" | "skipped";
+
 export interface QueueItem {
   key: string;
   tabId: number;
@@ -42,6 +44,7 @@ export interface QueueItem {
   verdict: Verdict;
   priority: Priority;
   at: number;
+  report?: ReportStatus;
 }
 
 export const CATEGORY_LABEL: Record<Category, string> = {

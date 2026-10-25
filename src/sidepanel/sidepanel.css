@@ -36,3 +36,25 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .empty .dlg { width: 100%; max-width: 320px; }
 
 .foot { display: flex; gap: 12px; padding: 12px 14px 14px; background: var(--panel); border-top: 2px solid var(--shadow); box-shadow: 0 -2px 0 var(--line-hi); }
+
+/* ── antrian lapor ───────────────────────── */
+.rbar { padding: 10px 12px; background: var(--ink-2); border: 2px solid var(--red); box-shadow: 3px 3px 0 var(--shadow); }
+.rbar-idle { display: flex; align-items: center; gap: 10px; }
+.r-ico { color: var(--red-soft); }
+.rbar b { display: block; font: 600 14px var(--px); }
+.rbar small { display: block; font-size: 12px; color: var(--muted); }
+.r-head { display: flex; align-items: center; gap: 8px; }
+.r-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 13px var(--sans); }
+.r-stop { width: 22px; height: 22px; padding: 0 0 2px; font: 700 16px/1 var(--px); color: var(--muted); background: var(--panel-3); border: 2px solid var(--line-hi); cursor: pointer; }
+.r-stop:hover { color: var(--ink); background: var(--red-soft); }
+.r-note { margin: 8px 0 10px; font-size: 12px; color: var(--text); }
+.r-note.err { color: var(--red-soft); }
+.r-actions { display: flex; gap: 10px; }
+.btn.danger.sm[disabled] { filter: grayscale(1) brightness(0.6); }
+
+.rtag { display: inline-block; margin-top: 8px; padding: 2px 6px 3px; font: 600 10px/1 var(--px); letter-spacing: 0.08em; text-transform: uppercase; border: 2px solid currentColor; }
+.rtag.pending { color: var(--red-soft); }
+.rtag.done { color: var(--cyan); }
+.rtag.skipped { color: var(--dim); }
+.item.reporting { outline: 2px solid var(--red-soft); outline-offset: 2px; }
+.item-actions { flex-wrap: wrap; }

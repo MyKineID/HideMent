@@ -35,6 +35,21 @@
         <option value="time">Terbaru</option>
       </select>
     </div>
+    <section class="rbar" id="rbar" hidden>
+      <div class="rbar-idle" id="rIdle">
+        <span data-icon="flag" data-size="16" class="r-ico"></span>
+        <div class="grow"><b>Antrian lapor</b><small id="rCount"></small></div>
+        <button id="rNext" class="btn danger sm" type="button">▶ Lapor berikutnya</button>
+      </div>
+      <div class="rbar-active" id="rActive" hidden>
+        <div class="r-head"><span class="tag tinggi">Melapor</span><b id="rTarget" class="grow"></b><button id="rStop" class="r-stop" type="button" aria-label="Hentikan sesi lapor">×</button></div>
+        <p id="rNote" class="r-note"></p>
+        <div class="r-actions">
+          <button id="rDone" class="btn sm grow" type="button">✓ Sudah dilapor, lanjut</button>
+          <button id="rSkip" class="btn ghost sm" type="button">Lewati</button>
+        </div>
+      </div>
+    </section>
   </header>
 
   <main id="list" class="list"></main>
@@ -59,10 +74,12 @@
         <span class="cat"></span>
         <span class="score"></span>
       </div>
+      <span class="rtag" hidden></span>
       <div class="meta"><span class="plat-ico"></span><span class="author"></span><span class="dot">·</span><span class="time"></span></div>
       <p class="text"></p>
       <p class="reason"></p>
       <div class="item-actions">
+        <button class="btn danger sm" data-a="report" type="button">Lapor</button>
         <button class="btn ghost sm" data-a="focus" type="button">Lihat</button>
         <button class="btn ghost sm" data-a="copy" type="button">Salin</button>
         <button class="btn ghost sm" data-a="done" type="button">Selesai</button>

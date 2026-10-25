@@ -2,14 +2,21 @@ import { prefilter } from "../core/judol-rules";
 import { DEFAULT_SETTINGS, isApiConfigured, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
 import type { CommentInput, Platform, QueueItem, Verdict } from "../core/types";
 import { hashText } from "../core/normalize";
-import type { Msg, StatusInfo, TabMsg } from "../shared/messages";
+import type { Msg, ReportResult, StatusInfo, TabMsg } from "../shared/messages";
 import { ApiError, chat, listModels } from "./api";
 import { Batcher } from "./batcher";
 import { cacheKey, clearCache, getCached, setCached } from "./cache";
 
 let settings: Settings = DEFAULT_SETTINGS;
 const ready = loadSettings().then((s) => (settings = s));
-onSettingsChanged((s) => (settings = s));
+onSettingsChanged((s) => {
+  const turnedOn = s.report.autoQueue && !settings.report.autoQueue;
+  settings = s;
+  if (turnedOn) {
+    for (const q of queue) if (q.priority === "tinggi" && !q.report) q.report = "pending";
+    flushQueue();
+  }
+});
 
 const batcher = new Batcher(() => settings);
 
@@ -52,10 +59,12 @@ function record(tabId: number, platform: Platform, url: string, c: CommentInput,
   updateBadge(tabId);
 
   const key = hashText(`${platform}|${c.author ?? ""}|${c.text}`);
+  const prev = queue.find((q) => q.key === key);
   queue = queue.filter((q) => q.key !== key);
   queue.unshift({
     key, tabId, platform, url, commentId: c.id, author: c.author ?? "", text: c.text.slice(0, 1000),
     verdict: v, priority, at: Date.now(),
+    report: prev?.report ?? (settings.report.autoQueue && priority === "tinggi" ? "pending" : undefined),
   });
   if (queue.length > QUEUE_MAX) queue.length = QUEUE_MAX;
   flushQueue();
@@ -148,6 +157,24 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       queue = queue.filter((q) => q.key !== msg.key);
       flushQueue();
       return true;
+    case "setReportStatus": {
+      const item = queue.find((q) => q.key === msg.key);
+      if (item) item.report = msg.status;
+      flushQueue();
+      return true;
+    }
+    case "startReport": {
+      const item = queue.find((q) => q.key === msg.key);
+      if (!item) throw new Error("Komentar tidak ada di antrian");
+      try {
+        await chrome.tabs.update(item.tabId, { active: true });
+      } catch {
+        throw new Error("Tab komentar ini sudah ditutup. Buka lagi halamannya.");
+      }
+      const res = (await chrome.tabs.sendMessage(item.tabId, { type: "reportComment", commentId: item.commentId, verdict: item.verdict } satisfies TabMsg)) as ReportResult | undefined;
+      if (!res) throw new Error("Halaman belum siap. Refresh tab lalu coba lagi.");
+      return res;
+    }
     case "clearCache":
       await clearCache();
       return true;

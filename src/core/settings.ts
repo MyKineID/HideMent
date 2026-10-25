@@ -23,6 +23,12 @@ export interface Settings {
     showSafeBadge: boolean;
   };
   categoryAction: Partial<Record<Category, ActionKind>>;
+  report: {
+    /** Tombol "Bantu laporkan" di popover komentar. */
+    assist: boolean;
+    /** Komentar prioritas tinggi otomatis masuk antrian lapor di Dashboard. */
+    autoQueue: boolean;
+  };
   thresholds: { high: number; medium: number };
   whitelist: string[];
   customKeywords: string[];
@@ -49,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showSafeBadge: false,
   },
   categoryAction: { spam: "highlight" },
+  report: { assist: true, autoQueue: false },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
   customKeywords: [],

@@ -1,7 +1,7 @@
 import { priorityOf, type ActionKind, type Settings } from "../core/settings";
 import { CATEGORY_LABEL, type Priority, type Verdict } from "../core/types";
 import type { Adapter } from "./adapters/types";
-import { openReportHelper } from "./report-helper";
+import { runReportFlow } from "./report-helper";
 
 const MARK_CLASSES = ["rg-hl-tinggi", "rg-hl-sedang", "rg-hl-aman", "rg-hidden-host"];
 const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan lokal", ai: "AI · 9router", cache: "AI (cache)" };
@@ -47,7 +47,7 @@ function meter(score: number, cells: number, cls: string): HTMLSpanElement {
   return m;
 }
 
-function buildBadge(v: Verdict, level: Level, el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks): HTMLElement {
+function buildBadge(v: Verdict, level: Level, el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks, assist: boolean): HTMLElement {
   const badge = document.createElement("button");
   badge.type = "button";
   badge.className = `rg-badge rg-p-${level}`;
@@ -63,12 +63,12 @@ function buildBadge(v: Verdict, level: Level, el: HTMLElement, adapter: Adapter,
   badge.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    togglePopover(badge, v, level, el, adapter, cb);
+    togglePopover(badge, v, level, el, adapter, cb, assist);
   });
   return badge;
 }
 
-function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks): void {
+function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks, assist: boolean): void {
   const existing = document.querySelector<HTMLElement>(".rg-pop");
   if (existing) {
     existing.remove();
@@ -100,11 +100,12 @@ function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLEle
   pop.querySelector(".rg-r-mode")!.textContent = MODE_LABEL[v.mode];
   pop.querySelector(".rg-r-src")!.textContent = SOURCE_LABEL[v.source];
   if (level === "aman") pop.querySelector(".rg-pop-actions")!.remove();
+  else if (!assist) pop.querySelector('[data-a="report"]')!.remove();
 
   pop.addEventListener("click", (e) => {
     e.stopPropagation();
     const a = (e.target as HTMLElement).closest<HTMLElement>("[data-a]")?.dataset.a;
-    if (a === "report") openReportHelper(el, adapter, v);
+    if (a === "report") void runReportFlow(el, adapter, v);
     if (a === "dismiss") cb.onDismiss(el, v);
     if (a) pop.remove();
   });
@@ -158,7 +159,7 @@ export function applyVerdict(el: HTMLElement, adapter: Adapter, v: Verdict, s: S
   const action = resolveAction(v, priority, s);
 
   if (s.display.showBadge && (!isSafe || s.display.showSafeBadge)) {
-    const badge = buildBadge(v, isSafe ? "aman" : priority, el, adapter, cb);
+    const badge = buildBadge(v, isSafe ? "aman" : priority, el, adapter, cb, s.report.assist);
     const slot = adapter.getBadgeSlot(el);
     if (slot?.where === "row") {
       const row = document.createElement("div");

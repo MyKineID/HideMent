@@ -4,6 +4,7 @@ import type { CommentInput, Verdict } from "../core/types";
 import { send, type TabMsg } from "../shared/messages";
 import { detectAdapter } from "./adapters";
 import { applyVerdict, clearMarks, focusElement } from "./overlay";
+import { runReportFlow } from "./report-helper";
 
 const adapter = detectAdapter(location.hostname);
 
@@ -140,7 +141,17 @@ function reapplyAll(): void {
   for (const v of verdicts.values()) applyOne(v);
 }
 
-chrome.runtime.onMessage.addListener((msg: TabMsg) => {
+chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
+  if (msg.type === "reportComment") {
+    const el = elements.get(msg.commentId);
+    if (!el?.isConnected || !adapter) {
+      sendResponse({ stage: "none", reason: "", note: "Komentar sudah tidak ada di halaman (mungkin halaman berganti). Buka ulang komentarnya." });
+      return;
+    }
+    el.classList.remove("rg-hidden-host");
+    void runReportFlow(el, adapter, msg.verdict).then(sendResponse);
+    return true;
+  }
   if (msg.type === "verdicts") msg.verdicts.forEach(applyOne);
   if (msg.type === "focusComment") {
     const el = elements.get(msg.commentId);

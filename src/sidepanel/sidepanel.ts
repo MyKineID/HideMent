@@ -1,5 +1,6 @@
 import { CATEGORY_LABEL, type QueueItem } from "../core/types";
-import { send, type BroadcastMsg } from "../shared/messages";
+import { send, type BroadcastMsg, type ReportResult } from "../shared/messages";
+import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
 import { $, download } from "../shared/dom";
 import { hydrateIcons, pixelIcon } from "../shared/pixel-icons";
 import { confirmDialog, enhanceAll } from "../shared/ui";
@@ -8,6 +9,10 @@ const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTub
 
 let queue: QueueItem[] = [];
 let mode: "all" | "judol" | "toxic" = "all";
+let settings: Settings = DEFAULT_SETTINGS;
+let reportingKey: string | null = null;
+
+const RTAG: Record<string, string> = { pending: "Menunggu lapor", done: "Sudah dilapor", skipped: "Dilewati" };
 
 const list = $("#list");
 const tpl = $<HTMLTemplateElement>("#itemTpl");
@@ -32,7 +37,65 @@ function filtered(): QueueItem[] {
   return rows.sort((a, b) => (sort === "time" ? b.at - a.at : b.verdict.score - a.verdict.score || b.at - a.at));
 }
 
+function pendingReports(): QueueItem[] {
+  return queue.filter((q) => q.report === "pending").sort((a, b) => b.verdict.score - a.verdict.score || b.at - a.at);
+}
+
+function renderReportBar(): void {
+  const bar = $("#rbar");
+  bar.hidden = !settings.report.autoQueue && !reportingKey;
+  const pending = pendingReports();
+  const done = queue.filter((q) => q.report === "done").length;
+  $("#rCount").textContent = pending.length
+    ? `${pending.length} menunggu · ${done} sudah dilapor`
+    : done
+      ? `Semua beres · ${done} sudah dilapor`
+      : "Komentar TINGGI akan otomatis masuk ke sini.";
+  $<HTMLButtonElement>("#rNext").disabled = pending.length === 0;
+  const active = queue.find((q) => q.key === reportingKey);
+  $("#rIdle").hidden = Boolean(active);
+  $("#rActive").hidden = !active;
+  if (active) $("#rTarget").textContent = `@${active.author || "anonim"} · ${CATEGORY_LABEL[active.verdict.category]} ${active.verdict.score}`;
+}
+
+function setNote(text: string, err = false): void {
+  const n = $("#rNote");
+  n.textContent = text;
+  n.classList.toggle("err", err);
+}
+
+async function startReport(it: QueueItem): Promise<void> {
+  reportingKey = it.key;
+  setNote("Membuka menu laporan di halaman…");
+  render();
+  try {
+    const r = await send<ReportResult>({ type: "startReport", key: it.key });
+    const msg = {
+      reason: `Alasan "${r.reason}" sudah dipilih. Periksa di halaman, tekan Berikutnya / Kirim, lalu klik "Sudah dilapor".`,
+      dialog: `Form laporan sudah terbuka. Pilih alasan "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
+      menu: `Menu sudah dibuka. Pilih "Laporkan" → "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
+      none: r.note || "Tidak bisa membuka menu laporan otomatis.",
+    }[r.stage];
+    setNote(msg, r.stage === "none");
+  } catch (e) {
+    setNote((e as Error).message, true);
+  }
+}
+
+async function finishReport(status: "done" | "skipped"): Promise<void> {
+  if (!reportingKey) return;
+  const key = reportingKey;
+  const item = queue.find((q) => q.key === key);
+  if (item) item.report = status;
+  reportingKey = null;
+  await send({ type: "setReportStatus", key, status });
+  const next = pendingReports()[0];
+  if (next) await startReport(next);
+  else render();
+}
+
 function render(): void {
+  renderReportBar();
   const rows = filtered();
   const high = queue.filter((q) => q.priority === "tinggi").length;
   $("#total").textContent = `${queue.length} komentar`;
@@ -63,6 +126,14 @@ function render(): void {
       const text = node.querySelector<HTMLElement>(".text")!;
       text.textContent = it.text;
       text.addEventListener("click", () => text.classList.toggle("open"));
+      const rtag = node.querySelector<HTMLElement>(".rtag")!;
+      if (it.report) {
+        rtag.hidden = false;
+        rtag.className = `rtag ${it.report}`;
+        rtag.textContent = RTAG[it.report];
+      }
+      if (!settings.report.assist && !settings.report.autoQueue) node.querySelector('[data-a="report"]')!.remove();
+      node.classList.toggle("reporting", it.key === reportingKey);
       node.querySelector(".reason")!.textContent = `${it.verdict.reason || "—"} (${it.verdict.source === "rule" ? "aturan lokal" : "AI"})`;
       return node;
     }),
@@ -74,6 +145,13 @@ list.addEventListener("click", async (e) => {
   const key = btn?.closest<HTMLElement>(".item")?.dataset.key;
   const it = queue.find((q) => q.key === key);
   if (!btn || !it) return;
+  if (btn.dataset.a === "report") {
+    if (!it.report || it.report !== "pending") {
+      it.report = "pending";
+      await send({ type: "setReportStatus", key: it.key, status: "pending" });
+    }
+    await startReport(it);
+  }
   if (btn.dataset.a === "focus") {
     await send({ type: "focusComment", tabId: it.tabId, commentId: it.commentId }).catch(async () => {
       await chrome.tabs.create({ url: it.url });
@@ -134,6 +212,26 @@ chrome.runtime.onMessage.addListener((msg: BroadcastMsg) => {
     queue = msg.queue;
     render();
   }
+});
+
+$("#rNext").addEventListener("click", () => {
+  const next = pendingReports()[0];
+  if (next) void startReport(next);
+});
+$("#rDone").addEventListener("click", () => void finishReport("done"));
+$("#rSkip").addEventListener("click", () => void finishReport("skipped"));
+$("#rStop").addEventListener("click", () => {
+  reportingKey = null;
+  render();
+});
+
+void loadSettings().then((s) => {
+  settings = s;
+  render();
+});
+onSettingsChanged((s) => {
+  settings = s;
+  render();
 });
 
 hydrateIcons();

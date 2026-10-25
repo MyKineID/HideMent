@@ -158,6 +158,13 @@ output { font: 700 13px var(--px); color: var(--cyan); margin-left: 4px; }
 
 .count { margin-left: 6px; color: var(--cyan); }
 
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; padding: 12px 14px; }
+.flow span { display: inline-flex; align-items: center; gap: 6px; font: 500 13px var(--px); color: var(--muted); }
+.flow i { display: grid; place-items: center; width: 18px; height: 18px; font: 700 11px var(--px); font-style: normal; color: var(--ink); background: var(--muted); }
+.flow .arr { color: var(--dim); }
+.flow .you { color: var(--text); }
+.flow .you i { background: var(--red-soft); }
+
 .data-rows { display: grid; gap: 0; }
 .data-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
 .data-row + .data-row { border-top: 2px dashed var(--line); }

@@ -40,6 +40,7 @@
         <a href="#tampilan"><span data-icon="eye"></span>Tampilan</a>
         <a href="#platform"><span data-icon="grid"></span>Platform</a>
         <a href="#ambang"><span data-icon="gauge"></span>Ambang skor</a>
+        <a href="#lapor"><span data-icon="flag"></span>Lapor</a>
         <a href="#daftar"><span data-icon="list"></span>Daftar kustom</a>
         <a href="#data"><span data-icon="disk"></span>Data riset</a>
       </nav>
@@ -198,9 +199,25 @@
         </div>
       </section>
 
-      <!-- 06 DAFTAR -->
+      <!-- 06 LAPOR -->
+      <section id="lapor" class="sec">
+        <header class="sec-head"><span class="sec-no">06</span><h2>Lapor</h2></header>
+        <p class="sec-desc">Tempest membantu membuka menu laporan dan memilih alasannya. <b>Tombol kirim selalu kamu yang tekan</b>, supaya salah deteksi AI tidak melaporkan orang yang tidak bersalah dan akunmu tidak dianggap melakukan laporan massal oleh platform.</p>
+        <div class="frame card">
+          <label class="toggle"><span class="t-main"><span class="t-title">Antrian lapor semi-otomatis</span><span class="t-desc">Komentar prioritas TINGGI otomatis masuk antrian di Dashboard. Klik "Lapor berikutnya" → Tempest scroll ke komentar, buka menu, klik Laporkan, dan pilih alasan.</span></span><input class="switch red" type="checkbox" data-key="report.autoQueue" /></label>
+          <label class="toggle"><span class="t-main"><span class="t-title">Tombol "Bantu laporkan"</span><span class="t-desc">Tampilkan tombol lapor di detail badge setiap komentar berbahaya.</span></span><input class="switch" type="checkbox" data-key="report.assist" /></label>
+        </div>
+        <div class="flow frame inset" aria-label="Alur lapor">
+          <span><i>1</i>Buka menu ⋯</span><span class="arr">▸</span>
+          <span><i>2</i>Klik Laporkan</span><span class="arr">▸</span>
+          <span><i>3</i>Pilih alasan</span><span class="arr">▸</span>
+          <span class="you"><i>4</i>Kamu kirim</span>
+        </div>
+      </section>
+
+      <!-- 07 DAFTAR -->
       <section id="daftar" class="sec">
-        <header class="sec-head"><span class="sec-no">06</span><h2>Daftar kustom</h2></header>
+        <header class="sec-head"><span class="sec-no">07</span><h2>Daftar kustom</h2></header>
         <div class="field-grid">
           <div class="frame card">
             <label class="label" for="whitelist">Akun tepercaya <span class="count" id="whitelistCount"></span></label>
@@ -215,9 +232,9 @@
         </div>
       </section>
 
-      <!-- 07 DATA -->
+      <!-- 08 DATA -->
       <section id="data" class="sec">
-        <header class="sec-head"><span class="sec-no">07</span><h2>Data riset</h2></header>
+        <header class="sec-head"><span class="sec-no">08</span><h2>Data riset</h2></header>
         <div class="frame card data-rows">
           <div class="data-row">
             <div class="grow"><b>Feedback "bukan berbahaya"</b><small id="fbCount">—</small></div>

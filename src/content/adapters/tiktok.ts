@@ -20,8 +20,10 @@ export const tiktok: Adapter = {
   getAuthor: (el) =>
     textOf(el.querySelector('[data-e2e^="comment-username"]')) ||
     (el.querySelector<HTMLAnchorElement>('a[href^="/@"]')?.getAttribute("href") ?? "").replace(/^\/@/, "").split(/[/?]/)[0],
-  getBadgeAnchor: (el) =>
-    el.querySelector<HTMLElement>('[data-e2e^="comment-username"]')?.parentElement ?? el.querySelector<HTMLElement>(TEXT_SEL),
+  getBadgeSlot: (el) => {
+    const t = el.querySelector<HTMLElement>(TEXT_SEL);
+    return t ? { node: t, where: "row" } : null;
+  },
   getMenuButton: (el) =>
     el.querySelector<HTMLElement>('[data-e2e="comment-more-icon"], [class*="MoreIcon"], [aria-label*="more" i], [aria-label*="lainnya" i]'),
   reportReason: (c) => (c === "judol" ? "Perjudian" : c === "spam" ? "Spam" : genericReason(c)),

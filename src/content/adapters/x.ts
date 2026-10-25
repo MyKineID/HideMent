@@ -9,7 +9,10 @@ export const x: Adapter = {
     const href = el.querySelector<HTMLAnchorElement>('[data-testid="User-Name"] a[href^="/"]')?.getAttribute("href") ?? "";
     return href.split("/")[1] ?? "";
   },
-  getBadgeAnchor: (el) => el.querySelector<HTMLElement>('[data-testid="User-Name"]'),
+  getBadgeSlot: (el) => {
+    const t = el.querySelector<HTMLElement>('[data-testid="tweetText"]');
+    return t ? { node: t, where: "row" } : null;
+  },
   getMenuButton: (el) => el.querySelector<HTMLElement>('[data-testid="caret"]'),
   reportReason: (c) => (c === "judol" || c === "spam" ? "Spam" : genericReason(c)),
 };

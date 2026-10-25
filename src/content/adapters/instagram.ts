@@ -48,7 +48,10 @@ export const instagram: Adapter = {
   getTextEl: textElOf,
   getText: (el) => textOf(textElOf(el)),
   getAuthor: authorOf,
-  getBadgeAnchor: (el) => el.querySelector<HTMLElement>("time")?.closest("a")?.parentElement ?? null,
+  getBadgeSlot: (el) => {
+    const t = textElOf(el);
+    return t ? { node: t, where: "row" } : null;
+  },
   getMenuButton: (el) =>
     el.querySelector<HTMLElement>('svg[aria-label*="option" i], svg[aria-label*="opsi" i]')?.closest<HTMLElement>('[role="button"], button') ?? null,
   reportReason: (c) =>

@@ -1,12 +1,18 @@
 import type { Category, Platform } from "../../core/types";
 
+export interface BadgeSlot {
+  node: HTMLElement;
+  /** "inline" = disisipkan di akhir baris nama, "row" = baris sendiri tepat di atas teks komentar. */
+  where: "inline" | "row";
+}
+
 export interface Adapter {
   platform: Platform;
   findComments(root: ParentNode): HTMLElement[];
   getText(el: HTMLElement): string;
   getAuthor(el: HTMLElement): string;
   getTextEl(el: HTMLElement): HTMLElement | null;
-  getBadgeAnchor(el: HTMLElement): HTMLElement | null;
+  getBadgeSlot(el: HTMLElement): BadgeSlot | null;
   getMenuButton(el: HTMLElement): HTMLElement | null;
   reportReason(category: Category): string;
 }
@@ -37,3 +43,4 @@ export function genericReason(category: Category): string {
       return "Lainnya";
   }
 }
+

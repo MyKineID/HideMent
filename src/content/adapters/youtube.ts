@@ -9,7 +9,10 @@ export const youtube: Adapter = {
   getTextEl: (el) => el.querySelector<HTMLElement>("#content-text"),
   getText: (el) => textOf(el.querySelector("#content-text")),
   getAuthor: (el) => textOf(el.querySelector("#author-text")).replace(/^@/, ""),
-  getBadgeAnchor: (el) => el.querySelector<HTMLElement>("#header-author") ?? el.querySelector<HTMLElement>("#header"),
+  getBadgeSlot: (el) => {
+    const node = el.querySelector<HTMLElement>("#header-author") ?? el.querySelector<HTMLElement>("#header");
+    return node ? { node, where: "inline" } : null;
+  },
   getMenuButton: (el) => el.querySelector<HTMLElement>("#action-menu button, ytd-menu-renderer button"),
   reportReason: (c) =>
     c === "judol" || c === "spam" || c === "phishing" || c === "scam"

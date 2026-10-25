@@ -189,7 +189,9 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
       return;
     }
     el.classList.remove("rg-hidden-host");
-    void runReportFlow(el, adapter, msg.verdict).then(sendResponse);
+    void runReportFlow(el, adapter, msg.verdict, () => {
+      chrome.runtime.sendMessage({ type: "reportSubmitted", commentId: msg.commentId }).catch(() => undefined);
+    }).then(sendResponse);
     return true;
   }
   if (msg.type === "fastScan") {

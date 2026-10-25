@@ -46,7 +46,7 @@ Kedua mode bisa dinyalakan bersamaan atau terpisah.
 - **Badge + skor risiko** di samping komentar (Tinggi / Sedang), lengkap dengan alasannya.
 - **Highlight, blur, atau sembunyikan.** Semuanya bisa dinyalakan/dimatikan dan diatur per kategori. Komentar yang diblur bisa dibuka dengan klik.
 - **Dashboard Antrian** di side panel: daftar komentar berbahaya dari semua tab, diurutkan dari risiko tertinggi, bisa difilter dan diekspor ke CSV.
-- **Lapor semi-otomatis** (bisa dinyalakan/dimatikan): komentar prioritas tinggi masuk *Antrian Lapor*. Satu klik "Lapor berikutnya" membuat Tempest scroll ke komentar, membuka menu ⋯, mengklik "Laporkan", dan memilih alasan yang sesuai. **Tombol kirim selalu ditekan pengguna sendiri**, supaya salah deteksi AI tidak melaporkan orang yang tidak bersalah dan akun pengguna tidak dianggap melakukan laporan massal oleh platform.
+- **Lapor semi-otomatis** (bisa dinyalakan/dimatikan): komentar prioritas tinggi masuk *Antrian Lapor*. Satu klik "Lapor berikutnya" membuat Tempest scroll ke komentar, membuka menu ⋯, mengklik "Laporkan", memilih alasan dan sub-alasan, melewati layar "Berikutnya", lalu berhenti di tombol Kirim yang sudah difokuskan. Setelah pengguna menekan Kirim, Tempest lanjut otomatis ke komentar berikutnya. **Tombol kirim selalu ditekan pengguna sendiri**, supaya salah deteksi AI tidak melaporkan orang yang tidak bersalah dan akun pengguna tidak dianggap melakukan laporan massal oleh platform.
 - **Whitelist** akun tepercaya dan **kata kunci kustom**.
 - **Tombol "Bukan berbahaya"** untuk mencatat salah deteksi sebagai data riset.
 

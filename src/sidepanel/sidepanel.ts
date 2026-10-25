@@ -71,6 +71,7 @@ async function startReport(it: QueueItem): Promise<void> {
   try {
     const r = await send<ReportResult>({ type: "startReport", key: it.key });
     const msg = {
+      submit: `Alasan "${r.reason}" sudah dipilih dan tombol kirim sudah difokuskan. Tekan Enter atau klik Kirim di halaman. Tempest lanjut otomatis setelah itu.`,
       reason: `Alasan "${r.reason}" sudah dipilih. Periksa di halaman, tekan Berikutnya / Kirim, lalu klik "Sudah dilapor".`,
       dialog: `Form laporan sudah terbuka. Pilih alasan "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
       menu: `Menu sudah dibuka. Pilih "Laporkan" → "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
@@ -222,7 +223,15 @@ scanBtn.addEventListener("click", async () => {
   if (!r?.ok) scanBtn.textContent = r?.note ?? "Buka postingan YouTube / IG / TikTok / X dulu";
 });
 
-chrome.runtime.onMessage.addListener((msg: BroadcastMsg | ScanProgress, sender) => {
+chrome.runtime.onMessage.addListener((msg: BroadcastMsg | ScanProgress | { type: "reportSubmitted"; commentId: string }, sender) => {
+  if (msg.type === "reportSubmitted") {
+    const active = queue.find((q) => q.key === reportingKey);
+    if (active && active.commentId === msg.commentId && active.tabId === sender.tab?.id) {
+      setNote("✓ Laporan terkirim. Lanjut ke komentar berikutnya…");
+      setTimeout(() => void finishReport("done"), 1200);
+    }
+    return;
+  }
   if (msg.type === "scanProgress") {
     if (scanTab !== undefined && sender.tab?.id !== scanTab) return;
     scanTab = sender.tab?.id;

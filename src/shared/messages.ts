@@ -12,7 +12,8 @@ export type Msg =
   | { type: "removeQueueItem"; key: string }
   | { type: "startReport"; key: string }
   | { type: "setReportStatus"; key: string; status: ReportStatus }
-  | ScanProgress;
+  | ScanProgress
+  | { type: "reportSubmitted"; commentId: string };
 
 export type TabMsg =
   | { type: "verdicts"; verdicts: Verdict[] }
@@ -33,7 +34,7 @@ export interface ScanProgress {
 }
 
 /** Sampai tahap mana alur lapor otomatis berjalan sebelum diserahkan ke pengguna. */
-export type ReportStage = "reason" | "dialog" | "menu" | "none";
+export type ReportStage = "submit" | "reason" | "dialog" | "menu" | "none";
 
 export interface ReportResult {
   stage: ReportStage;

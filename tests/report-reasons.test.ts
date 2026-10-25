@@ -36,3 +36,34 @@ describe("pemetaan alasan lapor", () => {
     expect(pickReason("aman", X)).toBeNull();
   });
 });
+
+describe("label lapor X versi 2026", () => {
+  const X2026 = [
+    "Kebencian, Pelecehan secara online, atau Penganiayaan",
+    "Spam",
+    "Keselamatan Anak",
+    "Tutur Kekerasan",
+    "Perilaku Ilegal dan Teratur",
+    "Peniruan",
+    "Konten Pribadi atau Tanpa Persetujuan",
+    "Berikutnya",
+  ];
+  const cases: [Category, string][] = [
+    ["hinaan", "Kebencian, Pelecehan secara online, atau Penganiayaan"],
+    ["sara", "Kebencian, Pelecehan secara online, atau Penganiayaan"],
+    ["perundungan", "Kebencian, Pelecehan secara online, atau Penganiayaan"],
+    ["ancaman", "Tutur Kekerasan"],
+    ["judol", "Spam"],
+    ["phishing", "Peniruan"],
+    ["scam", "Spam"],
+  ];
+  for (const [cat, want] of cases) it(`${cat} → ${want}`, () => expect(pickReason(cat, X2026)).toBe(want));
+});
+
+describe("sub-alasan (layar kedua)", () => {
+  const SUB = ["Hinaan atau penghinaan terarah", "Konten seksual yang tidak diinginkan", "Ancaman kekerasan", "Lainnya", "Berikutnya"];
+  it("hinaan → Hinaan atau penghinaan terarah", () => expect(pickReason("hinaan", SUB)).toBe("Hinaan atau penghinaan terarah"));
+  it("pelecehan → Konten seksual", () => expect(pickReason("pelecehan", SUB)).toBe("Konten seksual yang tidak diinginkan"));
+  it("ancaman → Ancaman kekerasan", () => expect(pickReason("ancaman", SUB)).toBe("Ancaman kekerasan"));
+  it("tidak menebak kalau tidak ada yang cocok", () => expect(pickReason("judol", SUB)).toBeNull());
+});

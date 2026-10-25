@@ -228,14 +228,15 @@
         <header class="sec-head"><span class="sec-no">07</span><h2>Lapor</h2></header>
         <p class="sec-desc">Tempest membantu membuka menu laporan dan memilih alasannya. <b>Tombol kirim selalu kamu yang tekan</b>, supaya salah deteksi AI tidak melaporkan orang yang tidak bersalah dan akunmu tidak dianggap melakukan laporan massal oleh platform.</p>
         <div class="frame card">
-          <label class="toggle"><span class="t-main"><span class="t-title">Antrian lapor semi-otomatis</span><span class="t-desc">Komentar prioritas TINGGI otomatis masuk antrian di Dashboard. Klik "Lapor berikutnya" → Tempest scroll ke komentar, buka menu, klik Laporkan, dan pilih alasan.</span></span><input class="switch red" type="checkbox" data-key="report.autoQueue" /></label>
+          <label class="toggle"><span class="t-main"><span class="t-title">Antrian lapor semi-otomatis</span><span class="t-desc">Komentar prioritas TINGGI otomatis masuk antrian di Dashboard. Klik "Lapor berikutnya" → Tempest mengisi seluruh form laporan dan berhenti di tombol Kirim. Setelah kamu tekan Kirim, Tempest lanjut sendiri ke komentar berikutnya.</span></span><input class="switch red" type="checkbox" data-key="report.autoQueue" /></label>
           <label class="toggle"><span class="t-main"><span class="t-title">Tombol "Bantu laporkan"</span><span class="t-desc">Tampilkan tombol lapor di detail badge setiap komentar berbahaya.</span></span><input class="switch" type="checkbox" data-key="report.assist" /></label>
         </div>
         <div class="flow frame inset" aria-label="Alur lapor">
           <span><i>1</i>Buka menu ⋯</span><span class="arr">▸</span>
           <span><i>2</i>Klik Laporkan</span><span class="arr">▸</span>
-          <span><i>3</i>Pilih alasan</span><span class="arr">▸</span>
-          <span class="you"><i>4</i>Kamu kirim</span>
+          <span><i>3</i>Isi alasan &amp; Berikutnya</span><span class="arr">▸</span>
+          <span class="you"><i>4</i>Kamu tekan Kirim</span><span class="arr">▸</span>
+          <span><i>5</i>Lanjut otomatis</span>
         </div>
       </section>
 

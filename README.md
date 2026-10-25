@@ -1,7 +1,6 @@
 <img src="docs/raphael.webp" alt="Raphael" align="left" width="150" />
 
-# Tempest
-
+### TEMPEST
 **Penjaga kolom komentar berbahasa Indonesia.**
 
 Ekstensi browser berbasis AI untuk mendeteksi promosi judi online (judol), link phising, dan komentar toxic seperti hinaan, perundungan, dan sarkasme.

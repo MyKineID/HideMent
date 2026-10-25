@@ -9,6 +9,28 @@ import { FastScanner } from "./fast-scan";
 
 const adapter = detectAdapter(location.hostname);
 
+/* Setiap kali content script dipasang (termasuk setelah ekstensi di-reload), ia "mengklaim" halaman.
+   Salinan lama yang koneksinya ke ekstensi sudah putus akan pensiun sendiri tanpa menghapus tanda di halaman. */
+const TOKEN = Math.random().toString(36).slice(2);
+document.documentElement.dataset.tempest = TOKEN;
+let retired = false;
+
+function orphaned(): boolean {
+  return document.documentElement.dataset.tempest !== TOKEN || !chrome.runtime?.id;
+}
+
+function retire(): void {
+  if (retired) return;
+  retired = true;
+  observer?.disconnect();
+  observer = undefined;
+  visibility.disconnect();
+  clearTimeout(sendTimer);
+  clearTimeout(scanTimer);
+  clearTimeout(autoScanTimer);
+  scanner?.stop();
+}
+
 const SCAN_THROTTLE_MS = 400;
 const SEND_DELAY_MS = 120;
 const MAX_PER_MESSAGE = 60;
@@ -56,6 +78,7 @@ function queueForAnalysis(el: HTMLElement): void {
 }
 
 async function flush(): Promise<void> {
+  if (orphaned()) return retire();
   if (!adapter || !outbox.size) return;
   const batch = [...outbox.values()].slice(0, MAX_PER_MESSAGE);
   batch.forEach((c) => outbox.delete(c.id));
@@ -93,12 +116,14 @@ async function recordFeedback(text: string, v: Verdict): Promise<void> {
 }
 
 function scan(): void {
+  if (orphaned()) return retire();
   if (!active() || !adapter) return;
   for (const el of adapter.findComments(document)) {
     const text = adapter.getText(el);
     if (!text) continue;
     const fingerprint = hashText(text);
     let id = el.dataset.rgId;
+    if (id && !elements.has(id)) id = undefined;
     if (id && el.dataset.rgFp !== fingerprint) {
       verdicts.delete(id);
       clearMarks(el, adapter);
@@ -205,16 +230,22 @@ function reapplyAll(): void {
 }
 
 chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
+  if (retired) return;
+  if (msg.type === "ping") {
+    sendResponse({ ok: true, platform: adapter?.platform ?? null, active: active() });
+    return;
+  }
   if (msg.type === "reportComment") {
-    const el = elements.get(msg.commentId);
-    if (!el?.isConnected || !adapter) {
-      sendResponse({ stage: "none", reason: "", note: "Komentar sudah tidak ada di halaman (mungkin halaman berganti). Buka ulang komentarnya." });
-      return;
-    }
-    el.classList.remove("rg-hidden-host");
-    void runReportFlow(el, adapter, msg.verdict, () => {
-      chrome.runtime.sendMessage({ type: "reportSubmitted", commentId: msg.commentId }).catch(() => undefined);
-    }).then(sendResponse);
+    void findComment(msg.commentId, msg.text).then((el) => {
+      if (!el || !adapter) {
+        sendResponse({ stage: "none", reason: "", note: "Komentar ini tidak ditemukan lagi di halaman (mungkin halaman berganti). Buka ulang postingannya." });
+        return;
+      }
+      el.classList.remove("rg-hidden-host");
+      void runReportFlow(el, adapter, msg.verdict, () => {
+        chrome.runtime.sendMessage({ type: "reportSubmitted", commentId: msg.commentId }).catch(() => undefined);
+      }).then(sendResponse);
+    });
     return true;
   }
   if (msg.type === "fastScan") {

@@ -89,6 +89,10 @@ async function init(): Promise<void> {
   const stopBtn = $<HTMLButtonElement>("#stopScan");
   scanBtn.addEventListener("click", async () => {
     if (tab?.id === undefined || scanBtn.disabled) return;
+    if (!(await send<boolean>({ type: "ensureContent", tabId: tab.id }).catch(() => false))) {
+      say(dlg, "Tempest belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.", "err");
+      return;
+    }
     const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
     if (!r?.ok) say(dlg, r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.", "err");
   });

@@ -163,7 +163,12 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       flushQueue();
       return true;
     }
+    case "ensureContent":
+      return ensureContent(msg.tabId);
     case "startReport": {
+      if (!(await ensureContent(queue.find((q) => q.key === msg.key)?.tabId ?? -1))) {
+        throw new Error("Tab ini belum tersambung ke Tempest. Refresh halamannya lalu coba lagi.");
+      }
       const item = queue.find((q) => q.key === msg.key);
       if (!item) throw new Error("Komentar tidak ada di antrian");
       try {
@@ -171,7 +176,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       } catch {
         throw new Error("Tab komentar ini sudah ditutup. Buka lagi halamannya.");
       }
-      const res = (await chrome.tabs.sendMessage(item.tabId, { type: "reportComment", commentId: item.commentId, verdict: item.verdict } satisfies TabMsg)) as ReportResult | undefined;
+      const res = (await chrome.tabs.sendMessage(item.tabId, { type: "reportComment", commentId: item.commentId, text: item.text, verdict: item.verdict } satisfies TabMsg)) as ReportResult | undefined;
       if (!res) throw new Error("Halaman belum siap. Refresh tab lalu coba lagi.");
       return res;
     }
@@ -180,6 +185,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       return true;
     case "focusComment": {
       const tab = await chrome.tabs.update(msg.tabId, { active: true });
+      if (!(await ensureContent(msg.tabId))) return false;
       if (tab?.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
       const found = await chrome.tabs
         .sendMessage(msg.tabId, { type: "focusComment", commentId: msg.commentId, text: msg.text } satisfies TabMsg)
@@ -215,6 +221,34 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
   }
 });
 
-chrome.runtime.onInstalled.addListener((d) => {
+const CONTENT_MATCHES = chrome.runtime.getManifest().content_scripts?.[0]?.matches ?? [];
+
+/** Pasang content script ke tab yang sudah terbuka (Chrome tidak melakukannya sendiri setelah ekstensi di-reload). */
+async function injectContent(tabId: number): Promise<boolean> {
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId }, files: ["content.css"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function pingTab(tabId: number): Promise<boolean> {
+  const res = (await chrome.tabs.sendMessage(tabId, { type: "ping" } satisfies TabMsg).catch(() => null)) as { ok?: boolean } | null;
+  return Boolean(res?.ok);
+}
+
+/** Pastikan tab punya content script yang hidup; pasang ulang kalau koneksinya putus. */
+async function ensureContent(tabId: number): Promise<boolean> {
+  if (await pingTab(tabId)) return true;
+  if (!(await injectContent(tabId))) return false;
+  await new Promise((r) => setTimeout(r, 300));
+  return pingTab(tabId);
+}
+
+chrome.runtime.onInstalled.addListener(async (d) => {
   if (d.reason === "install") void chrome.runtime.openOptionsPage();
+  const tabs = await chrome.tabs.query({ url: CONTENT_MATCHES });
+  await Promise.all(tabs.map((t) => (t.id !== undefined && !t.discarded ? injectContent(t.id) : null)));
 });

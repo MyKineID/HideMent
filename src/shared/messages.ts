@@ -13,13 +13,15 @@ export type Msg =
   | { type: "startReport"; key: string }
   | { type: "setReportStatus"; key: string; status: ReportStatus }
   | ScanProgress
-  | { type: "reportSubmitted"; commentId: string };
+  | { type: "reportSubmitted"; commentId: string }
+  | { type: "ensureContent"; tabId: number };
 
 export type TabMsg =
   | { type: "verdicts"; verdicts: Verdict[] }
   | { type: "focusComment"; commentId: string; text: string }
-  | { type: "reportComment"; commentId: string; verdict: Verdict }
+  | { type: "reportComment"; commentId: string; text: string; verdict: Verdict }
   | { type: "fastScan" }
+  | { type: "ping" }
   | { type: "stopScan" }
   | { type: "rescan" };
 

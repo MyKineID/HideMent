@@ -286,13 +286,21 @@ const scanStatus = $("#scanStatus");
 scanBtn.addEventListener("click", async () => {
   if (scanning) return;
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (tab?.id === undefined) return;
-  scanTab = tab.id;
-  const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
-  if (!r?.ok) {
+  const fail = (text: string) => {
     scanStatus.hidden = false;
-    scanStatus.textContent = r?.note ?? "Buka postingan YouTube / IG / TikTok / X dulu.";
+    scanStatus.textContent = text;
+  };
+  if (tab?.id === undefined) return;
+  if (!/^https:\/\/(www\.|m\.)?(youtube|instagram|tiktok|x|twitter)\.com\//.test(tab.url ?? "")) {
+    return fail("Tab aktif bukan YouTube / Instagram / TikTok / X.");
   }
+  scanTab = tab.id;
+  fail("Menyambungkan ke tab…");
+  if (!(await send<boolean>({ type: "ensureContent", tabId: tab.id }).catch(() => false))) {
+    return fail("Tempest belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.");
+  }
+  const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
+  if (!r?.ok) fail(r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.");
 });
 stopBtn.addEventListener("click", () => {
   if (scanTab !== undefined) chrome.tabs.sendMessage(scanTab, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);

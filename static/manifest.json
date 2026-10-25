@@ -5,16 +5,32 @@
   "version": "0.1.0",
   "description": "Deteksi komentar judol, link phising, dan toxic berbahasa Indonesia di YouTube, Instagram, TikTok, dan X memakai AI 9router.",
   "minimum_chrome_version": "116",
-  "icons": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
   "action": {
     "default_title": "Tempest",
     "default_popup": "popup/popup.html",
-    "default_icon": { "16": "assets/icon-16.png", "32": "assets/icon-32.png" }
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png"
+    }
   },
   "options_page": "options/options.html",
-  "side_panel": { "default_path": "sidepanel/sidepanel.html" },
-  "background": { "service_worker": "background.js" },
-  "permissions": ["storage", "sidePanel"],
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "scripting"
+  ],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://m.youtube.com/*",
@@ -23,7 +39,10 @@
     "https://x.com/*",
     "https://twitter.com/*"
   ],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -34,10 +53,23 @@
         "https://x.com/*",
         "https://twitter.com/*"
       ],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": [{ "resources": ["assets/*"], "matches": ["<all_urls>"] }]
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

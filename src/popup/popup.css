@@ -1,0 +1,13 @@
+body { width: 340px; padding: 14px; background-attachment: scroll; }
+body > * + * { margin-top: 12px; }
+.brand-mark { width: 32px; height: 32px; }
+.brand-title { font-size: 15px; }
+.brand .switch { padding: 0; }
+.card { padding: 10px 14px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 12px 6px; }
+.stat b { color: var(--cyan); text-shadow: 0 0 12px rgba(92, 225, 230, 0.35); }
+.stat.red b { color: var(--red-hi); text-shadow: var(--glow-red); }
+.stat.amber b { color: var(--amber); text-shadow: none; }
+.switch b { font-size: 13px; }
+.status { text-align: center; }
+.actions button { padding: 9px 12px; }

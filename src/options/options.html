@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raphael Guard · Pengaturan</title>
+  <link rel="stylesheet" href="../styles/theme.css" />
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-title">Raphael Guard</div>
+        <div class="brand-sub">Sistem Deteksi Komentar Berbahaya Berbahasa Indonesia</div>
+      </div>
+    </div>
+    <label class="switch master"><span class="lbl">Aktif</span><input type="checkbox" data-key="enabled" /></label>
+  </header>
+
+  <main class="grid">
+    <section class="card span-2">
+      <h2>Koneksi 9router</h2>
+      <div class="cols">
+        <label class="field"><span>Base URL (OpenAI-compatible, mis. http://vps-kiwora:20128/v1)</span>
+          <input id="baseUrl" type="url" placeholder="https://9router.domainkamu.com/v1" spellcheck="false" />
+        </label>
+        <label class="field"><span>API Key</span>
+          <div class="row">
+            <input id="apiKey" class="grow" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+            <button id="toggleKey" class="ghost" type="button" title="Tampilkan / sembunyikan">👁</button>
+          </div>
+        </label>
+      </div>
+      <label class="field"><span>Model <em id="modelCount"></em></span>
+        <div class="row">
+          <input id="modelFilter" class="filter" type="text" placeholder="Cari model…" />
+          <select id="model" class="grow"><option value="">— Ambil daftar model dulu —</option></select>
+          <button id="fetchModels" type="button">⟳ Ambil Model</button>
+        </div>
+      </label>
+      <div class="cols three">
+        <label class="field"><span>Timeout (detik)</span><input id="timeout" type="number" min="5" max="180" /></label>
+        <label class="field"><span>Komentar per request</span><input id="batchSize" type="number" min="1" max="50" /></label>
+        <label class="field"><span>Request paralel</span><input id="concurrency" type="number" min="1" max="6" /></label>
+      </div>
+      <div class="row">
+        <button id="saveApi" type="button">Simpan Koneksi</button>
+        <button id="testApi" class="ghost" type="button">Tes Koneksi</button>
+        <span id="apiStatus" class="status grow"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Mode Deteksi</h2>
+      <label class="switch red mode-card"><span class="lbl"><b>🎰 Anti Judol / Link Phising</b><small>Promosi judi online, situs merek+angka, link palsu, penipuan, spam.</small></span><input type="checkbox" data-key="modes.judol" /></label>
+      <label class="switch mode-card"><span class="lbl"><b>🛡 Anti Hate Komen / Toxic</b><small>Hinaan, perundungan, SARA, ancaman, pelecehan, sarkasme merendahkan. Kritik wajar tetap aman.</small></span><input type="checkbox" data-key="modes.toxic" /></label>
+    </section>
+
+    <section class="card">
+      <h2>Platform</h2>
+      <label class="switch"><span class="lbl">YouTube</span><input type="checkbox" data-key="platforms.youtube" /></label>
+      <label class="switch"><span class="lbl">Instagram</span><input type="checkbox" data-key="platforms.instagram" /></label>
+      <label class="switch"><span class="lbl">TikTok</span><input type="checkbox" data-key="platforms.tiktok" /></label>
+      <label class="switch"><span class="lbl">X / Twitter</span><input type="checkbox" data-key="platforms.x" /></label>
+    </section>
+
+    <section class="card">
+      <h2>Tampilan &amp; Aksi</h2>
+      <label class="switch"><span class="lbl">Badge + skor<small>Label kategori &amp; skor risiko di samping nama.</small></span><input type="checkbox" data-key="display.showBadge" /></label>
+      <label class="switch"><span class="lbl">Highlight<small>Garis warna merah/kuning pada komentar.</small></span><input type="checkbox" data-key="display.highlight" /></label>
+      <label class="switch"><span class="lbl">Blur<small>Teks berbahaya prioritas tinggi diblur.</small></span><input type="checkbox" data-key="display.blur" /></label>
+      <label class="switch"><span class="lbl">Klik untuk melihat<small>Teks blur bisa dibuka dengan klik.</small></span><input type="checkbox" data-key="display.clickToReveal" /></label>
+      <label class="switch"><span class="lbl">Sembunyikan total<small>Ganti komentar dengan bar "disembunyikan".</small></span><input type="checkbox" data-key="display.hide" /></label>
+      <label class="switch"><span class="lbl">Tampilkan badge "Aman"<small>Untuk riset/debug: tandai juga komentar aman.</small></span><input type="checkbox" data-key="display.showSafeBadge" /></label>
+    </section>
+
+    <section class="card">
+      <h2>Aksi per Kategori <small class="hint">(prioritas tinggi)</small></h2>
+      <div id="categoryActions" class="cat-table"></div>
+      <p class="hint">Prioritas sedang selalu cukup di-highlight. Saklar Blur/Sembunyikan di samping adalah saklar utama.</p>
+    </section>
+
+    <section class="card">
+      <h2>Ambang Skor</h2>
+      <label class="field"><span>Prioritas <b class="pill tinggi">Tinggi</b> mulai skor <output id="highOut"></output></span><input id="high" type="range" min="50" max="100" /></label>
+      <label class="field"><span>Prioritas <b class="pill sedang">Sedang</b> mulai skor <output id="mediumOut"></output></span><input id="medium" type="range" min="10" max="90" /></label>
+    </section>
+
+    <section class="card">
+      <h2>Daftar Kustom</h2>
+      <label class="field"><span>Whitelist akun tepercaya (satu per baris, tanpa @)</span><textarea id="whitelist" placeholder="namachannel"></textarea></label>
+      <label class="field"><span>Kata kunci judol/spam tambahan (satu per baris)</span><textarea id="customKeywords" placeholder="nama situs baru"></textarea></label>
+    </section>
+
+    <section class="card span-2">
+      <h2>Data Riset</h2>
+      <div class="row">
+        <button id="exportFeedback" class="ghost" type="button">⬇ Ekspor feedback "Bukan berbahaya" (JSON)</button>
+        <button id="clearCache" class="ghost" type="button">Hapus cache verdict</button>
+        <button id="resetAll" class="danger" type="button">Reset semua pengaturan</button>
+        <span id="dataStatus" class="status grow"></span>
+      </div>
+    </section>
+  </main>
+  <footer class="foot">Raphael Guard · Ilustrasi Raphael digambar sendiri oleh pembuat proyek</footer>
+  <script src="options.js"></script>
+</body>
+</html>

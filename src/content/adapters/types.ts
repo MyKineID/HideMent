@@ -1,0 +1,39 @@
+import type { Category, Platform } from "../../core/types";
+
+export interface Adapter {
+  platform: Platform;
+  findComments(root: ParentNode): HTMLElement[];
+  getText(el: HTMLElement): string;
+  getAuthor(el: HTMLElement): string;
+  getTextEl(el: HTMLElement): HTMLElement | null;
+  getBadgeAnchor(el: HTMLElement): HTMLElement | null;
+  getMenuButton(el: HTMLElement): HTMLElement | null;
+  reportReason(category: Category): string;
+}
+
+export function textOf(el: Element | null | undefined): string {
+  return (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+}
+
+export function genericReason(category: Category): string {
+  switch (category) {
+    case "judol":
+    case "spam":
+      return "Spam / konten menyesatkan";
+    case "phishing":
+    case "scam":
+      return "Penipuan / scam";
+    case "hinaan":
+    case "perundungan":
+    case "sarkasme":
+      return "Pelecehan atau perundungan";
+    case "sara":
+      return "Ujaran kebencian";
+    case "ancaman":
+      return "Kekerasan / ancaman";
+    case "pelecehan":
+      return "Konten seksual / pelecehan";
+    default:
+      return "Lainnya";
+  }
+}

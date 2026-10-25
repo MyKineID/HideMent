@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raphael Guard · Antrian</title>
+  <link rel="stylesheet" href="../styles/theme.css" />
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="head">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-title">Antrian Moderasi</div>
+        <div class="brand-sub" id="summary">—</div>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="seg" id="modeFilter">
+        <button data-v="all" class="on" type="button">Semua</button>
+        <button data-v="judol" type="button">🎰 Judol</button>
+        <button data-v="toxic" type="button">🛡 Toxic</button>
+      </div>
+      <div class="row">
+        <select id="prioFilter" class="grow">
+          <option value="all">Semua prioritas</option>
+          <option value="tinggi">Tinggi saja</option>
+          <option value="sedang">Sedang saja</option>
+        </select>
+        <select id="sort" class="grow">
+          <option value="risk">Urut: risiko tertinggi</option>
+          <option value="time">Urut: terbaru</option>
+        </select>
+      </div>
+      <input id="search" type="text" placeholder="Cari teks / akun…" />
+    </div>
+  </header>
+  <main id="list" class="list"></main>
+  <div id="empty" class="empty" hidden>
+    <div class="empty-ico">✦</div>
+    <p>Belum ada komentar berbahaya.<br />Buka kolom komentar di YouTube, Instagram, TikTok, atau X.</p>
+  </div>
+  <footer class="foot row">
+    <button id="exportCsv" class="ghost grow" type="button">⬇ Ekspor CSV</button>
+    <button id="clear" class="danger" type="button">Kosongkan</button>
+  </footer>
+  <template id="itemTpl">
+    <article class="item">
+      <div class="item-top">
+        <span class="pill prio"></span>
+        <span class="cat"></span>
+        <span class="score"></span>
+      </div>
+      <div class="meta"><span class="plat"></span> · <span class="author"></span> · <span class="time"></span></div>
+      <p class="text"></p>
+      <p class="reason"></p>
+      <div class="item-actions">
+        <button class="ghost" data-a="focus" type="button">↗ Lihat</button>
+        <button class="ghost" data-a="copy" type="button">Salin</button>
+        <button class="ghost" data-a="done" type="button">✓ Selesai</button>
+      </div>
+    </article>
+  </template>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

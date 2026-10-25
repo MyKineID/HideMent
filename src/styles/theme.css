@@ -1,0 +1,157 @@
+:root {
+  color-scheme: dark;
+  --bg: #0a0b10;
+  --bg-2: #07080c;
+  --surface: rgba(18, 20, 28, 0.82);
+  --surface-solid: #12141c;
+  --surface-2: rgba(26, 30, 42, 0.85);
+  --border: #1f2433;
+  --border-hi: #2b3550;
+  --blue: #3fa9f5;
+  --blue-dim: #1d5f91;
+  --cyan: #5ce1e6;
+  --red: #c1121f;
+  --red-hi: #ff3b3b;
+  --red-soft: #ff6b6b;
+  --amber: #f5a524;
+  --text: #e6e9f2;
+  --muted: #8a93a8;
+  --glow-blue: 0 0 18px rgba(63, 169, 245, 0.35);
+  --glow-red: 0 0 18px rgba(255, 59, 59, 0.35);
+  --radius: 12px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  font: 14px/1.5 var(--font);
+  color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgba(7, 8, 12, 0.62) 0%, rgba(10, 11, 16, 0.82) 50%, rgba(7, 8, 12, 0.95) 100%),
+    radial-gradient(1200px 600px at 85% -10%, rgba(63, 169, 245, 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(193, 18, 31, 0.16), transparent 60%),
+    url("../assets/raphael-bg.webp");
+  background-size: cover, auto, auto, cover;
+  background-position: center, center, center, center top;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: 0.01em; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 10px;
+  background: url("../assets/icon-128.png") center / cover, linear-gradient(135deg, var(--blue), var(--red));
+  box-shadow: var(--glow-blue);
+}
+.brand-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--cyan), var(--blue) 55%, var(--red-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-sub { font-size: 12px; color: var(--muted); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+.card h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  margin-bottom: 12px;
+  text-shadow: 0 0 12px rgba(92, 225, 230, 0.35);
+}
+
+label.field { display: block; margin-bottom: 12px; }
+label.field > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+
+input[type="text"], input[type="url"], input[type="password"], input[type="number"], select, textarea {
+  width: 100%;
+  padding: 9px 11px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(7, 8, 12, 0.75);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: var(--glow-blue); }
+textarea { resize: vertical; min-height: 80px; font-family: var(--mono); font-size: 12px; }
+select option { background: var(--surface-solid); }
+
+button, .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font: 600 13px var(--font);
+  color: var(--bg);
+  background: var(--blue);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+button:hover { background: var(--cyan); box-shadow: var(--glow-blue); }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: progress; }
+button.ghost { color: var(--text); background: transparent; box-shadow: inset 0 0 0 1px var(--border-hi); }
+button.ghost:hover { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--blue); }
+button.danger { color: #fff; background: var(--red); }
+button.danger:hover { background: var(--red-hi); box-shadow: var(--glow-red); }
+
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; cursor: pointer; }
+.switch + .switch { border-top: 1px solid var(--border); }
+.switch .lbl { display: flex; flex-direction: column; }
+.switch .lbl small { color: var(--muted); font-size: 12px; }
+.switch input { appearance: none; flex: none; width: 38px; height: 22px; margin: 0; border-radius: 999px; background: #2a2f40; position: relative; cursor: pointer; transition: background 0.2s; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #c9cfdd; transition: transform 0.2s, background 0.2s; }
+.switch input:checked { background: var(--blue-dim); box-shadow: var(--glow-blue); }
+.switch input:checked::after { transform: translateX(16px); background: var(--cyan); }
+.switch.red input:checked { background: #6d0b13; box-shadow: var(--glow-red); }
+.switch.red input:checked::after { background: var(--red-hi); }
+
+.status { font-size: 12px; color: var(--muted); min-height: 18px; }
+.status.ok { color: var(--cyan); }
+.status.err { color: var(--red-soft); }
+
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid var(--border-hi); white-space: nowrap; }
+.pill.tinggi { color: #ffd6d6; border-color: var(--red-hi); background: rgba(193, 18, 31, 0.18); }
+.pill.sedang { color: #ffe7bf; border-color: var(--amber); background: rgba(245, 165, 36, 0.12); }
+.pill.blue { color: #cfe9ff; border-color: var(--blue); background: rgba(63, 169, 245, 0.12); }
+
+.stat { text-align: center; }
+.stat b { display: block; font: 800 22px var(--mono); }
+.stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: #232a3d; border-radius: 10px; border: 2px solid var(--bg); }

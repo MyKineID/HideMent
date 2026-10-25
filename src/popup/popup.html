@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Raphael Guard</title>
+  <link rel="stylesheet" href="../styles/theme.css" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="brand">
+    <div class="brand-mark"></div>
+    <div class="grow">
+      <div class="brand-title">Raphael Guard</div>
+      <div class="brand-sub" id="site">—</div>
+    </div>
+    <label class="switch"><input type="checkbox" data-key="enabled" title="Aktif / nonaktif" /></label>
+  </header>
+
+  <section class="card stats">
+    <div class="stat"><b id="scanned">0</b><span>Dipindai</span></div>
+    <div class="stat red"><b id="high">0</b><span>Tinggi</span></div>
+    <div class="stat amber"><b id="medium">0</b><span>Sedang</span></div>
+  </section>
+
+  <section class="card">
+    <label class="switch red"><span class="lbl"><b>🎰 Anti Judol / Phising</b></span><input type="checkbox" data-key="modes.judol" /></label>
+    <label class="switch"><span class="lbl"><b>🛡 Anti Toxic</b></span><input type="checkbox" data-key="modes.toxic" /></label>
+    <label class="switch"><span class="lbl">Blur komentar berbahaya</span><input type="checkbox" data-key="display.blur" /></label>
+    <label class="switch"><span class="lbl">Sembunyikan total</span><input type="checkbox" data-key="display.hide" /></label>
+    <label class="switch" id="siteRow" hidden><span class="lbl">Aktif di situs ini</span><input type="checkbox" id="siteToggle" /></label>
+  </section>
+
+  <div id="apiState" class="status"></div>
+
+  <footer class="row actions">
+    <button id="openPanel" class="grow" type="button">📋 Dashboard Antrian</button>
+    <button id="rescan" class="ghost" type="button" title="Pindai ulang halaman">⟳</button>
+    <button id="openOptions" class="ghost" type="button" title="Pengaturan">⚙</button>
+  </footer>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,18 +1,79 @@
-/* Komponen UI pixel pengganti elemen bawaan browser: dropdown, dialog konfirmasi, stepper angka, kolom cari. */
+/* Komponen UI vanilla pengganti elemen bawaan browser: switch, dropdown, combobox dengan pencarian,
+   radiogroup, stepper angka, kolom cari, dan dialog konfirmasi. Semuanya bisa dipakai penuh dengan keyboard. */
 
-let openSelect: (() => void) | null = null;
+import { icon } from "./icons";
 
-function closeOpenSelect(): void {
-  openSelect?.();
-  openSelect = null;
+let uid = 0;
+const nextId = (p: string) => `${p}-${++uid}`;
+
+/** Satu popover terbuka pada satu waktu; klik di luar atau jendela kehilangan fokus menutupnya. */
+let closeOpen: (() => void) | null = null;
+
+function closeOpenPopover(): void {
+  closeOpen?.();
+  closeOpen = null;
 }
 
 document.addEventListener("pointerdown", (e) => {
-  if (!(e.target as HTMLElement).closest(".psel")) closeOpenSelect();
+  if (!(e.target as HTMLElement).closest(".psel, .pcombo")) closeOpenPopover();
 });
-addEventListener("blur", closeOpenSelect);
+addEventListener("blur", closeOpenPopover);
 
-/** Ubah <select> bawaan jadi dropdown pixel. <select> aslinya tetap ada (tersembunyi) sebagai sumber nilai & event "change". */
+/** Posisikan popover agar tidak keluar layar (kanan atau bawah). */
+function place(pop: HTMLElement, anchor: HTMLElement): void {
+  pop.classList.remove("align-right", "drop-up");
+  const r = anchor.getBoundingClientRect();
+  const p = pop.getBoundingClientRect();
+  pop.classList.toggle("align-right", r.left + p.width > innerWidth - 8);
+  pop.classList.toggle("drop-up", r.bottom + p.height > innerHeight - 8 && r.top > p.height + 8);
+}
+
+/* ── switch ─────────────────────────────────────── */
+
+/** Checkbox `.switch` diumumkan sebagai saklar oleh pembaca layar. */
+export function enhanceSwitch(input: HTMLInputElement): void {
+  input.setAttribute("role", "switch");
+}
+
+/* ── radiogroup ─────────────────────────────────── */
+
+/**
+ * Grup tombol `[role=radiogroup]` dengan roving tabindex: Tab masuk ke pilihan aktif,
+ * panah kiri/kanan/atas/bawah, Home dan End berpindah sekaligus memilih.
+ */
+export function enhanceRadioGroup(group: HTMLElement): void {
+  if (group.dataset.enhanced) return;
+  group.dataset.enhanced = "1";
+  const radios = () => [...group.querySelectorAll<HTMLElement>('[role="radio"]')];
+  const sync = () => {
+    const all = radios();
+    const checked = all.find((r) => r.getAttribute("aria-checked") === "true") ?? all[0];
+    all.forEach((r) => (r.tabIndex = r === checked ? 0 : -1));
+  };
+  group.addEventListener("keydown", (e) => {
+    const all = radios();
+    const i = all.indexOf(document.activeElement as HTMLElement);
+    if (i < 0) return;
+    const delta = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    let next = -1;
+    if (delta) next = (i + delta + all.length) % all.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = all.length - 1;
+    if (next < 0) return;
+    e.preventDefault();
+    all[next].focus();
+    all[next].click();
+  });
+  new MutationObserver(sync).observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-checked"] });
+  sync();
+}
+
+/* ── select ─────────────────────────────────────── */
+
+/**
+ * Ubah <select> bawaan jadi dropdown bergaya HideMent. <select> aslinya tetap ada (tersembunyi)
+ * sebagai sumber nilai & event "change". Mendukung panah, Home/End, Enter, Esc, dan ketik-untuk-mencari.
+ */
 export function enhanceSelect(sel: HTMLSelectElement): void {
   if (sel.dataset.enhanced) return;
   sel.dataset.enhanced = "1";
@@ -25,13 +86,14 @@ export function enhanceSelect(sel: HTMLSelectElement): void {
   sel.before(wrap);
   wrap.append(sel);
 
+  const listId = nextId("psel");
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "psel-btn";
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
+  btn.setAttribute("aria-controls", listId);
   const label = sel.getAttribute("aria-label") ?? (sel.id ? document.querySelector(`label[for="${sel.id}"]`)?.textContent : null);
-  if (label) btn.setAttribute("aria-label", label.trim());
   const text = document.createElement("span");
   text.className = "psel-text";
   const caret = document.createElement("span");
@@ -41,38 +103,47 @@ export function enhanceSelect(sel: HTMLSelectElement): void {
 
   const list = document.createElement("div");
   list.className = "psel-list";
+  list.id = listId;
   list.setAttribute("role", "listbox");
+  if (label) list.setAttribute("aria-label", label.trim());
+  list.tabIndex = -1;
   list.hidden = true;
   wrap.append(btn, list);
 
   let active = 0;
+  let typed = "";
+  let typedTimer: ReturnType<typeof setTimeout> | undefined;
 
   const items = () => [...list.querySelectorAll<HTMLElement>(".psel-opt")];
   const sync = () => {
-    text.textContent = sel.selectedOptions[0]?.text ?? "";
+    const selected = sel.selectedOptions[0]?.text ?? "";
+    text.textContent = selected;
+    btn.setAttribute("aria-label", label ? `${label.trim()}: ${selected}` : selected);
     items().forEach((it, i) => it.setAttribute("aria-selected", String(i === sel.selectedIndex)));
   };
   const highlight = (i: number) => {
     const all = items();
     active = Math.max(0, Math.min(all.length - 1, i));
     all.forEach((it, j) => it.classList.toggle("active", j === active));
+    list.setAttribute("aria-activedescendant", all[active]?.id ?? "");
     all[active]?.scrollIntoView({ block: "nearest" });
   };
-  const close = () => {
+  const close = (refocus = false) => {
+    if (list.hidden) return;
     list.hidden = true;
     wrap.classList.remove("open");
     btn.setAttribute("aria-expanded", "false");
+    if (refocus) btn.focus();
   };
   const open = () => {
-    closeOpenSelect();
+    closeOpenPopover();
     list.hidden = false;
     wrap.classList.add("open");
     btn.setAttribute("aria-expanded", "true");
-    const r = btn.getBoundingClientRect();
-    list.classList.toggle("align-right", r.left + list.offsetWidth > innerWidth - 8);
-    list.classList.toggle("drop-up", r.bottom + list.offsetHeight > innerHeight - 8 && r.top > list.offsetHeight);
+    place(list, btn);
     highlight(sel.selectedIndex);
-    openSelect = close;
+    list.focus();
+    closeOpen = () => close();
   };
   const choose = (i: number) => {
     if (i !== sel.selectedIndex) {
@@ -80,13 +151,13 @@ export function enhanceSelect(sel: HTMLSelectElement): void {
       sel.dispatchEvent(new Event("change", { bubbles: true }));
     }
     sync();
-    close();
-    btn.focus();
+    close(true);
   };
 
   [...sel.options].forEach((o, i) => {
     const it = document.createElement("div");
     it.className = "psel-opt";
+    it.id = `${listId}-${i}`;
     it.setAttribute("role", "option");
     it.textContent = o.text;
     it.addEventListener("pointerenter", () => highlight(i));
@@ -94,36 +165,187 @@ export function enhanceSelect(sel: HTMLSelectElement): void {
     list.append(it);
   });
 
-  btn.addEventListener("click", () => (list.hidden ? open() : close()));
+  btn.addEventListener("click", () => (list.hidden ? open() : close(true)));
   btn.addEventListener("keydown", (e) => {
-    const isOpen = !list.hidden;
-    switch (e.key) {
-      case "ArrowDown":
-      case "ArrowUp":
-        e.preventDefault();
-        if (!isOpen) open();
-        else highlight(active + (e.key === "ArrowDown" ? 1 : -1));
-        break;
-      case "Enter":
-      case " ":
-        e.preventDefault();
-        if (isOpen) choose(active);
-        else open();
-        break;
-      case "Escape":
-        if (isOpen) {
-          e.preventDefault();
-          close();
-        }
-        break;
-      case "Tab":
-        close();
-        break;
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+      e.preventDefault();
+      open();
     }
+  });
+  list.addEventListener("keydown", (e) => {
+    const n = items().length;
+    switch (e.key) {
+      case "ArrowDown": highlight(active + 1); break;
+      case "ArrowUp": highlight(active - 1); break;
+      case "Home": highlight(0); break;
+      case "End": highlight(n - 1); break;
+      case "Enter":
+      case " ": choose(active); break;
+      case "Escape": close(true); break;
+      case "Tab": close(); return;
+      default: {
+        if (e.key.length !== 1) return;
+        clearTimeout(typedTimer);
+        typed += e.key.toLowerCase();
+        typedTimer = setTimeout(() => (typed = ""), 600);
+        const hit = items().findIndex((it) => it.textContent!.toLowerCase().startsWith(typed));
+        if (hit >= 0) highlight(hit);
+      }
+    }
+    e.preventDefault();
   });
   sel.addEventListener("change", sync);
   sync();
 }
+
+/* ── combobox dengan pencarian ──────────────────── */
+
+export interface ComboOption {
+  value: string;
+  /** Bagian redup di depan label, mis. "openai/". */
+  prefix?: string;
+  label: string;
+  badge?: string;
+}
+
+export interface Combobox {
+  set(options: ComboOption[], value: string): void;
+  setDisabled(disabled: boolean, placeholder?: string): void;
+}
+
+/**
+ * Tombol pemilih yang membuka panel berisi kolom cari + daftar. Cocok untuk daftar panjang (model AI).
+ * Ketik untuk menyaring, panah untuk berpindah, Enter memilih, Esc menutup.
+ */
+export function createCombobox(host: HTMLElement, opts: { label: string; empty: string; onSelect(value: string): void }): Combobox {
+  host.classList.add("pcombo");
+  const listId = nextId("pcombo");
+  host.innerHTML = `
+    <button type="button" class="pcombo-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="${listId}"><span class="pcombo-text"></span><span class="pcombo-caret" aria-hidden="true"></span></button>
+    <div class="pcombo-pop" hidden>
+      <div class="pcombo-search">${icon("search", 14)}<input type="search" role="combobox" aria-autocomplete="list" aria-expanded="true" aria-controls="${listId}" autocomplete="off" spellcheck="false"></div>
+      <ul class="pcombo-list" id="${listId}" role="listbox"></ul>
+      <div class="pcombo-count" aria-live="polite"></div>
+    </div>`;
+  const btn = host.querySelector<HTMLButtonElement>(".pcombo-btn")!;
+  const btnText = host.querySelector<HTMLElement>(".pcombo-text")!;
+  const pop = host.querySelector<HTMLElement>(".pcombo-pop")!;
+  const input = host.querySelector<HTMLInputElement>("input")!;
+  const list = host.querySelector<HTMLElement>(".pcombo-list")!;
+  const count = host.querySelector<HTMLElement>(".pcombo-count")!;
+  input.placeholder = "Cari…";
+  input.setAttribute("aria-label", `Cari ${opts.label.toLowerCase()}`);
+  list.setAttribute("aria-label", opts.label);
+
+  let options: ComboOption[] = [];
+  let value = "";
+  let shown: ComboOption[] = [];
+  let active = 0;
+
+  const label = (o?: ComboOption) => (o ? `${o.prefix ?? ""}${o.label}` : "");
+  const renderButton = () => {
+    const cur = options.find((o) => o.value === value);
+    btnText.textContent = cur ? label(cur) : value || opts.empty;
+    btn.setAttribute("aria-label", `${opts.label}: ${btnText.textContent}`);
+  };
+  const highlight = (i: number) => {
+    const els = [...list.children] as HTMLElement[];
+    active = Math.max(0, Math.min(els.length - 1, i));
+    els.forEach((el, j) => el.classList.toggle("active", j === active));
+    input.setAttribute("aria-activedescendant", els[active]?.id ?? "");
+    els[active]?.scrollIntoView({ block: "nearest" });
+  };
+  const renderList = () => {
+    const q = input.value.trim().toLowerCase();
+    shown = options.filter((o) => !q || label(o).toLowerCase().includes(q));
+    list.replaceChildren(
+      ...shown.map((o, i) => {
+        const li = document.createElement("li");
+        li.className = "pcombo-opt";
+        li.id = `${listId}-${i}`;
+        li.setAttribute("role", "option");
+        li.setAttribute("aria-selected", String(o.value === value));
+        const name = Object.assign(document.createElement("span"), { className: "pcombo-label" });
+        if (o.prefix) name.append(Object.assign(document.createElement("span"), { className: "prov", textContent: o.prefix }));
+        name.append(o.label);
+        li.append(name);
+        if (o.badge) li.append(Object.assign(document.createElement("span"), { className: "fast-tag", textContent: o.badge }));
+        li.addEventListener("pointerenter", () => highlight(i));
+        li.addEventListener("click", () => choose(i));
+        return li;
+      }),
+    );
+    if (!shown.length) list.append(Object.assign(document.createElement("li"), { className: "pcombo-empty", textContent: `Tidak ada yang cocok dengan "${input.value}".` }));
+    count.textContent = q ? `${shown.length} dari ${options.length}` : `${options.length} tersedia`;
+    highlight(Math.max(0, shown.findIndex((o) => o.value === value)));
+  };
+  const close = (refocus = false) => {
+    if (pop.hidden) return;
+    pop.hidden = true;
+    host.classList.remove("open");
+    btn.setAttribute("aria-expanded", "false");
+    if (refocus) btn.focus();
+  };
+  const open = () => {
+    closeOpenPopover();
+    input.value = "";
+    pop.hidden = false;
+    host.classList.add("open");
+    btn.setAttribute("aria-expanded", "true");
+    renderList();
+    place(pop, btn);
+    input.focus();
+    closeOpen = () => close();
+  };
+  const choose = (i: number) => {
+    const o = shown[i];
+    if (!o) return;
+    if (o.value !== value) {
+      value = o.value;
+      opts.onSelect(o.value);
+    }
+    renderButton();
+    close(true);
+  };
+
+  btn.addEventListener("click", () => (pop.hidden ? open() : close(true)));
+  btn.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      open();
+    }
+  });
+  input.addEventListener("input", renderList);
+  input.addEventListener("keydown", (e) => {
+    switch (e.key) {
+      case "ArrowDown": highlight(active + 1); break;
+      case "ArrowUp": highlight(active - 1); break;
+      case "Enter": choose(active); break;
+      case "Escape": close(true); break;
+      case "Tab": close(); return;
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  return {
+    set(next, v) {
+      options = next;
+      value = v;
+      renderButton();
+      if (!pop.hidden) renderList();
+    },
+    setDisabled(disabled, placeholder) {
+      btn.disabled = disabled;
+      if (disabled) {
+        close();
+        btnText.textContent = placeholder ?? opts.empty;
+      } else renderButton();
+    },
+  };
+}
+
+/* ── dialog konfirmasi ──────────────────────────── */
 
 export interface ConfirmOptions {
   title: string;
@@ -133,21 +355,21 @@ export interface ConfirmOptions {
   danger?: boolean;
 }
 
-/** Pengganti confirm(): dialog modal bergaya kotak dialog Raphael. */
+/** Pengganti confirm(): dialog modal dengan suara sistem Raphael. Fokus kembali ke pemicu setelah ditutup. */
 export function confirmDialog(opts: ConfirmOptions): Promise<boolean> {
+  const opener = document.activeElement as HTMLElement | null;
   return new Promise((resolve) => {
     const dlg = document.createElement("dialog");
     dlg.className = "pdlg";
+    const titleId = nextId("pdlg");
+    dlg.setAttribute("aria-labelledby", titleId);
     dlg.innerHTML = `
       <div class="dlg pdlg-box" data-tone="${opts.danger ? "err" : "info"}">
-        <span class="dlg-name">RAPHAEL</span>
-        <div class="grow">
-          <span class="dlg-title"></span>
-          <span class="dlg-text"></span>
-          <div class="pdlg-actions">
-            <button type="button" class="btn ghost sm" data-r="0"></button>
-            <button type="button" class="btn sm ${opts.danger ? "danger" : ""}" data-r="1"></button>
-          </div>
+        <div class="dlg-head"><span class="dlg-name">Raphael</span><span class="dlg-title" id="${titleId}"></span></div>
+        <span class="dlg-text"></span>
+        <div class="pdlg-actions">
+          <button type="button" class="btn ghost sm" data-r="0"></button>
+          <button type="button" class="btn sm ${opts.danger ? "danger" : ""}" data-r="1"></button>
         </div>
       </div>`;
     dlg.querySelector(".dlg-title")!.textContent = `«${opts.title}»`;
@@ -165,6 +387,7 @@ export function confirmDialog(opts: ConfirmOptions): Promise<boolean> {
     });
     dlg.addEventListener("close", () => {
       dlg.remove();
+      opener?.focus();
       resolve(result);
     });
     document.body.append(dlg);
@@ -173,7 +396,9 @@ export function confirmDialog(opts: ConfirmOptions): Promise<boolean> {
   });
 }
 
-/** Pengganti spinner bawaan input angka: tombol − / + pixel. */
+/* ── stepper angka ──────────────────────────────── */
+
+/** Pengganti spinner bawaan input angka: tombol − / +. Panah atas/bawah di input tetap berfungsi. */
 export function enhanceNumber(input: HTMLInputElement): void {
   if (input.dataset.enhanced) return;
   input.dataset.enhanced = "1";
@@ -202,7 +427,9 @@ export function enhanceNumber(input: HTMLInputElement): void {
   wrap.append(mk("−", -1), input, mk("+", 1));
 }
 
-/** Kolom cari dengan tombol hapus pixel (pengganti ✕ bawaan). */
+/* ── kolom cari ─────────────────────────────────── */
+
+/** Kolom cari dengan tombol hapus kustom (pengganti ✕ bawaan). Esc mengosongkan. */
 export function enhanceSearch(input: HTMLInputElement): void {
   if (input.dataset.enhanced) return;
   input.dataset.enhanced = "1";
@@ -229,7 +456,9 @@ export function enhanceSearch(input: HTMLInputElement): void {
 }
 
 export function enhanceAll(root: ParentNode = document): void {
+  root.querySelectorAll<HTMLInputElement>("input.switch").forEach(enhanceSwitch);
+  root.querySelectorAll<HTMLElement>('[role="radiogroup"]').forEach(enhanceRadioGroup);
   root.querySelectorAll<HTMLSelectElement>("select").forEach(enhanceSelect);
   root.querySelectorAll<HTMLInputElement>('input[type="number"]').forEach(enhanceNumber);
-  root.querySelectorAll<HTMLInputElement>('input[type="search"]').forEach(enhanceSearch);
+  root.querySelectorAll<HTMLInputElement>('input[type="search"]:not([role="combobox"])').forEach(enhanceSearch);
 }

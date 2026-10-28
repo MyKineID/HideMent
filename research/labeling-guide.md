@@ -1,4 +1,4 @@
-# Panduan Pelabelan: Tempest
+# Panduan Pelabelan: HideMent
 
 Panduan ini menentukan **komentar mana yang benar-benar merugikan** dan mana yang **kritik/ekspresi wajar**. Prinsip utama riset: kurangi komentar berbahaya *tanpa* membungkam kritik normal terhadap kreator.
 

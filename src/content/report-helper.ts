@@ -5,7 +5,7 @@ import type { Adapter } from "./adapters/types";
 /*
  * Alur lapor semi-otomatis: buka menu ⋯ → klik "Laporkan" → pilih alasan → lewati layar "Berikutnya"
  * → berhenti di tombol kirim (sudah difokuskan). Klik kirim SELALU dilakukan pengguna;
- * begitu pengguna mengirim, Tempest lanjut otomatis ke komentar berikutnya di antrian.
+ * begitu pengguna mengirim, HideMent lanjut otomatis ke komentar berikutnya di antrian.
  */
 
 const REPORT_ITEM_RE = /^(laporkan|report|lapor)(\s+(komentar|postingan|post|comment|tweet|kiriman))?\b/i;
@@ -117,7 +117,7 @@ function toast(title: string, body: string, reason: string, ms = 10000): void {
   const t = document.createElement("div");
   t.className = "rg-toast";
   t.setAttribute("role", "status");
-  t.innerHTML = `<b></b><div class="rg-toast-body"></div><div class="rg-toast-reason"></div><small>Tempest tidak pernah mengirim laporan sendiri. Kamu yang menekan tombol kirim.</small>`;
+  t.innerHTML = `<b></b><div class="rg-toast-body"></div><div class="rg-toast-reason"></div><small>HideMent tidak pernah mengirim laporan sendiri. Kamu yang menekan tombol kirim.</small>`;
   t.querySelector("b")!.textContent = title;
   t.querySelector(".rg-toast-body")!.textContent = body;
   const r = t.querySelector<HTMLElement>(".rg-toast-reason")!;
@@ -178,7 +178,7 @@ export async function runReportFlow(el: HTMLElement, adapter: Adapter, v: Verdic
 
     const next = await waitFor(() => buttonMatching(NEXT_RE), 1200);
     if (!next || (!option && step > 0)) {
-      toast("Pilih sendiri di layar ini", option ? "Tempest tidak yakin langkah berikutnya. Lanjutkan manual:" : "Pilihan di layar ini tidak cocok otomatis. Pilih yang paling sesuai:", label);
+      toast("Pilih sendiri di layar ini", option ? "HideMent tidak yakin langkah berikutnya. Lanjutkan manual:" : "Pilihan di layar ini tidak cocok otomatis. Pilih yang paling sesuai:", label);
       return { stage: picked ? "reason" : "dialog", reason: picked || reason, note: "" };
     }
     const before = dialogText();
@@ -203,7 +203,7 @@ function handOver(submit: HTMLElement, v: Verdict, reason: string, onSubmitted?:
   submit.addEventListener("click", onClick, true);
   toast(
     "Tinggal tekan Kirim",
-    `Alasan: ${reason}. Tekan Enter atau klik "${textOf(submit)}". ${onSubmitted ? "Tempest lanjut otomatis ke komentar berikutnya." : ""}`.trim(),
+    `Alasan: ${reason}. Tekan Enter atau klik "${textOf(submit)}". ${onSubmitted ? "HideMent lanjut otomatis ke komentar berikutnya." : ""}`.trim(),
     `${CATEGORY_LABEL[v.category]} · skor ${v.score}`,
     20000,
   );

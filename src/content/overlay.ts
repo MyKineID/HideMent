@@ -2,10 +2,10 @@ import { priorityOf, type ActionKind, type Settings } from "../core/settings";
 import { CATEGORY_LABEL, type Priority, type Verdict } from "../core/types";
 import type { Adapter } from "./adapters/types";
 import { runReportFlow } from "./report-helper";
-import { pixelIcon } from "../shared/pixel-icons";
+import { icon } from "../shared/icons";
 
 const MARK_CLASSES = ["rg-hl-tinggi", "rg-hl-sedang", "rg-hl-aman", "rg-hidden-host"];
-const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan lokal", ai: "AI · 9router", cache: "AI (cache)" };
+const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan lokal (tanpa AI)", ai: "AI", cache: "AI (dari cache)" };
 
 export interface OverlayCallbacks {
   onDismiss(el: HTMLElement, v: Verdict): void;
@@ -22,16 +22,18 @@ function resolveAction(v: Verdict, priority: Priority, s: Settings): ActionKind 
 
 export function clearMarks(el: HTMLElement, adapter: Adapter): void {
   el.classList.remove(...MARK_CLASSES);
-  el.querySelectorAll(":scope .rg-badge, :scope .rg-chiprow").forEach((n) => n.remove());
+  el.querySelectorAll(":scope .rg-badge, :scope .rg-chiprow, :scope .rg-blur-hint").forEach((n) => n.remove());
   const t = adapter.getTextEl(el);
-  t?.classList.remove("rg-blur", "rg-revealed");
-  t?.removeAttribute("data-rg-reveal");
+  if (!t) return;
+  t.classList.remove("rg-blur", "rg-revealed");
+  t.removeAttribute("data-rg-reveal");
+  unsetBlurA11y(t);
 }
 
 type Level = Priority | "aman";
 
 const LEVEL_LABEL: Record<Level, string> = { tinggi: "Tinggi", sedang: "Sedang", rendah: "Rendah", aman: "Aman" };
-const MODE_LABEL: Record<Verdict["mode"], string> = { judol: "Anti Judol / Phising", toxic: "Anti Toxic" };
+const MODE_LABEL: Record<Verdict["mode"], string> = { judol: "Judi online / phising", toxic: "Toxic" };
 
 function span(cls: string, text = ""): HTMLSpanElement {
   const s = document.createElement("span");
@@ -40,26 +42,18 @@ function span(cls: string, text = ""): HTMLSpanElement {
   return s;
 }
 
-/** Meteran blok pixel: `cells` blok, menyala sebanding skor. */
-function meter(score: number, cells: number, cls: string): HTMLSpanElement {
-  const m = span(cls);
-  const lit = score > 0 ? Math.max(1, Math.ceil((score / 100) * cells)) : 0;
-  for (let i = 0; i < cells; i++) m.append(span(i < lit ? "on" : ""));
-  return m;
-}
-
+/** Label ringkas di samping nama akun: skor + kategori. Tingkat bahaya dibedakan lewat warna dan teks aksesibel. */
 function buildBadge(v: Verdict, level: Level, el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks, assist: boolean): HTMLElement {
   const badge = document.createElement("button");
   badge.type = "button";
   badge.className = `rg-badge rg-p-${level}`;
-  badge.setAttribute("aria-label", `Tempest: ${LEVEL_LABEL[level]}, ${CATEGORY_LABEL[v.category]}, skor ${v.score}. Klik untuk detail.`);
-  badge.title = "Tempest · klik untuk detail";
+  badge.setAttribute("aria-haspopup", "dialog");
+  badge.setAttribute("aria-expanded", "false");
+  badge.setAttribute("aria-label", `HideMent: prioritas ${LEVEL_LABEL[level].toLowerCase()}, ${CATEGORY_LABEL[v.category]}, skor ${v.score}. Buka detail.`);
+  badge.title = "HideMent · klik untuk detail";
 
-  badge.append(span("rg-b-lvl", LEVEL_LABEL[level]));
-  if (level !== "aman") badge.append(span("rg-b-cat", CATEGORY_LABEL[v.category]));
-  const sc = span("rg-b-score");
-  sc.append(span("rg-b-num", String(v.score)), meter(v.score, 5, "rg-b-meter"));
-  badge.append(sc);
+  if (level === "aman") badge.append(span("rg-b-cat", "Aman"));
+  else badge.append(span("rg-b-num", String(v.score)), span("rg-b-cat", CATEGORY_LABEL[v.category]));
 
   badge.addEventListener("click", (e) => {
     e.preventDefault();
@@ -69,73 +63,124 @@ function buildBadge(v: Verdict, level: Level, el: HTMLElement, adapter: Adapter,
   return badge;
 }
 
+let openPop: { pop: HTMLElement; close(refocus: boolean): void } | null = null;
+
 function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLElement, adapter: Adapter, cb: OverlayCallbacks, assist: boolean): void {
-  const existing = document.querySelector<HTMLElement>(".rg-pop");
-  if (existing) {
-    existing.remove();
-    if (existing.dataset.for === el.dataset.rgId) return;
-  }
+  const wasSame = openPop?.pop.dataset.for === el.dataset.rgId;
+  openPop?.close(false);
+  if (wasSame) return;
+
   const pop = document.createElement("div");
   pop.className = `rg-pop rg-p-${level}`;
   pop.dataset.for = el.dataset.rgId ?? "";
   pop.setAttribute("role", "dialog");
+  pop.setAttribute("aria-label", "Detail HideMent");
   pop.innerHTML = `
-    <div class="rg-pop-name">TEMPEST</div>
-    <button type="button" class="rg-pop-x" data-a="close" aria-label="Tutup">${pixelIcon("close", 12)}</button>
-    <div class="rg-pop-head"><span class="rg-pop-lvl"></span><span class="rg-pop-title"></span></div>
-    <div class="rg-pop-scorebar"><span class="rg-pop-num"></span></div>
+    <div class="rg-pop-head">
+      <div class="rg-pop-titles"><span class="rg-pop-kicker"></span><span class="rg-pop-title"></span></div>
+      <span class="rg-pop-score"></span>
+      <button type="button" class="rg-pop-x" data-a="close" aria-label="Tutup">${icon("close", 14)}</button>
+    </div>
+    <div class="rg-pop-bar" aria-hidden="true"><i></i></div>
     <dl class="rg-pop-rows">
       <dt>Alasan</dt><dd class="rg-r-reason"></dd>
-      <dt>Mode</dt><dd class="rg-r-mode"></dd>
+      <dt>Jenis</dt><dd class="rg-r-mode"></dd>
       <dt>Sumber</dt><dd class="rg-r-src"></dd>
     </dl>
     <div class="rg-pop-actions">
-      <button type="button" class="rg-btn rg-btn-red" data-a="report">Bantu laporkan</button>
+      <button type="button" class="rg-btn" data-a="report">Bantu laporkan</button>
       <button type="button" class="rg-btn" data-a="dismiss">Bukan berbahaya</button>
     </div>`;
-  pop.querySelector(".rg-pop-lvl")!.textContent = LEVEL_LABEL[level];
+  pop.querySelector(".rg-pop-kicker")!.textContent = level === "aman" ? "HideMent" : `HideMent · prioritas ${LEVEL_LABEL[level].toLowerCase()}`;
   pop.querySelector(".rg-pop-title")!.textContent = level === "aman" ? "Komentar aman" : CATEGORY_LABEL[v.category];
-  pop.querySelector(".rg-pop-num")!.textContent = `${v.score}/100`;
-  pop.querySelector(".rg-pop-scorebar")!.prepend(meter(v.score, 20, "rg-pop-meter"));
+  pop.querySelector(".rg-pop-score")!.textContent = String(v.score);
+  pop.querySelector<HTMLElement>(".rg-pop-bar i")!.style.width = `${Math.max(2, v.score)}%`;
   pop.querySelector(".rg-r-reason")!.textContent = v.reason || "—";
   pop.querySelector(".rg-r-mode")!.textContent = MODE_LABEL[v.mode];
   pop.querySelector(".rg-r-src")!.textContent = SOURCE_LABEL[v.source];
   if (level === "aman") pop.querySelector(".rg-pop-actions")!.remove();
   else if (!assist) pop.querySelector('[data-a="report"]')!.remove();
 
+  const onDocClick = (e: MouseEvent) => {
+    if (!pop.contains(e.target as Node) && e.target !== badge) close(false);
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      close(true);
+    }
+  };
+  const close = (refocus: boolean) => {
+    pop.remove();
+    badge.setAttribute("aria-expanded", "false");
+    document.removeEventListener("click", onDocClick, true);
+    document.removeEventListener("keydown", onKey, true);
+    if (openPop?.pop === pop) openPop = null;
+    if (refocus) badge.focus();
+  };
+
   pop.addEventListener("click", (e) => {
     e.stopPropagation();
     const a = (e.target as HTMLElement).closest<HTMLElement>("[data-a]")?.dataset.a;
+    if (!a) return;
+    close(a === "close");
     if (a === "report") void runReportFlow(el, adapter, v);
     if (a === "dismiss") cb.onDismiss(el, v);
-    if (a) pop.remove();
   });
+
   document.body.appendChild(pop);
   const r = badge.getBoundingClientRect();
   const below = r.bottom + 8 + pop.offsetHeight < innerHeight;
   pop.style.top = `${window.scrollY + (below ? r.bottom + 8 : r.top - pop.offsetHeight - 8)}px`;
   pop.style.left = `${Math.max(8, Math.min(window.scrollX + r.left, window.scrollX + innerWidth - pop.offsetWidth - 12))}px`;
-  const onKey = (e: KeyboardEvent) => e.key === "Escape" && pop.remove();
-  document.addEventListener("keydown", onKey, { once: true });
-  setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }), 0);
+  badge.setAttribute("aria-expanded", "true");
+  openPop = { pop, close };
+  document.addEventListener("click", onDocClick, true);
+  document.addEventListener("keydown", onKey, true);
+  pop.querySelector<HTMLElement>(".rg-pop-actions .rg-btn, .rg-pop-x")?.focus({ preventScroll: true });
+}
+
+/* ── blur ─────────────────────────────────────────── */
+
+function setBlurA11y(t: HTMLElement): void {
+  t.tabIndex = 0;
+  t.setAttribute("role", "button");
+  t.setAttribute("aria-label", "Komentar diburamkan oleh HideMent. Tekan untuk melihat.");
+}
+
+function unsetBlurA11y(t: HTMLElement): void {
+  if (!t.hasAttribute("data-rg-a11y")) return;
+  t.removeAttribute("tabindex");
+  t.removeAttribute("role");
+  t.removeAttribute("aria-label");
+  t.removeAttribute("data-rg-a11y");
 }
 
 function applyBlur(textEl: HTMLElement, s: Settings): void {
   if (textEl.dataset.rgReveal === "1") return;
   textEl.classList.add("rg-blur");
   if (!s.display.clickToReveal) return;
-  textEl.addEventListener(
-    "click",
-    (e) => {
-      if (!textEl.classList.contains("rg-blur")) return;
-      e.preventDefault();
-      e.stopPropagation();
-      textEl.classList.remove("rg-blur");
-      textEl.classList.add("rg-revealed");
-      textEl.dataset.rgReveal = "1";
-    },
-    { capture: true },
-  );
+
+  textEl.setAttribute("data-rg-a11y", "1");
+  setBlurA11y(textEl);
+  const hint = document.createElement("span");
+  hint.className = "rg-blur-hint";
+  hint.textContent = "Diburamkan oleh HideMent · klik untuk lihat";
+  textEl.after(hint);
+
+  const reveal = (e: Event) => {
+    if (!textEl.classList.contains("rg-blur")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    textEl.classList.remove("rg-blur");
+    textEl.classList.add("rg-revealed");
+    textEl.dataset.rgReveal = "1";
+    unsetBlurA11y(textEl);
+    hint.remove();
+  };
+  textEl.addEventListener("click", reveal, { capture: true });
+  textEl.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && reveal(e), { capture: true });
+  hint.addEventListener("click", reveal);
 }
 
 function applyHide(el: HTMLElement, v: Verdict): void {
@@ -143,7 +188,7 @@ function applyHide(el: HTMLElement, v: Verdict): void {
   const bar = document.createElement("div");
   bar.className = "rg-hidden-bar";
   bar.innerHTML = `<span></span><button type="button">Tampilkan</button>`;
-  bar.querySelector("span")!.textContent = `Disembunyikan · ${CATEGORY_LABEL[v.category]} · ${v.score}`;
+  bar.querySelector("span")!.textContent = `1 komentar disembunyikan · ${CATEGORY_LABEL[v.category]} · ${v.score}`;
   bar.querySelector("button")!.addEventListener("click", (e) => {
     e.stopPropagation();
     el.classList.remove("rg-hidden-host");

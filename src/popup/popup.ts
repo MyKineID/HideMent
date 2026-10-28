@@ -2,9 +2,10 @@ import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type D
 import type { Platform } from "../core/types";
 import { send, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
 import { $, bindToggles, refreshToggles } from "../shared/dom";
-import { hydrateIcons, type IconName } from "../shared/pixel-icons";
+import { hydrateIcons, type IconName } from "../shared/icons";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
 import { say } from "../shared/raphael";
+import { enhanceAll } from "../shared/ui";
 
 const PLATFORM_HOSTS: [RegExp, Platform, string][] = [
   [/(^|\.)youtube\.com$/, "youtube", "YouTube"],
@@ -18,7 +19,7 @@ let lastLine = "";
 
 function renderPresets(): void {
   const p = presetOf(settings);
-  document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === p)));
+  document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.preset === p)));
 }
 
 async function init(): Promise<void> {
@@ -42,6 +43,7 @@ async function init(): Promise<void> {
     site.textContent = "Buka YouTube, IG, TikTok, atau X";
   }
   hydrateIcons();
+  enhanceAll();
 
   bindToggles(document, () => settings, (p) => void saveSettings(p as DeepPartial<Settings>).then((s) => (settings = s)));
   renderPresets();
@@ -66,7 +68,7 @@ async function init(): Promise<void> {
     $("#medium").textContent = String(st.tabCounts.medium);
 
     let line: [string, "ok" | "err" | "info"];
-    if (!settings.enabled) line = ["Tempest sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
+    if (!settings.enabled) line = ["HideMent sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
     else if (!st.configured) line = ["AI belum terhubung, baru deteksi judol lokal yang aktif. Atur lewat tombol pengaturan di bawah.", "err"];
     else if (st.lastError) line = [st.lastError, "err"];
     else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.`, "ok"];
@@ -90,7 +92,7 @@ async function init(): Promise<void> {
   scanBtn.addEventListener("click", async () => {
     if (tab?.id === undefined || scanBtn.disabled) return;
     if (!(await send<boolean>({ type: "ensureContent", tabId: tab.id }).catch(() => false))) {
-      say(dlg, "Tempest belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.", "err");
+      say(dlg, "HideMent belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.", "err");
       return;
     }
     const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;

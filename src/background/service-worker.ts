@@ -136,7 +136,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       } catch (e) {
         if (e instanceof ApiError && e.timeout) {
           throw new Error(
-            `Model "${api.model}" tidak merespons dalam ${api.timeoutMs / 1000} detik. Server-nya terhubung, tapi model ini kemungkinan sedang bermasalah di 9router. Coba pilih model lain.`,
+            `Model "${api.model}" tidak merespons dalam ${api.timeoutMs / 1000} detik. Server-nya terhubung, tapi model ini kemungkinan sedang bermasalah di penyedia AI. Coba pilih model lain.`,
           );
         }
         throw e;
@@ -167,7 +167,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       return ensureContent(msg.tabId);
     case "startReport": {
       if (!(await ensureContent(queue.find((q) => q.key === msg.key)?.tabId ?? -1))) {
-        throw new Error("Tab ini belum tersambung ke Tempest. Refresh halamannya lalu coba lagi.");
+        throw new Error("Tab ini belum tersambung ke HideMent. Refresh halamannya lalu coba lagi.");
       }
       const item = queue.find((q) => q.key === msg.key);
       if (!item) throw new Error("Komentar tidak ada di antrian");

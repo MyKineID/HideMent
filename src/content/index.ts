@@ -12,11 +12,11 @@ const adapter = detectAdapter(location.hostname);
 /* Setiap kali content script dipasang (termasuk setelah ekstensi di-reload), ia "mengklaim" halaman.
    Salinan lama yang koneksinya ke ekstensi sudah putus akan pensiun sendiri tanpa menghapus tanda di halaman. */
 const TOKEN = Math.random().toString(36).slice(2);
-document.documentElement.dataset.tempest = TOKEN;
+document.documentElement.dataset.hidement = TOKEN;
 let retired = false;
 
 function orphaned(): boolean {
-  return document.documentElement.dataset.tempest !== TOKEN || !chrome.runtime?.id;
+  return document.documentElement.dataset.hidement !== TOKEN || !chrome.runtime?.id;
 }
 
 function retire(): void {
@@ -108,11 +108,20 @@ function applyOne(v: Verdict): void {
   });
 }
 
-async function recordFeedback(text: string, v: Verdict): Promise<void> {
-  const raw = await chrome.storage.local.get("feedback");
-  const list = ((raw.feedback ?? []) as unknown[]).slice(-999);
-  list.push({ text, predicted: v.category, score: v.score, source: v.source, label: "aman", platform: adapter?.platform, at: Date.now() });
-  await chrome.storage.local.set({ feedback: list });
+/* Ditulis berurutan: klik "Bukan berbahaya" beruntun tidak boleh saling menimpa daftar di storage. */
+let feedbackChain: Promise<void> = Promise.resolve();
+
+function recordFeedback(text: string, v: Verdict): Promise<void> {
+  const entry = { text, predicted: v.category, score: v.score, source: v.source, label: "aman", platform: adapter?.platform, at: Date.now() };
+  feedbackChain = feedbackChain
+    .then(async () => {
+      const raw = await chrome.storage.local.get("feedback");
+      const list = ((raw.feedback ?? []) as unknown[]).slice(-999);
+      list.push(entry);
+      await chrome.storage.local.set({ feedback: list });
+    })
+    .catch(() => undefined);
+  return feedbackChain;
 }
 
 function scan(): void {
@@ -250,7 +259,7 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
   }
   if (msg.type === "fastScan") {
     if (!active()) {
-      sendResponse({ ok: false, note: "Tempest nonaktif di situs ini." });
+      sendResponse({ ok: false, note: "HideMent nonaktif di situs ini." });
       return;
     }
     void scanner?.run();

@@ -2,7 +2,7 @@ import { CATEGORY_LABEL, type QueueItem } from "../core/types";
 import { send, type BroadcastMsg, type ReportResult, type ScanProgress, type TabMsg } from "../shared/messages";
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
 import { $, download } from "../shared/dom";
-import { hydrateIcons, pixelIcon } from "../shared/pixel-icons";
+import { hydrateIcons, icon } from "../shared/icons";
 import { confirmDialog, enhanceAll } from "../shared/ui";
 
 const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok", x: "X" };
@@ -71,7 +71,7 @@ async function startReport(it: QueueItem): Promise<void> {
   try {
     const r = await send<ReportResult>({ type: "startReport", key: it.key });
     const msg = {
-      submit: `Alasan "${r.reason}" sudah dipilih dan tombol kirim sudah difokuskan. Tekan Enter atau klik Kirim di halaman. Tempest lanjut otomatis setelah itu.`,
+      submit: `Alasan "${r.reason}" sudah dipilih dan tombol kirim sudah difokuskan. Tekan Enter atau klik Kirim di halaman. HideMent lanjut otomatis setelah itu.`,
       reason: `Alasan "${r.reason}" sudah dipilih. Periksa di halaman, tekan Berikutnya / Kirim, lalu klik "Sudah dilapor".`,
       dialog: `Form laporan sudah terbuka. Pilih alasan "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
       menu: `Menu sudah dibuka. Pilih "Laporkan", lalu "${r.reason}", kirim, lalu klik "Sudah dilapor".`,
@@ -109,19 +109,23 @@ function makeNode(it: QueueItem): HTMLElement {
   const node = tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
   node.dataset.key = it.key;
   const plat = node.querySelector<HTMLElement>(".plat-ico")!;
-  plat.innerHTML = pixelIcon(it.platform, 12);
+  plat.innerHTML = icon(it.platform, 13);
   plat.title = PLATFORM_LABEL[it.platform];
   const text = node.querySelector<HTMLElement>(".text")!;
-  text.addEventListener("click", () => text.classList.toggle("open"));
+  const toggle = () => text.setAttribute("aria-expanded", String(text.classList.toggle("open")));
+  text.addEventListener("click", toggle);
+  text.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    toggle();
+  });
   hydrateIcons(node);
   return node;
 }
 
 function fillNode(node: HTMLElement, it: QueueItem): void {
   node.className = `item ${it.priority} ${it.verdict.mode}${it.key === reportingKey ? " reporting" : ""}`;
-  const prio = node.querySelector<HTMLElement>(".prio")!;
-  prio.className = `tag prio ${it.priority}`;
-  setText(prio, it.priority === "tinggi" ? "Tinggi" : "Sedang");
+  setText(node.querySelector(".prio"), it.priority === "tinggi" ? "Tinggi" : "Sedang");
   setText(node.querySelector(".cat"), CATEGORY_LABEL[it.verdict.category]);
   setText(node.querySelector(".score"), String(it.verdict.score));
   setText(node.querySelector(".author"), it.author ? `@${it.author}` : "anonim");
@@ -279,7 +283,7 @@ $("#exportCsv").addEventListener("click", () => {
       .map(csvCell)
       .join(","),
   );
-  download(`tempest-antrian-${Date.now()}.csv`, "﻿" + [head.join(","), ...rows].join("\n"), "text/csv");
+  download(`hidement-antrian-${Date.now()}.csv`, "﻿" + [head.join(","), ...rows].join("\n"), "text/csv");
 });
 
 let scanTab: number | undefined;
@@ -303,7 +307,7 @@ scanBtn.addEventListener("click", async () => {
   scanTab = tab.id;
   fail("Menyambungkan ke tab…");
   if (!(await send<boolean>({ type: "ensureContent", tabId: tab.id }).catch(() => false))) {
-    return fail("Tempest belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.");
+    return fail("HideMent belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.");
   }
   const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
   if (!r?.ok) fail(r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.");

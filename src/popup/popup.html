@@ -2,66 +2,58 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>Tempest</title>
+  <title>HideMent</title>
   <link rel="stylesheet" href="../styles/theme.css" />
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
   <header class="head">
-    <img class="face" src="../assets/raphael-pixel.png" alt="" />
+    <span data-logo="22"></span>
     <div class="grow">
-      <div class="name">TEMPEST</div>
+      <div class="name">HideMent</div>
       <div class="site" id="site">—</div>
     </div>
-    <input class="switch" type="checkbox" data-key="enabled" title="Aktif / nonaktif di semua situs" aria-label="Aktifkan Tempest" />
+    <input class="switch" type="checkbox" data-key="enabled" aria-label="Aktifkan HideMent di semua situs" />
   </header>
 
-  <section class="stats">
-    <div class="stat"><b id="scanned">0</b><span>Dipindai</span></div>
-    <div class="stat high"><b id="high">0</b><span>Tinggi</span></div>
-    <div class="stat mid"><b id="medium">0</b><span>Sedang</span></div>
+  <section class="stats" aria-label="Statistik halaman ini">
+    <div><b class="mono" id="scanned">0</b><span>dipindai</span></div>
+    <div class="high"><b class="mono" id="high">0</b><span>tinggi</span></div>
+    <div class="mid"><b class="mono" id="medium">0</b><span>sedang</span></div>
   </section>
 
-  <section class="block scan" id="scanBlock" hidden>
+  <section class="scan" id="scanBlock" hidden>
     <div class="row">
-      <button id="fastScan" class="btn danger grow" type="button"><span data-icon="bolt" data-size="14"></span><span class="lbl">Pindai semua komentar</span></button>
-      <button id="stopScan" class="btn ghost icon" type="button" title="Hentikan pemindaian" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
+      <button id="fastScan" class="btn grow" type="button"><span data-icon="bolt" data-size="15"></span><span class="lbl">Pindai semua komentar</span></button>
+      <button id="stopScan" class="btn ghost icon" type="button" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
     </div>
-    <div class="scan-prog" id="scanProg" hidden><span id="scanText"></span><span class="scan-meter"><i id="scanFill"></i></span></div>
+    <div class="scan-prog" id="scanProg" hidden><span id="scanText" aria-live="polite"></span><span class="scan-meter"><i id="scanFill"></i></span></div>
   </section>
 
-  <section class="block">
-    <div class="block-title">Mode</div>
-    <div class="modes">
-      <label class="mode red"><input type="checkbox" data-key="modes.judol" /><span data-icon="seven" data-size="16"></span><b>Judol</b><i></i></label>
-      <label class="mode"><input type="checkbox" data-key="modes.toxic" /><span data-icon="shield" data-size="16"></span><b>Toxic</b><i></i></label>
-    </div>
+  <section class="group" aria-label="Deteksi">
+    <label class="item"><span class="grow">Judi online &amp; phising</span><input class="switch" type="checkbox" data-key="modes.judol" /></label>
+    <label class="item"><span class="grow">Komentar toxic</span><input class="switch" type="checkbox" data-key="modes.toxic" /></label>
+    <label class="item" id="siteRow" hidden><span class="grow">Aktif di <b id="siteName"></b></span><span id="siteIcon" data-icon="grid" data-size="14" hidden></span><input class="switch" type="checkbox" id="siteToggle" /></label>
   </section>
 
-  <section class="block">
-    <div class="block-title">Aksi</div>
-    <div class="seg" id="presets">
-      <button type="button" data-preset="tandai" aria-pressed="false">Tandai</button>
-      <button type="button" data-preset="blur" aria-pressed="false">Blur</button>
-      <button type="button" data-preset="sembunyi" aria-pressed="false">Sembunyi</button>
+  <section class="action">
+    <span class="sub" id="aksiLabel">Komentar berbahaya</span>
+    <div class="seg" id="presets" role="radiogroup" aria-labelledby="aksiLabel">
+      <button type="button" role="radio" data-preset="tandai" aria-checked="false">Tandai</button>
+      <button type="button" role="radio" data-preset="blur" aria-checked="false">Blur</button>
+      <button type="button" role="radio" data-preset="sembunyi" aria-checked="false">Sembunyikan</button>
     </div>
   </section>
 
-  <label class="site-row" id="siteRow" hidden>
-    <span data-icon="grid" data-size="14" id="siteIcon"></span>
-    <span class="grow">Aktif di <b id="siteName"></b></span>
-    <input class="switch" type="checkbox" id="siteToggle" />
-  </label>
-
-  <div class="dlg" id="dlg" hidden>
-    <span class="dlg-name">RAPHAEL</span>
-    <div class="grow"><span class="dlg-title"></span><span class="dlg-text"></span></div>
+  <div class="dlg" id="dlg" hidden role="status" aria-live="polite">
+    <div class="dlg-head"><span class="dlg-name">Raphael</span><span class="dlg-title"></span></div>
+    <span class="dlg-text"></span>
   </div>
 
   <footer class="actions">
-    <button id="openPanel" class="btn grow" type="button"><span data-icon="queue" data-size="14"></span>Buka antrian</button>
-    <button id="rescan" class="btn ghost icon" type="button" title="Pindai ulang halaman" aria-label="Pindai ulang"><span data-icon="refresh" data-size="16"></span></button>
-    <button id="openOptions" class="btn ghost icon" type="button" title="Pengaturan" aria-label="Pengaturan"><span data-icon="gear" data-size="16"></span></button>
+    <button id="openPanel" class="btn ghost grow" type="button"><span data-icon="queue" data-size="15"></span>Buka antrian</button>
+    <button id="rescan" class="btn ghost icon" type="button" aria-label="Pindai ulang halaman" title="Pindai ulang halaman"><span data-icon="refresh" data-size="16"></span></button>
+    <button id="openOptions" class="btn ghost icon" type="button" aria-label="Pengaturan" title="Pengaturan"><span data-icon="gear" data-size="16"></span></button>
   </footer>
   <script src="popup.js"></script>
 </body>

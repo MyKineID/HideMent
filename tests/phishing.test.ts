@@ -31,6 +31,21 @@ describe("analisis phising", () => {
     expect(analyzePhishing(normalize("sumbernya https://www.youtube.com/watch?v=abc")).score).toBe(0);
   });
 
+  it("merek pendek tidak cocok sebagai potongan kata biasa", () => {
+    const reasons = (t: string) => analyzePhishing(normalize(t)).reasons.join(" ");
+    expect(reasons("referensinya di library.xyz")).not.toMatch(/meniru/);
+    expect(reasons("rekening danamon-cabang.site")).not.toMatch(/meniru merek "dana"/);
+    expect(reasons("cek fabrication.store")).not.toMatch(/meniru/);
+  });
+
+  it("domain tiruan dengan imbuhan khas tetap tertangkap", () => {
+    const reasons = (t: string) => analyzePhishing(normalize(t)).reasons.join(" ");
+    expect(reasons("login di klikbca-secure.com")).toMatch(/meniru merek "bca"/);
+    expect(reasons("klaim di danakaget.site")).toMatch(/meniru merek "dana"/);
+    expect(reasons("info bri123.online")).toMatch(/meniru merek "bri"/);
+    expect(reasons("promo shopeehadiah.xyz")).toMatch(/meniru merek "shopee"/);
+  });
+
   it("punycode ditandai", () => {
     const r = analyzePhishing(normalize("login di xn--bc-7ba.com"));
     expect(r.reasons.join(" ")).toMatch(/punycode/);

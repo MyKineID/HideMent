@@ -3,35 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tempest · Antrian</title>
+  <title>HideMent · Antrian</title>
   <link rel="stylesheet" href="../styles/theme.css" />
   <link rel="stylesheet" href="sidepanel.css" />
 </head>
 <body>
   <header class="head">
     <div class="title-row">
-      <span data-icon="queue" data-size="18" class="t-ico"></span>
+      <span data-logo="20"></span>
       <h1>Antrian</h1>
       <span class="tag tinggi" id="highTag" hidden></span>
       <span class="total" id="total"></span>
     </div>
-    <div class="scanrow">
-      <button id="fastScan" class="btn sm grow" type="button"><span data-icon="bolt" data-size="14"></span><span class="lbl">Pindai semua komentar</span></button>
-      <button id="stopScan" class="btn danger sm icon" type="button" title="Hentikan pemindaian" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
-    </div>
-    <div class="scanstat"><span id="scanStatus" class="scan-status" hidden></span><span class="scan-meter" id="scanMeter" hidden><i id="scanFill"></i></span></div>
-    <div class="seg" id="modeFilter">
-      <button data-v="all" aria-pressed="true" type="button">Semua</button>
-      <button data-v="judol" aria-pressed="false" type="button" class="red">Judol</button>
-      <button data-v="toxic" aria-pressed="false" type="button">Toxic</button>
-    </div>
     <div class="filters">
-      <div class="search grow">
+      <div class="search">
         <span data-icon="search" data-size="14"></span>
-        <input id="search" type="search" placeholder="Cari teks / akun…" />
+        <label for="search" class="sr-only">Cari komentar</label>
+        <input id="search" type="search" placeholder="Cari teks atau akun" />
       </div>
       <select id="prioFilter" aria-label="Filter prioritas">
-        <option value="all">Semua</option>
+        <option value="all">Semua prioritas</option>
         <option value="tinggi">Tinggi</option>
         <option value="sedang">Sedang</option>
       </select>
@@ -40,54 +31,59 @@
         <option value="time">Terbaru</option>
       </select>
     </div>
-    <section class="rbar" id="rbar" hidden>
-      <div class="rbar-idle" id="rIdle">
-        <span data-icon="flag" data-size="16" class="r-ico"></span>
-        <div class="grow"><b>Antrian lapor</b><small id="rCount"></small></div>
-        <button id="rNext" class="btn danger sm" type="button"><span data-icon="play" data-size="12"></span>Lapor berikutnya</button>
-      </div>
-      <div class="rbar-active" id="rActive" hidden>
-        <div class="r-head"><span class="tag tinggi">Melapor</span><b id="rTarget" class="grow"></b><button id="rStop" class="r-stop" type="button" aria-label="Hentikan sesi lapor" title="Hentikan sesi lapor"><span data-icon="close" data-size="12"></span></button></div>
-        <p id="rNote" class="r-note"></p>
-        <div class="r-actions">
-          <button id="rDone" class="btn ghost sm grow" type="button"><span data-icon="check" data-size="12"></span>Tandai sudah, lanjut</button>
-          <button id="rSkip" class="btn ghost sm" type="button">Lewati</button>
-        </div>
-      </div>
-    </section>
+    <div class="pills" id="modeFilter" role="group" aria-label="Filter jenis">
+      <button data-v="all" aria-pressed="true" type="button">Semua</button>
+      <button data-v="judol" aria-pressed="false" type="button">Judi &amp; phising</button>
+      <button data-v="toxic" aria-pressed="false" type="button">Toxic</button>
+    </div>
   </header>
 
-  <main id="list" class="list"></main>
+  <section class="rbar" id="rbar" hidden aria-label="Antrian lapor">
+    <div class="rbar-idle" id="rIdle">
+      <div class="grow"><b>Antrian lapor</b><small id="rCount"></small></div>
+      <button id="rNext" class="btn sm" type="button">Lapor berikutnya</button>
+    </div>
+    <div class="rbar-active" id="rActive" hidden>
+      <div class="r-head"><span class="tag tinggi">Melapor</span><b id="rTarget" class="grow"></b><button id="rStop" class="btn quiet icon sm" type="button" aria-label="Hentikan sesi lapor" title="Hentikan sesi lapor"><span data-icon="close" data-size="14"></span></button></div>
+      <p id="rNote" class="r-note" aria-live="polite"></p>
+      <div class="r-actions">
+        <button id="rDone" class="btn sm grow" type="button">Sudah dilapor, lanjut</button>
+        <button id="rSkip" class="btn ghost sm" type="button">Lewati</button>
+      </div>
+    </div>
+  </section>
+
+  <main id="list" class="list" aria-label="Komentar berbahaya"></main>
 
   <div id="empty" class="empty" hidden>
-    <img src="../assets/raphael-pixel.png" alt="" />
-    <div class="dlg">
-      <span class="dlg-name">RAPHAEL</span>
-      <div><span class="dlg-title">«Jawaban»</span><span class="dlg-text" id="emptyText"></span></div>
-    </div>
+    <span data-logo="40"></span>
+    <p id="emptyText"></p>
   </div>
 
+  <div class="scanstat"><span id="scanStatus" class="scan-status" hidden aria-live="polite"></span><span class="scan-meter" id="scanMeter" hidden><i id="scanFill"></i></span></div>
+
   <footer class="foot">
-    <button id="exportCsv" class="btn ghost sm grow" type="button">Ekspor CSV</button>
-    <button id="clear" class="btn danger sm" type="button">Kosongkan</button>
+    <button id="fastScan" class="btn grow" type="button"><span data-icon="bolt" data-size="14"></span><span class="lbl">Pindai semua komentar</span></button>
+    <button id="stopScan" class="btn ghost icon" type="button" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
+    <button id="exportCsv" class="btn ghost icon" type="button" aria-label="Ekspor CSV" title="Ekspor CSV"><span data-icon="disk" data-size="16"></span></button>
+    <button id="clear" class="btn ghost icon danger-ico" type="button" aria-label="Kosongkan antrian" title="Kosongkan antrian"><span data-icon="trash" data-size="16"></span></button>
   </footer>
 
   <template id="itemTpl">
     <article class="item">
       <div class="item-top">
-        <span class="tag prio"></span>
+        <span class="sev"><span class="score mono"></span><span class="prio"></span></span>
         <span class="cat"></span>
-        <span class="score"></span>
+        <span class="time"></span>
       </div>
-      <span class="rtag" hidden></span>
-      <div class="meta"><span class="plat-ico"></span><span class="author"></span><span class="dot">·</span><span class="time"></span></div>
-      <p class="text"></p>
+      <div class="meta"><span class="plat-ico"></span><span class="author"></span><span class="rtag" hidden></span></div>
+      <p class="text" tabindex="0" title="Klik untuk membuka atau menutup teks lengkap"></p>
       <p class="reason"></p>
       <div class="item-actions">
-        <button class="btn danger sm" data-a="report" type="button"><span data-icon="flag" data-size="12"></span><span class="lbl">Lapor</span></button>
-        <button class="btn ghost sm" data-a="focus" type="button" title="Buka komentar ini"><span data-icon="eye" data-size="12"></span><span class="lbl">Lihat</span></button>
-        <button class="btn ghost sm" data-a="copy" type="button"><span data-icon="copy" data-size="12"></span><span class="lbl">Salin</span></button>
-        <button class="btn ghost sm" data-a="done" type="button"><span data-icon="check" data-size="12"></span><span class="lbl">Selesai</span></button>
+        <button class="btn quiet sm" data-a="report" type="button"><span data-icon="flag" data-size="14"></span><span class="lbl">Lapor</span></button>
+        <button class="btn quiet sm" data-a="focus" type="button"><span data-icon="eye" data-size="14"></span><span class="lbl">Lihat</span></button>
+        <button class="btn quiet sm" data-a="copy" type="button"><span data-icon="copy" data-size="14"></span><span class="lbl">Salin</span></button>
+        <button class="btn quiet sm" data-a="done" type="button"><span data-icon="check" data-size="14"></span><span class="lbl">Selesai</span></button>
       </div>
     </article>
   </template>

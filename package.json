@@ -1,22 +1,31 @@
 {
-  "name": "tempest",
-  "version": "0.1.0",
+  "name": "hidement",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
-  "description": "Ekstensi deteksi komentar berbahaya berbahasa Indonesia (Anti Judol/Phishing & Anti Toxic) via 9router API",
+  "description": "HideMent (Hide Comment): ekstensi browser untuk mendeteksi & menyembunyikan komentar berbahaya berbahasa Indonesia (judol, link phising, toxic)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MyKineID/HideMent.git"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/build.mjs --watch",
+    "icons": "node scripts/make-icons.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build",
     "eval": "tsx research/eval.ts",
     "label": "tsx research/label.ts",
     "bench": "tsx research/bench.ts"
   },
   "devDependencies": {
-    "@fontsource/pixelify-sans": "^5.3.0",
-    "@fontsource/press-start-2p": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@types/chrome": "^0.3.6",
     "@types/node": "^22.10.0",
     "esbuild": "^0.28.2",

@@ -76,6 +76,24 @@ function hostOf(raw: string): string {
   return s.split(/[/?#:]/)[0].toLowerCase().replace(/\.+$/, "");
 }
 
+/** Imbuhan khas domain tiruan, mis. klikbca-login, danakaget, bri123. */
+const BRAND_AFFIX_RE =
+  /^(?:\d+|klik|login|masuk|hadiah|promo|resmi|official|cs|id|bonus|kaget|giveaway|verifikasi|verify|secure|akun|bank|mobile|care|help|support|undian|gratis|online|web|app)+$/;
+
+/**
+ * Merek pendek (bca, bri, ovo) tidak boleh dicocokkan sebagai substring biasa,
+ * kalau tidak "library.xyz" dianggap meniru BRI dan "danamon" meniru DANA.
+ */
+function mentionsBrand(host: string, brand: string): boolean {
+  if (brand.length >= 5) return host.includes(brand);
+  return host.split(/[.-]/).some((token) => {
+    if (token === brand) return true;
+    if (token.startsWith(brand)) return BRAND_AFFIX_RE.test(token.slice(brand.length));
+    if (token.endsWith(brand)) return BRAND_AFFIX_RE.test(token.slice(0, -brand.length));
+    return false;
+  });
+}
+
 function endsWithDomain(host: string, domain: string): boolean {
   return host === domain || host.endsWith("." + domain);
 }
@@ -92,7 +110,7 @@ function assessHost(host: string): string[] {
   if (host.split(".").some((p) => p.startsWith("xn--"))) reasons.push("domain punycode (huruf tiruan)");
   if (IP_RE.test(host)) reasons.push("alamat IP langsung");
   for (const [brand, official] of Object.entries(BRANDS)) {
-    if (host.includes(brand) && !official.some((d) => endsWithDomain(host, d))) {
+    if (mentionsBrand(host, brand) && !official.some((d) => endsWithDomain(host, d))) {
       reasons.push(`meniru merek "${brand}"`);
     }
   }

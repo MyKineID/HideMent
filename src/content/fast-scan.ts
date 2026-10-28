@@ -3,7 +3,7 @@ import type { Adapter } from "./adapters/types";
 
 /*
  * Pindai Cepat: memuat semua komentar sebuah postingan tanpa pengguna perlu scroll.
- * Tempest menggulir wadah komentar sampai mentok, membuka "Tampilkan balasan",
+ * HideMent menggulir wadah komentar sampai mentok, membuka "Tampilkan balasan",
  * lalu mengembalikan posisi scroll ke tempat semula.
  */
 
@@ -61,7 +61,7 @@ export class FastScanner {
       this.bar = document.createElement("div");
       this.bar.className = "rg-scanbar";
       this.bar.setAttribute("role", "status");
-      this.bar.innerHTML = `<span class="rg-sb-name">TEMPEST</span><span class="rg-sb-text"></span><span class="rg-sb-meter"><i></i></span><button type="button" class="rg-btn">Stop</button>`;
+      this.bar.innerHTML = `<span class="rg-sb-name">HideMent</span><span class="rg-sb-text"></span><span class="rg-sb-meter"><i></i></span><button type="button" class="rg-btn">Stop</button>`;
       this.bar.querySelector("button")!.addEventListener("click", () => this.stop());
       document.body.append(this.bar);
     }

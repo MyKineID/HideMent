@@ -1,10 +1,13 @@
 import { build, context } from "esbuild";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 
 const watch = process.argv.includes("--watch");
 const OUT = "dist";
-const FONT_DIR = "node_modules/@fontsource/pixelify-sans/files";
+/** Hanya subset latin & bobot yang dipakai theme.css, supaya ukuran ekstensi tetap kecil. */
+const FONTS = [
+  ["ibm-plex-sans", "plex-sans", [400, 500, 600]],
+  ["ibm-plex-mono", "plex-mono", [400, 500]],
+];
 
 const entries = {
   background: "src/background/service-worker.ts",
@@ -30,12 +33,10 @@ async function copyStatic() {
   manifest.version = pkg.version;
   await writeFile(`${OUT}/manifest.json`, JSON.stringify(manifest, null, 2));
   await mkdir(`${OUT}/assets/fonts`, { recursive: true });
-  for (const w of [400, 500, 600, 700]) {
-    await cp(`${FONT_DIR}/pixelify-sans-latin-${w}-normal.woff2`, `${OUT}/assets/fonts/pixelify-${w}.woff2`);
-  }
-  await cp("node_modules/@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2", `${OUT}/assets/fonts/pxnum.woff2`);
-  if (!existsSync("static/assets/raphael-pixel.png")) {
-    console.log("ℹ static/assets/raphael-pixel.png belum ada — jalankan scripts/make-portrait.py");
+  for (const [pkg, name, weights] of FONTS) {
+    for (const w of weights) {
+      await cp(`node_modules/@fontsource/${pkg}/files/${pkg}-latin-${w}-normal.woff2`, `${OUT}/assets/fonts/${name}-${w}.woff2`);
+    }
   }
 }
 

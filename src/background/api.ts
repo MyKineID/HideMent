@@ -14,6 +14,20 @@ export function trimBase(url: string): string {
   return url.trim().replace(/\/+$/, "").replace(/\/(chat\/completions|models)$/, "");
 }
 
+/** Base URL yang sudah dirapikan, atau ApiError yang jelas kalau bukan alamat http(s). */
+export function validBase(url: string): string {
+  const base = trimBase(url);
+  if (!base) throw new ApiError("Base URL belum diisi");
+  let parsed: URL;
+  try {
+    parsed = new URL(base);
+  } catch {
+    throw new ApiError(`Base URL tidak valid: "${base}". Contoh yang benar: http://localhost:20128/v1`);
+  }
+  if (!/^https?:$/.test(parsed.protocol)) throw new ApiError("Base URL harus diawali http:// atau https://");
+  return base;
+}
+
 function headers(apiKey: string): HeadersInit {
   const h: Record<string, string> = { "Content-Type": "application/json" };
   if (apiKey) h.Authorization = `Bearer ${apiKey}`;
@@ -49,8 +63,7 @@ export interface ModelList {
 }
 
 export async function listModels(baseUrl: string, apiKey: string, timeoutMs = 15000): Promise<ModelList> {
-  const base = trimBase(baseUrl);
-  if (!base) throw new ApiError("Base URL belum diisi");
+  const base = validBase(baseUrl);
   const candidates = /\/v\d+$/.test(base) ? [base] : [base, `${base}/v1`];
   let lastError: ApiError | undefined;
 
@@ -85,7 +98,7 @@ export interface ChatResult {
 let jsonModeUnsupported = false;
 
 export async function chat(api: Settings["api"], system: string, user: string): Promise<ChatResult> {
-  const base = trimBase(api.baseUrl);
+  const base = validBase(api.baseUrl);
   const started = Date.now();
   const send = (jsonMode: boolean) =>
     request(
@@ -136,7 +149,7 @@ export async function chatStream(
   user: string,
   onText: (chunk: string) => void,
 ): Promise<StreamResult> {
-  const base = trimBase(api.baseUrl);
+  const base = validBase(api.baseUrl);
   const started = Date.now();
   const ctrl = new AbortController();
   let timer = setTimeout(() => ctrl.abort(), api.timeoutMs);

@@ -1,21 +1,29 @@
-import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
+import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
 import { CATEGORY_LABEL, MODE_CATEGORIES, type Category } from "../core/types";
 import type { ModelList } from "../background/api";
 import { send } from "../shared/messages";
 import { $, bindToggles, download, refreshToggles } from "../shared/dom";
-import { hydrateIcons } from "../shared/pixel-icons";
+import { hydrateIcons, icon } from "../shared/icons";
 import { say } from "../shared/raphael";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
-import { confirmDialog, enhanceAll, enhanceSelect } from "../shared/ui";
+import { confirmDialog, createCombobox, enhanceAll, enhanceSelect } from "../shared/ui";
 
 let settings: Settings = DEFAULT_SETTINGS;
 let allModels: string[] = [];
 
 const baseUrl = $<HTMLInputElement>("#baseUrl");
 const apiKey = $<HTMLInputElement>("#apiKey");
-const modelFilter = $<HTMLInputElement>("#modelFilter");
-const modelList = $("#modelList");
 const dlg = $("#dlg");
+const FAST_MODEL = /flash-lite|flash-low|lite-preview/i;
+
+const modelPicker = createCombobox($("#modelPicker"), {
+  label: "Model",
+  empty: "Belum ada model",
+  onSelect: async (m) => {
+    await save({ api: { model: m } }, `Model diganti ke ${m}.`);
+    renderConnTag();
+  },
+});
 
 const tell = (text: string, tone: "info" | "ok" | "err" = "ok") => say(dlg, text, tone, tone === "err" ? 9000 : 4200);
 
@@ -28,55 +36,34 @@ async function save(patch: DeepPartial<Settings>, note = "Pengaturan disimpan.")
 
 function renderConnTag(state?: "ok" | "err"): void {
   const tag = $("#connTag");
+  const text = tag.querySelector<HTMLElement>(".conn-text")!;
   const configured = Boolean(settings.api.baseUrl && settings.api.model);
-  if (state === "err") {
-    tag.className = "tag tinggi";
-    tag.textContent = "Gagal terhubung";
-  } else if (configured) {
-    tag.className = "tag ok";
-    tag.textContent = "Terhubung";
-  } else {
-    tag.className = "tag off";
-    tag.textContent = "Belum terhubung";
-  }
-  $("#modelStep").classList.toggle("locked", allModels.length === 0 && !settings.api.model);
+  tag.dataset.state = state === "err" ? "err" : configured ? "ok" : "off";
+  if (state === "err") text.textContent = "Gagal terhubung";
+  else if (configured) {
+    text.textContent = "Terhubung · ";
+    text.append(Object.assign(document.createElement("span"), { className: "mono", textContent: settings.api.model }));
+  } else text.textContent = "Belum terhubung";
+  $("#needsAi").hidden = configured;
 }
 
 function renderModels(): void {
-  const q = modelFilter.value.trim().toLowerCase();
   const source = allModels.length ? allModels : settings.api.model ? [settings.api.model] : [];
-  const list = source.filter((m) => !q || m.toLowerCase().includes(q));
-  modelList.replaceChildren(
-    ...list.map((m) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "model";
-      b.setAttribute("role", "option");
-      b.setAttribute("aria-selected", String(m === settings.api.model));
+  modelPicker.set(
+    source.map((m) => {
       const slash = m.indexOf("/");
-      if (slash > 0) {
-        const prov = document.createElement("span");
-        prov.className = "prov";
-        prov.textContent = m.slice(0, slash + 1);
-        b.append(prov, m.slice(slash + 1));
-      } else b.textContent = m;
-      if (/flash-lite|flash-low|lite-preview/i.test(m)) b.append(Object.assign(document.createElement("span"), { className: "fast-tag", textContent: "CEPAT" }));
-      b.addEventListener("click", async () => {
-        await save({ api: { model: m } }, `Model diganti ke ${m}.`);
-        renderModels();
-        renderConnTag();
-      });
-      return b;
+      return { value: m, prefix: slash > 0 ? m.slice(0, slash + 1) : undefined, label: slash > 0 ? m.slice(slash + 1) : m, badge: FAST_MODEL.test(m) ? "Cepat" : undefined };
     }),
+    settings.api.model,
   );
-  if (q && !list.length) {
-    const empty = document.createElement("div");
-    empty.className = "hint";
-    empty.style.padding = "12px";
-    empty.textContent = `Tidak ada model yang cocok dengan "${modelFilter.value}".`;
-    modelList.append(empty);
-  }
-  $("#modelCount").textContent = allModels.length ? `${allModels.length} model` : "";
+  const locked = source.length === 0;
+  modelPicker.setDisabled(locked, "Hubungkan dulu");
+  $("#modelStep").classList.toggle("step-locked", locked);
+  $("#modelCount").textContent = allModels.length
+    ? `${allModels.length} model di server ini. Yang bertanda Cepat paling responsif.`
+    : locked
+      ? "Hubungkan dulu untuk memuat daftar model."
+      : "Hubungkan ulang untuk memuat daftar terbaru.";
 }
 
 function originPattern(url: string): string | null {
@@ -117,7 +104,7 @@ async function connect(): Promise<void> {
 async function testApi(): Promise<void> {
   const btn = $<HTMLButtonElement>("#testApi");
   const out = $("#testResult");
-  if (!settings.api.model) return tell("Pilih model dulu di langkah 2.", "err");
+  if (!settings.api.model) return tell("Hubungkan server dan pilih model dulu.", "err");
   btn.disabled = true;
   let waited = 0;
   out.textContent = "Menguji…";
@@ -181,11 +168,14 @@ function renderCategoryActions(): void {
 /* ── ambang ──────────────────────────────── */
 
 function renderMeter(high: number, medium: number): void {
-  $(".m-low").style.flexBasis = `${medium}%`;
-  $(".m-mid").style.flexBasis = `${high - medium}%`;
-  $(".m-high").style.flexBasis = `${100 - high}%`;
+  const range = $("#thresholds");
+  range.style.setProperty("--m", String(medium));
+  range.style.setProperty("--h", String(high));
+  $("#lowOut").textContent = `0–${medium - 1}`;
   $("#mediumOut").textContent = String(medium);
   $("#highOut").textContent = String(high);
+  $("#medium").setAttribute("aria-valuetext", `sedang mulai ${medium}`);
+  $("#high").setAttribute("aria-valuetext", `tinggi mulai ${high}`);
 }
 
 /* ── umum ────────────────────────────────── */
@@ -201,7 +191,7 @@ function renderCounts(): void {
 
 function renderPower(): void {
   $(".power").classList.toggle("off", !settings.enabled);
-  $("#powerState").textContent = settings.enabled ? "AKTIF" : "NONAKTIF";
+  $("#powerState").textContent = settings.enabled ? "Aktif" : "Nonaktif";
 }
 
 function fillForm(): void {
@@ -234,13 +224,25 @@ function setupScrollSpy(): void {
   const links = [...document.querySelectorAll<HTMLAnchorElement>(".nav a")];
   const sections = [...document.querySelectorAll<HTMLElement>("section.sec")];
   let frame = 0;
+  let last = "";
   const update = () => {
     frame = 0;
     const atBottom = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
     let current = sections[0];
-    for (const s of sections) if (s.getBoundingClientRect().top <= 140) current = s;
+    for (const s of sections) if (s.getBoundingClientRect().top <= 160) current = s;
     if (atBottom) current = sections[sections.length - 1];
-    links.forEach((a) => a.classList.toggle("on", a.hash === `#${current.id}`));
+    if (current.id === last) return;
+    last = current.id;
+    for (const a of links) {
+      const on = a.hash === `#${current.id}`;
+      a.classList.toggle("on", on);
+      if (on) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    }
+    /* Di layar sempit nav menjadi baris yang bisa digeser: jaga tautan aktif tetap terlihat. */
+    const nav = links[0]?.parentElement;
+    const active = links.find((a) => a.classList.contains("on"));
+    if (nav && active && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: active.offsetLeft - 16, behavior: "smooth" });
   };
   addEventListener("scroll", () => (frame ||= requestAnimationFrame(update)), { passive: true });
   update();
@@ -263,14 +265,21 @@ async function init(): Promise<void> {
   baseUrl.addEventListener("keydown", (e) => e.key === "Enter" && void connect());
   apiKey.addEventListener("keydown", (e) => e.key === "Enter" && void connect());
   apiKey.addEventListener("change", () => save({ api: { apiKey: apiKey.value.trim() } }, "API key disimpan."));
-  modelFilter.addEventListener("input", renderModels);
-  $("#toggleKey").addEventListener("click", () => (apiKey.type = apiKey.type === "password" ? "text" : "password"));
+  const toggleKey = $<HTMLButtonElement>("#toggleKey");
+  toggleKey.addEventListener("click", () => {
+    const show = apiKey.type === "password";
+    apiKey.type = show ? "text" : "password";
+    toggleKey.setAttribute("aria-pressed", String(show));
+    toggleKey.setAttribute("aria-label", show ? "Sembunyikan API key" : "Tampilkan API key");
+    toggleKey.innerHTML = icon(show ? "eyeOff" : "eye", 16);
+  });
 
+  const d = DEFAULT_SETTINGS;
   const advanced: [string, number, number, number, (v: number) => DeepPartial<Settings>][] = [
-    ["#timeout", 5, 180, 30, (v) => ({ api: { timeoutMs: v * 1000 } })],
-    ["#batchSize", 1, 50, 20, (v) => ({ api: { batchSize: v } })],
-    ["#concurrency", 1, 8, 4, (v) => ({ api: { concurrency: v } })],
-    ["#scanMax", 50, 2000, 300, (v) => ({ scan: { max: v } })],
+    ["#timeout", LIMITS.timeoutMs[0] / 1000, LIMITS.timeoutMs[1] / 1000, d.api.timeoutMs / 1000, (v) => ({ api: { timeoutMs: v * 1000 } })],
+    ["#batchSize", ...LIMITS.batchSize, d.api.batchSize, (v) => ({ api: { batchSize: v } })],
+    ["#concurrency", ...LIMITS.concurrency, d.api.concurrency, (v) => ({ api: { concurrency: v } })],
+    ["#scanMax", ...LIMITS.scanMax, d.scan.max, (v) => ({ scan: { max: v } })],
   ];
   for (const [sel, min, max, fb, patch] of advanced) {
     $<HTMLInputElement>(sel).addEventListener("change", (e) => save(patch(clampNum(e.target as HTMLInputElement, min, max, fb))));
@@ -294,10 +303,11 @@ async function init(): Promise<void> {
 
   const high = $<HTMLInputElement>("#high");
   const medium = $<HTMLInputElement>("#medium");
+  /* Kedua slider berbagi skala 0–100 agar jempolnya sejajar di satu trek; batas sebenarnya dijaga di sini. */
   const syncRanges = (changed: "high" | "medium") => {
-    let h = Number(high.value);
-    let m = Number(medium.value);
-    if (m > h - 5) changed === "high" ? (m = Math.max(10, h - 5)) : (h = Math.min(100, m + 5));
+    let h = Math.max(LIMITS.threshold[0] + 10, Number(high.value));
+    let m = Math.max(LIMITS.threshold[0], Math.min(90, Number(medium.value)));
+    if (m > h - 5) changed === "high" ? (m = Math.max(LIMITS.threshold[0], h - 5)) : (h = Math.min(100, m + 5));
     high.value = String(h);
     medium.value = String(m);
     renderMeter(h, m);
@@ -319,7 +329,7 @@ async function init(): Promise<void> {
   $("#exportFeedback").addEventListener("click", async () => {
     const fb = ((await chrome.storage.local.get("feedback")).feedback ?? []) as unknown[];
     if (!fb.length) return tell("Belum ada feedback untuk diekspor.", "info");
-    download(`tempest-feedback-${Date.now()}.json`, JSON.stringify(fb, null, 2), "application/json");
+    download(`hidement-feedback-${Date.now()}.json`, JSON.stringify(fb, null, 2), "application/json");
     tell(`${fb.length} feedback diekspor.`);
   });
   $("#clearCache").addEventListener("click", async () => {
@@ -348,7 +358,7 @@ async function init(): Promise<void> {
     renderPower();
   });
 
-  if (!settings.api.baseUrl) say(dlg, "Halo! Mulai dengan menghubungkan server 9router kamu di bagian Koneksi.", "info", 8000);
+  if (!settings.api.baseUrl) say(dlg, "Halo, saya Raphael. Mulai dengan menghubungkan endpoint AI kamu di bagian Koneksi.", "info", 8000);
 }
 
 void init();

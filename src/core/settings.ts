@@ -88,6 +88,84 @@ function merge<T>(base: T, patch: unknown): T {
   return out as T;
 }
 
+/** Batas nilai numerik; sama dengan batas input di halaman Pengaturan. */
+export const LIMITS = {
+  timeoutMs: [5000, 180000],
+  batchSize: [1, 50],
+  concurrency: [1, 8],
+  scanMax: [50, 2000],
+  threshold: [10, 100],
+} as const;
+
+const ACTIONS: readonly ActionKind[] = ["highlight", "blur", "hide"];
+
+function clampInt(v: unknown, [min, max]: readonly [number, number], fallback: number): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, Math.round(n))) : fallback;
+}
+
+function bool(v: unknown, fallback: boolean): boolean {
+  return typeof v === "boolean" ? v : fallback;
+}
+
+function str(v: unknown, fallback: string): string {
+  return typeof v === "string" ? v.trim() : fallback;
+}
+
+function stringList(v: unknown, max = 2000): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((x): x is string => typeof x === "string").map((x) => x.trim()).filter(Boolean))].slice(0, max);
+}
+
+function boolRecord<K extends string>(v: unknown, base: Record<K, boolean>): Record<K, boolean> {
+  const src = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const out = { ...base };
+  for (const k of Object.keys(base) as K[]) out[k] = bool(src[k], base[k]);
+  return out;
+}
+
+/**
+ * Pastikan setiap field punya tipe & rentang yang benar. Storage bisa berisi data lama,
+ * hasil edit manual, atau nilai yang rusak; tanpa ini batcher bisa macet (mis. concurrency 0).
+ */
+export function sanitizeSettings(s: Settings): Settings {
+  const d = DEFAULT_SETTINGS;
+  const high = clampInt(s.thresholds?.high, LIMITS.threshold, d.thresholds.high);
+  const medium = Math.min(clampInt(s.thresholds?.medium, LIMITS.threshold, d.thresholds.medium), Math.max(LIMITS.threshold[0], high - 5));
+  const categoryAction: Settings["categoryAction"] = {};
+  for (const [cat, action] of Object.entries(s.categoryAction ?? {})) {
+    if (ACTIONS.includes(action as ActionKind)) categoryAction[cat as Category] = action as ActionKind;
+  }
+  return {
+    enabled: bool(s.enabled, d.enabled),
+    api: {
+      baseUrl: str(s.api?.baseUrl, d.api.baseUrl),
+      apiKey: str(s.api?.apiKey, d.api.apiKey),
+      model: str(s.api?.model, d.api.model),
+      timeoutMs: clampInt(s.api?.timeoutMs, LIMITS.timeoutMs, d.api.timeoutMs),
+      batchSize: clampInt(s.api?.batchSize, LIMITS.batchSize, d.api.batchSize),
+      concurrency: clampInt(s.api?.concurrency, LIMITS.concurrency, d.api.concurrency),
+    },
+    modes: boolRecord(s.modes, d.modes),
+    platforms: boolRecord(s.platforms, d.platforms),
+    display: boolRecord(s.display, d.display),
+    categoryAction,
+    scan: {
+      method: s.scan?.method === "fast" ? "fast" : "scroll",
+      max: clampInt(s.scan?.max, LIMITS.scanMax, d.scan.max),
+      replies: bool(s.scan?.replies, d.scan.replies),
+    },
+    report: boolRecord(s.report, d.report),
+    thresholds: { high, medium },
+    whitelist: stringList(s.whitelist),
+    customKeywords: stringList(s.customKeywords, 500),
+  };
+}
+
+export function resolveSettings(stored: unknown): Settings {
+  return sanitizeSettings(merge(DEFAULT_SETTINGS, stored ?? {}));
+}
+
 export async function loadSettings(): Promise<Settings> {
   const raw = await chrome.storage.local.get([KEY, "schema"]);
   const stored = (raw[KEY] ?? {}) as Partial<Settings>;
@@ -98,18 +176,18 @@ export async function loadSettings(): Promise<Settings> {
     }
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
   }
-  return merge(DEFAULT_SETTINGS, stored);
+  return resolveSettings(stored);
 }
 
 export async function saveSettings(patch: DeepPartial<Settings>): Promise<Settings> {
-  const next = merge(await loadSettings(), patch);
+  const next = sanitizeSettings(merge(await loadSettings(), patch));
   await chrome.storage.local.set({ [KEY]: next, schema: SCHEMA });
   return next;
 }
 
 export function onSettingsChanged(cb: (s: Settings) => void): void {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes[KEY]) cb(merge(DEFAULT_SETTINGS, changes[KEY].newValue ?? {}));
+    if (area === "local" && changes[KEY]) cb(resolveSettings(changes[KEY].newValue));
   });
 }
 

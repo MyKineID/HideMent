@@ -1,5 +1,5 @@
 /**
- * Benchmark kecepatan & akurasi model di 9router untuk tugas klasifikasi komentar Tempest.
+ * Benchmark kecepatan & akurasi model di 9router untuk tugas klasifikasi komentar HideMent.
  *
  *   NINE_ROUTER_BASE_URL=... NINE_ROUTER_API_KEY=... npm run bench -- model-a model-b ...
  *

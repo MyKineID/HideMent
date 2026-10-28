@@ -47,15 +47,43 @@ export interface RuleResult {
 
 const SPACED_LETTERS_RE = /(?:^|\s)(?:\p{L}\s){3,}\p{L}(?:\s|$)/u;
 
-function findTerms(n: NormalizedText, terms: Term[]): Term[] {
-  const spaced = ` ${n.deleet.replace(/[^\p{L}\p{N}]+/gu, " ")} `;
-  const minCompact = SPACED_LETTERS_RE.test(n.folded) ? 4 : 6;
-  return terms.filter(({ t }) => {
-    const needle = t.replace(/(\p{L})\1+/gu, "$1");
+interface CompiledTerm extends Term {
+  needle: string;
+  re: RegExp;
+  single: boolean;
+}
+
+/** Regex tiap istilah dikompilasi sekali saja, bukan untuk setiap komentar yang dipindai. */
+function compileTerms(terms: Term[]): CompiledTerm[] {
+  return terms.map((term) => {
+    const needle = term.t.replace(/(\p{L})\1+/gu, "$1");
     const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(` ${escaped}(?:nya|an|kan|in|mu|ku|lah)? `, "u").test(spaced)) return true;
-    return needle.length >= minCompact && !needle.includes(" ") && n.compact.includes(needle);
+    return { ...term, needle, re: new RegExp(` ${escaped}(?:nya|an|kan|in|mu|ku|lah)? `, "u"), single: !needle.includes(" ") };
   });
+}
+
+const JUDOL_COMPILED = compileTerms(JUDOL_TERMS);
+const CTA_COMPILED = compileTerms(CTA_TERMS);
+
+let customSource = "";
+let customCompiled: CompiledTerm[] = [];
+
+function customTerms(keywords: string[]): CompiledTerm[] {
+  const source = keywords.join("\n");
+  if (source !== customSource) {
+    customSource = source;
+    customCompiled = compileTerms(
+      keywords
+        .map((k) => k.trim().toLowerCase())
+        .filter(Boolean)
+        .map((t) => ({ t, w: 45 })),
+    );
+  }
+  return customCompiled;
+}
+
+function findTerms(n: NormalizedText, spaced: string, minCompact: number, terms: CompiledTerm[]): Term[] {
+  return terms.filter(({ re, needle, single }) => re.test(spaced) || (single && needle.length >= minCompact && n.compact.includes(needle)));
 }
 
 export function analyzeRules(text: string, customKeywords: string[] = []): RuleResult {
@@ -63,13 +91,14 @@ export function analyzeRules(text: string, customKeywords: string[] = []): RuleR
   const reasons: string[] = [];
   const trivial = letterCount(n.folded) < 3;
 
-  const custom: Term[] = customKeywords
-    .map((k) => k.trim().toLowerCase())
-    .filter(Boolean)
-    .map((t) => ({ t, w: 45 }));
-
-  const judolHits = findTerms(n, [...JUDOL_TERMS, ...custom]);
-  const ctaHits = findTerms(n, CTA_TERMS);
+  const spaced = ` ${n.deleet.replace(/[^\p{L}\p{N}]+/gu, " ")} `;
+  const spacedLetters = SPACED_LETTERS_RE.test(n.folded);
+  const minCompact = spacedLetters ? 4 : 6;
+  const judolHits = [
+    ...findTerms(n, spaced, minCompact, JUDOL_COMPILED),
+    ...findTerms(n, spaced, minCompact, customTerms(customKeywords)),
+  ];
+  const ctaHits = findTerms(n, spaced, minCompact, CTA_COMPILED);
   let score = judolHits.reduce((a, h) => a + h.w, 0);
   if (judolHits.length) reasons.push(`istilah judol: ${judolHits.slice(0, 4).map((h) => h.t).join(", ")}`);
 
@@ -88,7 +117,7 @@ export function analyzeRules(text: string, customKeywords: string[] = []): RuleR
     reasons.push(`ajakan: ${ctaHits.slice(0, 2).map((h) => h.t).join(", ")}`);
   }
 
-  if (SPACED_LETTERS_RE.test(n.folded) && judolHits.length) {
+  if (spacedLetters && judolHits.length) {
     score += 20;
     reasons.push("huruf dipisah spasi untuk mengelabui filter");
   }

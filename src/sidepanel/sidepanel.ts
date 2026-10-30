@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL, type QueueItem } from "../core/types";
+import { verdictLabel, type Mode, type QueueItem } from "../core/types";
 import { send, type BroadcastMsg, type ReportResult, type ScanProgress, type TabMsg } from "../shared/messages";
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
 import { $, download } from "../shared/dom";
@@ -8,7 +8,7 @@ import { confirmDialog, enhanceAll } from "../shared/ui";
 const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok", x: "X" };
 
 let queue: QueueItem[] = [];
-let mode: "all" | "judol" | "toxic" = "all";
+let mode: "all" | Mode = "all";
 let settings: Settings = DEFAULT_SETTINGS;
 let reportingKey: string | null = null;
 
@@ -55,7 +55,7 @@ function renderReportBar(): void {
   const active = queue.find((q) => q.key === reportingKey);
   $("#rIdle").hidden = Boolean(active);
   $("#rActive").hidden = !active;
-  if (active) $("#rTarget").textContent = `@${active.author || "anonim"} · ${CATEGORY_LABEL[active.verdict.category]} ${active.verdict.score}`;
+  if (active) $("#rTarget").textContent = `@${active.author || "anonim"} · ${verdictLabel(active.verdict)} ${active.verdict.score}`;
 }
 
 function setNote(text: string, err = false): void {
@@ -126,7 +126,7 @@ function makeNode(it: QueueItem): HTMLElement {
 function fillNode(node: HTMLElement, it: QueueItem): void {
   node.className = `item ${it.priority} ${it.verdict.mode}${it.key === reportingKey ? " reporting" : ""}`;
   setText(node.querySelector(".prio"), it.priority === "tinggi" ? "Tinggi" : "Sedang");
-  setText(node.querySelector(".cat"), CATEGORY_LABEL[it.verdict.category]);
+  setText(node.querySelector(".cat"), verdictLabel(it.verdict));
   setText(node.querySelector(".score"), String(it.verdict.score));
   setText(node.querySelector(".author"), it.author ? `@${it.author}` : "anonim");
   setText(node.querySelector(".time"), ago(it.at));
@@ -235,7 +235,7 @@ list.addEventListener("click", async (e) => {
       break;
     }
     case "copy": {
-      const ok = await copyText(`[${CATEGORY_LABEL[it.verdict.category]} ${it.verdict.score}] @${it.author}: ${it.text}\n${it.url}`);
+      const ok = await copyText(`[${verdictLabel(it.verdict)} ${it.verdict.score}] @${it.author}: ${it.text}\n${it.url}`);
       flash(btn, ok ? "Disalin" : "Gagal");
       break;
     }

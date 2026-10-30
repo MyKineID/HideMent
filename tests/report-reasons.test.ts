@@ -16,6 +16,7 @@ describe("pemetaan alasan lapor", () => {
     ["sara", "Kebencian", "Konten kebencian atau kasar"],
     ["ancaman", "Ucapan Kekerasan", "Konten kekerasan atau menjijikkan"],
     ["pelecehan", "Penyalahgunaan & Pelecehan", "Konten seksual"],
+    ["penistaan", "Kebencian", "Konten kebencian atau kasar"],
   ];
   for (const [cat, x, yt] of cases) {
     it(`${cat} → X "${x}" / YouTube "${yt}"`, () => {
@@ -26,7 +27,7 @@ describe("pemetaan alasan lapor", () => {
 
   it("tidak pernah memilih tombol kirim / lanjut", () => {
     for (const btn of ["Kirim", "Laporkan", "Report", "Berikutnya", "Next", "Submit", "Batal"]) {
-      for (const cat of ["judol", "hinaan", "sara", "ancaman", "pelecehan", "spam", "scam", "phishing", "perundungan", "sarkasme"] as Category[]) {
+      for (const cat of ["judol", "hinaan", "sara", "ancaman", "pelecehan", "spam", "scam", "phishing", "perundungan", "sarkasme", "penistaan"] as Category[]) {
         expect(pickReason(cat, [btn])).toBeNull();
       }
     }

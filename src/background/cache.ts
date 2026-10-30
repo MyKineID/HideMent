@@ -1,5 +1,5 @@
 import { hashText } from "../core/normalize";
-import type { Mode, Verdict } from "../core/types";
+import { MODES, type Mode, type Verdict } from "../core/types";
 
 const STORE_KEY = "verdictCache";
 const MAX_ENTRIES = 3000;
@@ -25,8 +25,9 @@ function schedulePersist(): void {
   }, 1500);
 }
 
-export function cacheKey(text: string, modes: Record<Mode, boolean>, model: string): string {
-  return hashText(`${modes.judol ? 1 : 0}${modes.toxic ? 1 : 0}|${model}|${text.trim()}`);
+/** `extra` ikut menentukan hasil (mis. definisi mode kustom), jadi perubahan di sana tidak memakai hasil lama. */
+export function cacheKey(text: string, modes: Record<Mode, boolean>, model: string, extra = ""): string {
+  return hashText(`${MODES.map((m) => (modes[m] ? 1 : 0)).join("")}|${model}|${extra}|${text.trim()}`);
 }
 
 export async function getCached(key: string): Promise<Entry | undefined> {

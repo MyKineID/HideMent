@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { analyzeRules, prefilter, RULE_DIRECT_THRESHOLD } from "../src/core/judol-rules";
 
-const modes = { judol: true, toxic: true };
+const modes = { judol: true, kebencian: true, pelecehan: true, agama: true, sara: true, kustom: false };
 
 describe("aturan judol", () => {
   const spam = [
@@ -57,7 +57,7 @@ describe("prefilter", () => {
   });
 
   it("mode judol mati → tidak ada putusan judol lokal", () => {
-    const r = prefilter({ id: "4", text: "PULAU138 gacor maxwin pasti wd" }, { judol: false, toxic: true }, []);
+    const r = prefilter({ id: "4", text: "PULAU138 gacor maxwin pasti wd" }, { ...modes, judol: false }, []);
     expect(r.verdict).toBeUndefined();
     expect(r.hint).toBeUndefined();
   });

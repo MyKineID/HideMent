@@ -1,6 +1,7 @@
+import type { ExampleIndex } from "../core/examples";
 import { buildSystemPrompt, buildUserPrompt, parseAiResponse, parseJsonLines, parseVerdictRow, type AiItem } from "../core/prompt";
-import type { Settings } from "../core/settings";
-import type { Mode, Verdict } from "../core/types";
+import { activeModes, type Settings } from "../core/settings";
+import { MODE_CATEGORIES, MODES, type Category, type Verdict } from "../core/types";
 import { ApiError, chatStream } from "./api";
 
 interface Pending {
@@ -25,7 +26,10 @@ export class Batcher {
   private timer: ReturnType<typeof setTimeout> | undefined;
   readonly stats: BatchStats = { requests: 0, failures: 0, lastLatencyMs: 0, lastTtftMs: 0, lastError: "" };
 
-  constructor(private getSettings: () => Settings) {}
+  constructor(
+    private getSettings: () => Settings,
+    private getExamples: () => ExampleIndex | null = () => null,
+  ) {}
 
   classify(item: AiItem): Promise<Verdict | null> {
     return new Promise((resolve) => {
@@ -54,11 +58,15 @@ export class Batcher {
 
   private async run(batch: Pending[]): Promise<void> {
     const settings = this.getSettings();
-    const modes: Record<Mode, boolean> = settings.modes;
+    const modes = activeModes(settings);
+    const customName = settings.custom.name;
     const shortIds = batch.map((_, i) => String(i + 1));
     const items: AiItem[] = batch.map((p, i) => ({ ...p.item, input: { ...p.item.input, id: shortIds[i] } }));
-    const system = buildSystemPrompt(modes);
-    const user = buildUserPrompt(items);
+    const system = buildSystemPrompt(modes, settings.custom);
+    const index = settings.learn.enabled ? this.getExamples() : null;
+    const allowed = new Set<Category>(["aman", ...MODES.filter((m) => modes[m]).flatMap((m) => MODE_CATEGORIES[m])]);
+    const examples = index?.size ? index.pick(items.map((it) => it.input.text), { allowed }) : [];
+    const user = buildUserPrompt(items, examples);
 
     const settled = new Set<number>();
     const settle = (idx: number, v: Verdict | null) => {
@@ -78,7 +86,7 @@ export class Batcher {
           const complete = pending.slice(0, nl);
           pending = pending.slice(nl + 1);
           for (const row of parseJsonLines(complete)) {
-            const v = parseVerdictRow(row, modes);
+            const v = parseVerdictRow(row, modes, customName);
             const idx = v ? shortIds.indexOf(v.id) : -1;
             if (v && idx >= 0) settle(idx, v);
           }
@@ -86,7 +94,7 @@ export class Batcher {
         this.stats.lastLatencyMs = res.latencyMs;
         this.stats.lastTtftMs = res.ttftMs;
         const rest = new Map(
-          parseAiResponse(res.content, shortIds.filter((_, i) => !settled.has(i)), modes).map((v) => [v.id, v]),
+          parseAiResponse(res.content, shortIds.filter((_, i) => !settled.has(i)), modes, customName).map((v) => [v.id, v]),
         );
         batch.forEach((_, i) => settle(i, rest.get(shortIds[i]) ?? null));
         this.stats.lastError = "";

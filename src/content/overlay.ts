@@ -1,5 +1,5 @@
 import { priorityOf, type ActionKind, type Settings } from "../core/settings";
-import { CATEGORY_LABEL, type Priority, type Verdict } from "../core/types";
+import { MODE_LABEL, verdictLabel, type Priority, type Verdict } from "../core/types";
 import type { Adapter } from "./adapters/types";
 import { runReportFlow } from "./report-helper";
 import { icon } from "../shared/icons";
@@ -33,7 +33,6 @@ export function clearMarks(el: HTMLElement, adapter: Adapter): void {
 type Level = Priority | "aman";
 
 const LEVEL_LABEL: Record<Level, string> = { tinggi: "Tinggi", sedang: "Sedang", rendah: "Rendah", aman: "Aman" };
-const MODE_LABEL: Record<Verdict["mode"], string> = { judol: "Judi online / phising", toxic: "Toxic" };
 
 function span(cls: string, text = ""): HTMLSpanElement {
   const s = document.createElement("span");
@@ -49,11 +48,11 @@ function buildBadge(v: Verdict, level: Level, el: HTMLElement, adapter: Adapter,
   badge.className = `rg-badge rg-p-${level}`;
   badge.setAttribute("aria-haspopup", "dialog");
   badge.setAttribute("aria-expanded", "false");
-  badge.setAttribute("aria-label", `HideMent: prioritas ${LEVEL_LABEL[level].toLowerCase()}, ${CATEGORY_LABEL[v.category]}, skor ${v.score}. Buka detail.`);
+  badge.setAttribute("aria-label", `HideMent: prioritas ${LEVEL_LABEL[level].toLowerCase()}, ${verdictLabel(v)}, skor ${v.score}. Buka detail.`);
   badge.title = "HideMent · klik untuk detail";
 
   if (level === "aman") badge.append(span("rg-b-cat", "Aman"));
-  else badge.append(span("rg-b-num", String(v.score)), span("rg-b-cat", CATEGORY_LABEL[v.category]));
+  else badge.append(span("rg-b-num", String(v.score)), span("rg-b-cat", verdictLabel(v)));
 
   badge.addEventListener("click", (e) => {
     e.preventDefault();
@@ -92,11 +91,11 @@ function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLEle
       <button type="button" class="rg-btn" data-a="dismiss">Bukan berbahaya</button>
     </div>`;
   pop.querySelector(".rg-pop-kicker")!.textContent = level === "aman" ? "HideMent" : `HideMent · prioritas ${LEVEL_LABEL[level].toLowerCase()}`;
-  pop.querySelector(".rg-pop-title")!.textContent = level === "aman" ? "Komentar aman" : CATEGORY_LABEL[v.category];
+  pop.querySelector(".rg-pop-title")!.textContent = level === "aman" ? "Komentar aman" : verdictLabel(v);
   pop.querySelector(".rg-pop-score")!.textContent = String(v.score);
   pop.querySelector<HTMLElement>(".rg-pop-bar i")!.style.width = `${Math.max(2, v.score)}%`;
   pop.querySelector(".rg-r-reason")!.textContent = v.reason || "—";
-  pop.querySelector(".rg-r-mode")!.textContent = MODE_LABEL[v.mode];
+  pop.querySelector(".rg-r-mode")!.textContent = level === "aman" ? "—" : (MODE_LABEL[v.mode] ?? "—");
   pop.querySelector(".rg-r-src")!.textContent = SOURCE_LABEL[v.source];
   if (level === "aman") pop.querySelector(".rg-pop-actions")!.remove();
   else if (!assist) pop.querySelector('[data-a="report"]')!.remove();
@@ -188,7 +187,7 @@ function applyHide(el: HTMLElement, v: Verdict): void {
   const bar = document.createElement("div");
   bar.className = "rg-hidden-bar";
   bar.innerHTML = `<span></span><button type="button">Tampilkan</button>`;
-  bar.querySelector("span")!.textContent = `1 komentar disembunyikan · ${CATEGORY_LABEL[v.category]} · ${v.score}`;
+  bar.querySelector("span")!.textContent = `1 komentar disembunyikan · ${verdictLabel(v)} · ${v.score}`;
   bar.querySelector("button")!.addEventListener("click", (e) => {
     e.stopPropagation();
     el.classList.remove("rg-hidden-host");

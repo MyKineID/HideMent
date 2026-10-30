@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="head">
-    <span data-logo="22"></span>
+    <span class="avatar" aria-hidden="true"></span>
     <div class="grow">
       <div class="name">HideMent</div>
       <div class="site" id="site">—</div>
@@ -30,9 +30,19 @@
     <div class="scan-prog" id="scanProg" hidden><span id="scanText" aria-live="polite"></span><span class="scan-meter"><i id="scanFill"></i></span></div>
   </section>
 
-  <section class="group" aria-label="Deteksi">
-    <label class="item"><span class="grow">Judi online &amp; phising</span><input class="switch" type="checkbox" data-key="modes.judol" /></label>
-    <label class="item"><span class="grow">Komentar toxic</span><input class="switch" type="checkbox" data-key="modes.toxic" /></label>
+  <section class="modes-wrap" aria-labelledby="modeLabel">
+    <div class="modes-head"><span class="sub" id="modeLabel">Mode deteksi</span><span class="sub" id="modeCount"></span></div>
+    <div class="modes">
+      <label class="mchip m-judol"><input type="checkbox" data-key="modes.judol" /><span data-icon="seven" data-size="14"></span>Judol</label>
+      <label class="mchip m-kebencian"><input type="checkbox" data-key="modes.kebencian" /><span data-icon="warn" data-size="14"></span>Kebencian</label>
+      <label class="mchip m-pelecehan"><input type="checkbox" data-key="modes.pelecehan" /><span data-icon="eyeOff" data-size="14"></span>Pelecehan</label>
+      <label class="mchip m-agama"><input type="checkbox" data-key="modes.agama" /><span data-icon="book" data-size="14"></span>Agama</label>
+      <label class="mchip m-sara"><input type="checkbox" data-key="modes.sara" /><span data-icon="users" data-size="14"></span>SARA</label>
+      <label class="mchip m-kustom" id="customChip" hidden><input type="checkbox" data-key="modes.kustom" /><span data-icon="spark" data-size="14"></span><span class="mchip-name" id="customName">Kustom</span></label>
+    </div>
+  </section>
+
+  <section class="group" id="siteGroup" aria-label="Situs ini">
     <label class="item" id="siteRow" hidden><span class="grow">Aktif di <b id="siteName"></b></span><span id="siteIcon" data-icon="grid" data-size="14" hidden></span><input class="switch" type="checkbox" id="siteToggle" /></label>
   </section>
 

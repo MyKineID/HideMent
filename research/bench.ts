@@ -17,7 +17,7 @@ if (!models.length) {
   console.error("Pakai: npm run bench -- <model> [model ...]");
   process.exit(1);
 }
-const modes = { judol: true, toxic: true };
+const modes = { ...DEFAULT_SETTINGS.modes, kebencian: true, pelecehan: true, agama: true, sara: true };
 const LIMIT = Number(process.env.BENCH_N ?? 20);
 const rows = (await readFile("research/dataset/sample.jsonl", "utf8"))
   .split("\n")

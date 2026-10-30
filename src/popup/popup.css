@@ -1,6 +1,7 @@
 body { width: 340px; display: flex; flex-direction: column; }
 
 .head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 1.5px solid var(--accent); background: var(--surface-2) url("../assets/raphael.webp") 44% 30% / 230% auto no-repeat; }
 .name { font-weight: 600; }
 .site { font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .site b { color: var(--text); font-weight: 500; }
@@ -19,7 +20,29 @@ body { width: 340px; display: flex; flex-direction: column; }
 .scan-prog > span:first-child { flex: 1; }
 .scan-prog .scan-meter { width: 90px; }
 
+.modes-wrap { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 14px; }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.m-judol { --c: #f06a6a; }
+.m-kebencian { --c: #e8b04b; }
+.m-pelecehan { --c: #ec7fbf; }
+.m-agama { --c: #a394f5; }
+.m-sara { --c: #4fc7b8; }
+.m-kustom { --c: #6cb4ee; }
+.modes-head { display: flex; justify-content: space-between; }
+.mchip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mchip { position: relative; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; font-size: 13px; font-weight: 500; color: var(--text-2); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: border-color .12s, background-color .12s, color .12s; }
+.mchip:nth-last-child(1 of :not([hidden])):nth-child(odd of :not([hidden])) { grid-column: 1 / -1; }
+.mchip:hover { border-color: var(--line-strong); }
+.mchip > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.mchip:has(> input:focus-visible) { box-shadow: var(--ring); }
+.mchip .ico { color: var(--text-3); }
+.mchip::after { content: ""; flex: none; width: 16px; height: 16px; margin-left: auto; border: 1.5px solid #4a4e56; border-radius: 4px; background: var(--bg); }
+.mchip:has(> input:checked) { color: var(--text); background: color-mix(in srgb, var(--c) 10%, var(--surface)); border-color: color-mix(in srgb, var(--c) 50%, transparent); }
+.mchip:has(> input:checked) .ico { color: var(--c); }
+.mchip:has(> input:checked)::after { border-color: var(--c); background: var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f1012' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12.5 4 4 8-9'/%3E%3C/svg%3E") center / 11px no-repeat; }
+
 .group { margin: 0 16px; }
+.group:not(:has(.item:not([hidden]))) { display: none; }
 .group .item { padding: 10px 14px; gap: 12px; flex-wrap: nowrap; }
 #siteName { font-weight: 500; }
 

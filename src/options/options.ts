@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
-import { CATEGORY_LABEL, MODE_CATEGORIES, type Category } from "../core/types";
+import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, type Category } from "../core/types";
+import { EXAMPLES_KEY, mergeExamples, parseExamples, type Example } from "../core/examples";
 import type { ModelList } from "../background/api";
 import { send } from "../shared/messages";
 import { $, bindToggles, download, refreshToggles } from "../shared/dom";
@@ -39,12 +40,12 @@ function renderConnTag(state?: "ok" | "err"): void {
   const text = tag.querySelector<HTMLElement>(".conn-text")!;
   const configured = Boolean(settings.api.baseUrl && settings.api.model);
   tag.dataset.state = state === "err" ? "err" : configured ? "ok" : "off";
-  if (state === "err") text.textContent = "Gagal terhubung";
-  else if (configured) {
-    text.textContent = "Terhubung · ";
-    text.append(Object.assign(document.createElement("span"), { className: "mono", textContent: settings.api.model }));
-  } else text.textContent = "Belum terhubung";
+  text.textContent = state === "err" ? "Gagal terhubung ke AI" : configured ? "Terhubung ke AI" : "Belum terhubung ke AI";
   $("#needsAi").hidden = configured;
+  document.body.classList.toggle("no-ai", !configured);
+  const ai = $("#heroAi");
+  ai.textContent = state === "err" ? "Gagal" : configured ? "Terhubung" : "Belum";
+  ai.className = configured && state !== "err" ? "ok" : "off";
 }
 
 function renderModels(): void {
@@ -139,17 +140,19 @@ function renderPresets(): void {
   document.querySelectorAll<HTMLElement>("[data-scan]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.scan === settings.scan.method)));
 }
 
+const catLabel = (c: Category) => (c === "kustom" && settings.custom.name) || CATEGORY_LABEL[c];
+
 function renderCategoryActions(): void {
   const host = $("#categoryActions");
   host.replaceChildren();
   const options: [string, string][] = [["", "Ikuti preset"], ["highlight", "Tandai saja"], ["blur", "Blur"], ["hide", "Sembunyikan"]];
-  for (const mode of ["judol", "toxic"] as const) {
+  for (const mode of MODES) {
     for (const cat of MODE_CATEGORIES[mode]) {
       const name = document.createElement("span");
       name.className = `cat-name ${mode}`;
-      name.textContent = CATEGORY_LABEL[cat];
+      name.textContent = catLabel(cat);
       const sel = document.createElement("select");
-      sel.setAttribute("aria-label", `Aksi untuk ${CATEGORY_LABEL[cat]}`);
+      sel.setAttribute("aria-label", `Aksi untuk ${catLabel(cat)}`);
       for (const [v, l] of options) sel.add(new Option(l, v, false, (settings.categoryAction[cat] ?? "") === v));
       sel.addEventListener("change", async () => {
         const next = { ...settings.categoryAction } as Partial<Record<Category, ActionKind>>;
@@ -157,7 +160,7 @@ function renderCategoryActions(): void {
         else delete next[cat];
         settings = { ...(await loadSettings()), categoryAction: next };
         await chrome.storage.local.set({ settings });
-        tell(`${CATEGORY_LABEL[cat]}: ${sel.selectedOptions[0].text.toLowerCase()}.`);
+        tell(`${catLabel(cat)}: ${sel.selectedOptions[0].text.toLowerCase()}.`);
       });
       host.append(name, sel);
       enhanceSelect(sel);
@@ -189,6 +192,128 @@ function renderCounts(): void {
   $("#customKeywordsCount").textContent = settings.customKeywords.length ? `${settings.customKeywords.length}` : "";
 }
 
+function renderSummary(): void {
+  const on = MODES.filter((m) => settings.modes[m]).length;
+  const plats = Object.values(settings.platforms);
+  $("#modeCount").innerHTML = `<b>${on}</b> dari ${MODES.length} aktif`;
+  $("#heroModes").textContent = `${on}/${MODES.length}`;
+  $("#heroPlat").textContent = `${plats.filter(Boolean).length}/${plats.length}`;
+}
+
+async function setAllModes(on: boolean): Promise<void> {
+  await save({ modes: Object.fromEntries(MODES.map((m) => [m, on])) }, on ? "Semua mode deteksi aktif." : "Semua mode deteksi dimatikan. HideMent tidak menandai apa pun.");
+  refreshToggles(document, settings);
+  renderSummary();
+}
+
+/* ── mode kustom ─────────────────────────── */
+
+function renderCustom(): void {
+  const { name, definition } = settings.custom;
+  $("#customPanel").hidden = !settings.modes.kustom;
+  $("#customTitle").textContent = name || "Kustom";
+  $("#customDesc").textContent = definition || "Tulis sendiri jenis komentar yang mau ditandai, misalnya spoiler.";
+  const foot = $("#customFoot");
+  const missing = settings.modes.kustom && !definition;
+  foot.textContent = missing ? "Isi definisi dulu" : "Butuh AI";
+  foot.classList.toggle("warn", missing);
+  $("#customDefCount").textContent = definition ? `${definition.length}/400` : "";
+}
+
+/* ── contoh belajar ──────────────────────── */
+
+let examples: Example[] = [];
+let feedbackCount = 0;
+const SOURCE_LABEL: Record<Example["source"], string> = { manual: "ditambah manual", import: "dari file", feedback: "dari feedback" };
+
+/** Komponen select dibangun sekali dari opsinya, jadi saat label berubah (nama mode kustom) select dibuat ulang. */
+function fillLabelSelect(): void {
+  const keep = document.querySelector<HTMLSelectElement>("#exLabel")?.value || "aman";
+  const sel = document.createElement("select");
+  sel.id = "exLabel";
+  sel.setAttribute("aria-label", "Label contoh");
+  sel.add(new Option("Aman (bukan berbahaya)", "aman"));
+  for (const m of MODES) {
+    for (const c of MODE_CATEGORIES[m]) {
+      const text = m === "kustom" ? `Kustom · ${catLabel(c)}` : MODE_CATEGORIES[m].length > 1 ? `${MODE_LABEL[m]} · ${catLabel(c)}` : catLabel(c);
+      sel.add(new Option(text, c));
+    }
+  }
+  sel.value = keep;
+  $("#exLabelHost").replaceChildren(sel);
+  enhanceSelect(sel);
+}
+
+function renderExamples(): void {
+  $("#exCount").textContent = String(examples.length);
+  $("#exFeedback").textContent = String(feedbackCount);
+  $("#exLabels").textContent = String(new Set(examples.map((e) => e.label)).size);
+  const list = $("#exList");
+  list.replaceChildren();
+  for (const e of [...examples].reverse().slice(0, 50)) {
+    const li = document.createElement("li");
+    const text = Object.assign(document.createElement("span"), { className: "ex-text", textContent: e.text });
+    const meta = Object.assign(document.createElement("span"), { className: "ex-meta" });
+    const tag = Object.assign(document.createElement("span"), { className: `ex-tag ${e.label}`, textContent: catLabel(e.label) });
+    meta.append(tag, Object.assign(document.createElement("span"), { className: "ex-src", textContent: SOURCE_LABEL[e.source] ?? "" }));
+    const del = document.createElement("button");
+    del.className = "btn quiet icon";
+    del.type = "button";
+    del.setAttribute("aria-label", "Hapus contoh ini");
+    del.innerHTML = icon("trash", 15);
+    del.addEventListener("click", () => saveExamples(examples.filter((x) => x !== e), "Contoh dihapus."));
+    li.append(text, meta, del);
+    list.append(li);
+  }
+  $("#exEmpty").hidden = examples.length > 0;
+}
+
+async function saveExamples(next: Example[], note: string): Promise<void> {
+  examples = next;
+  await chrome.storage.local.set({ [EXAMPLES_KEY]: examples });
+  renderExamples();
+  tell(note);
+}
+
+async function loadExamples(): Promise<void> {
+  const raw = await chrome.storage.local.get([EXAMPLES_KEY, "feedback"]);
+  examples = (raw[EXAMPLES_KEY] ?? []) as Example[];
+  feedbackCount = ((raw.feedback ?? []) as unknown[]).length;
+  renderExamples();
+}
+
+function setupExamples(): void {
+  fillLabelSelect();
+  $("#exAdd").addEventListener("click", async () => {
+    const box = $<HTMLTextAreaElement>("#exText");
+    const text = box.value.trim();
+    if (!text) return tell("Tulis dulu komentar contohnya.", "info");
+    const label = $<HTMLSelectElement>("#exLabel").value as Category;
+    await saveExamples(mergeExamples(examples, [{ text: text.slice(0, 600), label, at: Date.now(), source: "manual" }]), `Contoh ditambahkan sebagai ${catLabel(label)}.`);
+    box.value = "";
+  });
+  const file = $<HTMLInputElement>("#exFile");
+  $("#exImport").addEventListener("click", () => file.click());
+  file.addEventListener("change", async () => {
+    const f = file.files?.[0];
+    file.value = "";
+    if (!f) return;
+    const found = parseExamples(await f.text(), "import");
+    if (!found.length) return tell(`Tidak ada contoh valid di ${f.name}. Pastikan ada kolom text dan label.`, "err");
+    await saveExamples(mergeExamples(examples, found), `${found.length} contoh diimpor dari ${f.name}.`);
+  });
+  $("#exExport").addEventListener("click", () => {
+    if (!examples.length) return tell("Belum ada contoh untuk diekspor.", "info");
+    download(`hidement-contoh-${Date.now()}.jsonl`, examples.map((e) => JSON.stringify({ text: e.text, label: e.label })).join("\n"), "application/x-ndjson");
+    tell(`${examples.length} contoh diekspor.`);
+  });
+  $("#exClear").addEventListener("click", async () => {
+    if (!examples.length) return;
+    const ok = await confirmDialog({ title: "Hapus semua contoh", message: `Hapus ${examples.length} contoh belajar? Catatan dari tombol "Bukan berbahaya" tidak ikut terhapus.`, confirmText: "Hapus", danger: true });
+    if (ok) await saveExamples([], "Semua contoh dihapus.");
+  });
+}
+
 function renderPower(): void {
   $(".power").classList.toggle("off", !settings.enabled);
   $("#powerState").textContent = settings.enabled ? "Aktif" : "Nonaktif";
@@ -212,7 +337,11 @@ function fillForm(): void {
   renderPresets();
   renderCategoryActions();
   renderCounts();
+  renderSummary();
+  renderCustom();
   renderPower();
+  $<HTMLInputElement>("#customName").value = settings.custom.name;
+  $<HTMLTextAreaElement>("#customDefinition").value = settings.custom.definition;
 }
 
 async function refreshFeedbackCount(): Promise<void> {
@@ -258,7 +387,30 @@ async function init(): Promise<void> {
   setupScrollSpy();
   void refreshFeedbackCount();
 
-  bindToggles(document, () => settings, (p) => void save(p as DeepPartial<Settings>));
+  bindToggles(document, () => settings, (p) =>
+    void save(p as DeepPartial<Settings>).then(() => {
+      renderSummary();
+      renderCustom();
+    }),
+  );
+  $("#modesAll").addEventListener("click", () => setAllModes(true));
+  setupExamples();
+  void loadExamples();
+  const saveCustom = async () => {
+    const name = $<HTMLInputElement>("#customName").value.trim();
+    const definition = $<HTMLTextAreaElement>("#customDefinition").value.trim();
+    await save({ custom: { name, definition } }, definition ? `Mode kustom “${name || "Kustom"}” disimpan.` : "Definisi mode kustom masih kosong, jadi mode ini belum dipakai.");
+    renderCustom();
+    renderCategoryActions();
+    fillLabelSelect();
+  };
+  $("#customName").addEventListener("change", saveCustom);
+  $("#customDefinition").addEventListener("change", saveCustom);
+  $("#customDefinition").addEventListener("input", (e) => {
+    const n = (e.target as HTMLTextAreaElement).value.length;
+    $("#customDefCount").textContent = n ? `${n}/400` : "";
+  });
+  $("#modesNone").addEventListener("click", () => setAllModes(false));
 
   $("#connect").addEventListener("click", connect);
   $("#testApi").addEventListener("click", testApi);
@@ -355,6 +507,8 @@ async function init(): Promise<void> {
     settings = s;
     refreshToggles(document, s);
     renderPresets();
+    renderSummary();
+    renderCustom();
     renderPower();
   });
 

@@ -13,7 +13,7 @@ import { chat } from "../src/background/api";
 import { analyzeRules } from "../src/core/judol-rules";
 import { extractJson } from "../src/core/prompt";
 import { DEFAULT_SETTINGS } from "../src/core/settings";
-import { MODE_CATEGORIES } from "../src/core/types";
+import { MODE_CATEGORIES, MODES } from "../src/core/types";
 
 const input = process.argv[2];
 if (!input) {
@@ -32,7 +32,7 @@ if (!api.baseUrl || !api.model) {
   process.exit(1);
 }
 
-const LABELS = [...MODE_CATEGORIES.judol, ...MODE_CATEGORIES.toxic, "aman"];
+const LABELS = [...MODES.flatMap((m) => MODE_CATEGORIES[m]), "aman"];
 const SENTIMEN = ["positif", "netral", "negatif"];
 const BATCH = 15;
 

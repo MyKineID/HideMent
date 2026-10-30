@@ -150,7 +150,7 @@ export interface PrefilterResult {
 export function prefilter(c: CommentInput, modes: Record<Mode, boolean>, customKeywords: string[]): PrefilterResult {
   const r = analyzeRules(c.text, customKeywords);
   if (r.trivial) {
-    return { verdict: { id: c.id, mode: "toxic", category: "aman", score: 0, reason: "terlalu pendek", source: "rule" }, needsAi: false };
+    return { verdict: { id: c.id, mode: "judol", category: "aman", score: 0, reason: "terlalu pendek", source: "rule" }, needsAi: false };
   }
   if (modes.judol && r.judolScore >= RULE_DIRECT_THRESHOLD) {
     return {
@@ -158,7 +158,7 @@ export function prefilter(c: CommentInput, modes: Record<Mode, boolean>, customK
       needsAi: false,
     };
   }
-  const anyAiMode = modes.toxic || modes.judol;
+  const anyAiMode = Object.values(modes).some(Boolean);
   return {
     needsAi: anyAiMode,
     hint: modes.judol && r.judolScore >= RULE_HINT_THRESHOLD ? `indikasi aturan lokal (${r.judolScore}): ${r.reasons.join("; ")}` : undefined,

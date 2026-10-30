@@ -29,15 +29,30 @@ Kenapa dipisah? Karena **nada ≠ bahaya**. Di dataset contoh, mayoritas komenta
 | `scam` | Penipuan: hadiah palsu, investasi bodong, pinjol ilegal, minta transfer/hubungi admin WA | `profit harian 10% pasti` |
 | `spam` | Promosi berulang/tidak relevan selain judi (follow-for-follow, jualan, bot) | `follback kak` |
 
-## Mode 2: Anti Hate / Toxic
+## Mode 2: Ujaran Kebencian
 | Label | Definisi |
 |---|---|
-| `hinaan` | Menghina fisik/kecerdasan/martabat orang secara langsung |
+| `hinaan` | Menghina fisik/kecerdasan/martabat orang secara langsung, termasuk merendahkan karena gender, orientasi, disabilitas |
 | `perundungan` | Merundung, mengajak mengeroyok, menyuruh bunuh diri, mempermalukan |
-| `sara` | Kebencian berbasis suku, agama, ras, antargolongan, gender, orientasi, disabilitas |
 | `ancaman` | Ancaman kekerasan, doxing, intimidasi |
-| `pelecehan` | Pelecehan seksual/komentar cabul ke seseorang |
 | `sarkasme` | Sindiran yang **tujuannya merendahkan orang** (pujian palsu, ejekan terselubung) |
+
+## Mode 3: Pelecehan Seksual
+| Label | Definisi |
+|---|---|
+| `pelecehan` | Komentar cabul/mesum ke seseorang, objektifikasi tubuh, ajakan seksual, candaan pemerkosaan |
+
+## Mode 4: Penistaan Agama
+| Label | Definisi |
+|---|---|
+| `penistaan` | Menghina/mengolok-olok ajaran, kitab suci, nabi/tokoh suci, simbol, tempat, atau ibadah suatu agama |
+
+## Mode 5: SARA
+| Label | Definisi |
+|---|---|
+| `sara` | Kebencian, hasutan, atau stereotip merendahkan terhadap **kelompok orang** berdasarkan suku, ras, etnis, penganut agama, atau antargolongan |
+
+Beda `penistaan` dan `sara`: yang diserang ajaran/simbol agamanya → `penistaan`; yang diserang kelompok orangnya → `sara`.
 
 ## `aman`: jangan ditandai
 - **Kritik isi/karya/kebijakan**, sekeras apa pun: "editingnya jelek", "argumennya lemah", "clickbait".
@@ -47,7 +62,7 @@ Kenapa dipisah? Karena **nada ≠ bahaya**. Di dataset contoh, mayoritas komenta
 
 ## Aturan keputusan
 1. Pertanyaan pertama: **apakah ada target orang/kelompok yang dirugikan?** Kalau yang dikritik hanya konten → `aman`.
-2. Kalau ada beberapa kategori, pilih yang **paling berbahaya** (ancaman > sara > perundungan > pelecehan > hinaan > sarkasme).
+2. Kalau ada beberapa kategori, pilih yang **paling berbahaya** (ancaman > sara > penistaan > perundungan > pelecehan > hinaan > sarkasme).
 3. Ragu antara sarkasme dan candaan? Lihat apakah ada unsur merendahkan martabat. Kalau tidak ada → `aman`.
 4. Judol tanpa kata "judi" tetap `judol` jika polanya jelas (testimoni saldo + arahan ke bio/google + merek+angka).
 
@@ -64,4 +79,4 @@ Label dari AI hanyalah **draf**. Keputusan akhir tetap di tangan manusia, supaya
 - Precision/Recall/F1 per kategori dan per mode.
 - **False Positive Rate pada komentar `aman`**: metrik kunci agar kritik wajar tidak ikut ditandai.
 - Persentase komentar yang diputuskan aturan lokal (hemat API) vs AI.
-- Sebaran sentimen per kelompok (judol/phising, toxic, aman).
+- Sebaran sentimen per kelompok (per mode: judol, kebencian, pelecehan, agama, sara, plus aman).

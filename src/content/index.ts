@@ -1,6 +1,6 @@
 import { hashText } from "../core/normalize";
-import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
-import type { CommentInput, Verdict } from "../core/types";
+import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
+import { MODES, type CommentInput, type Verdict } from "../core/types";
 import { send, type TabMsg } from "../shared/messages";
 import { detectAdapter } from "./adapters";
 import { applyVerdict, clearMarks, focusElement } from "./overlay";
@@ -52,7 +52,7 @@ let lastUrl = location.href;
 let autoScanTimer: ReturnType<typeof setTimeout> | undefined;
 
 function active(): boolean {
-  return Boolean(adapter && settings.enabled && settings.platforms[adapter.platform] && (settings.modes.judol || settings.modes.toxic));
+  return Boolean(adapter && settings.enabled && settings.platforms[adapter.platform] && Object.values(activeModes(settings)).some(Boolean));
 }
 
 const visibility = new IntersectionObserver(
@@ -296,7 +296,8 @@ if (adapter) {
     settings = s;
     if (!active()) return stop();
     start();
-    const modesChanged = prev.modes.judol !== s.modes.judol || prev.modes.toxic !== s.modes.toxic;
+    const [was, now] = [activeModes(prev), activeModes(s)];
+    const modesChanged = MODES.some((m) => was[m] !== now[m]) || (now.kustom && prev.custom.definition !== s.custom.definition);
     if (modesChanged || prev.api.model !== s.api.model) {
       verdicts.clear();
       for (const el of elements.values()) {

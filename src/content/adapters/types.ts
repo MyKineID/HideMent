@@ -38,6 +38,7 @@ export function genericReason(category: Category): string {
     case "sarkasme":
       return "Pelecehan atau perundungan";
     case "sara":
+    case "penistaan":
       return "Ujaran kebencian";
     case "ancaman":
       return "Kekerasan / ancaman";

@@ -3,7 +3,7 @@
   "name": "HideMent — Hide Harmful Comments",
   "short_name": "HideMent",
   "version": "0.2.0",
-  "description": "Deteksi & sembunyikan komentar judol, link phising, dan toxic berbahasa Indonesia di YouTube, Instagram, TikTok, dan X.",
+  "description": "Deteksi & sembunyikan komentar judol, ujaran kebencian, pelecehan seksual, penistaan agama, dan SARA berbahasa Indonesia di YouTube, Instagram, TikTok, dan X.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "assets/icon-16.png",

@@ -33,8 +33,12 @@
     </div>
     <div class="pills" id="modeFilter" role="group" aria-label="Filter jenis">
       <button data-v="all" aria-pressed="true" type="button">Semua</button>
-      <button data-v="judol" aria-pressed="false" type="button">Judi &amp; phising</button>
-      <button data-v="toxic" aria-pressed="false" type="button">Toxic</button>
+      <button data-v="judol" aria-pressed="false" type="button">Judol</button>
+      <button data-v="kebencian" aria-pressed="false" type="button">Kebencian</button>
+      <button data-v="pelecehan" aria-pressed="false" type="button">Pelecehan</button>
+      <button data-v="agama" aria-pressed="false" type="button">Agama</button>
+      <button data-v="sara" aria-pressed="false" type="button">SARA</button>
+      <button data-v="kustom" aria-pressed="false" type="button">Kustom</button>
     </div>
   </header>
 
@@ -56,7 +60,7 @@
   <main id="list" class="list" aria-label="Komentar berbahaya"></main>
 
   <div id="empty" class="empty" hidden>
-    <span data-logo="40"></span>
+    <span class="empty-art" aria-hidden="true"></span>
     <p id="emptyText"></p>
   </div>
 

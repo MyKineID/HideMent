@@ -9,7 +9,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { prefilter } from "../src/core/judol-rules";
 import { buildSystemPrompt, buildUserPrompt, parseAiResponse, type AiItem } from "../src/core/prompt";
 import { DEFAULT_SETTINGS } from "../src/core/settings";
-import { MODE_CATEGORIES, type Category, type Verdict } from "../src/core/types";
+import { MODE_CATEGORIES, MODES, modeOf, type Category, type Verdict } from "../src/core/types";
 import { chat } from "../src/background/api";
 
 interface Row {
@@ -28,7 +28,7 @@ const api = {
   model: process.env.NINE_ROUTER_MODEL ?? "",
   timeoutMs: 120000,
 };
-const modes = { judol: true, toxic: true };
+const modes = { ...DEFAULT_SETTINGS.modes, kebencian: true, pelecehan: true, agama: true, sara: true };
 const useAi = Boolean(api.baseUrl && api.model);
 
 const rows: Row[] = (await readFile(file, "utf8"))
@@ -61,7 +61,7 @@ if (useAi) {
 }
 
 const pred = (i: number): Category => predictions.get(i)?.category ?? "aman";
-const labels: Category[] = [...MODE_CATEGORIES.judol, ...MODE_CATEGORIES.toxic, "aman"];
+const labels: Category[] = [...MODES.flatMap((m) => MODE_CATEGORIES[m]), "aman"];
 
 function prf(isPos: (c: Category) => boolean) {
   let tp = 0, fp = 0, fn = 0;
@@ -79,8 +79,7 @@ function prf(isPos: (c: Category) => boolean) {
 
 const perCategory = Object.fromEntries(labels.filter((l) => l !== "aman").map((l) => [l, prf((c) => c === l)]));
 const perMode = {
-  judol: prf((c) => (MODE_CATEGORIES.judol as Category[]).includes(c)),
-  toxic: prf((c) => (MODE_CATEGORIES.toxic as Category[]).includes(c)),
+  ...Object.fromEntries(MODES.map((m) => [m, prf((c) => MODE_CATEGORIES[m].includes(c))])),
   berbahaya: prf((c) => c !== "aman"),
 };
 const safeRows = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.label === "aman");
@@ -95,7 +94,7 @@ rows.forEach((r, i) => {
 const sentimentTable: Record<string, Record<string, number>> = {};
 for (const r of rows) {
   if (!r.sentimen) continue;
-  const group = r.label === "aman" ? "aman" : (MODE_CATEGORIES.judol as Category[]).includes(r.label) ? "judol/phising" : "toxic";
+  const group = modeOf(r.label) ?? "aman";
   sentimentTable[group] ??= { positif: 0, netral: 0, negatif: 0 };
   sentimentTable[group][r.sentimen]++;
 }

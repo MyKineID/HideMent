@@ -61,6 +61,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 32px 24px; text-align: center; color: var(--text-2); }
 .empty p { max-width: 280px; font-size: 13px; }
+.empty-art { width: 112px; height: 112px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 0 0 6px var(--accent-soft); background: var(--surface-2) url("../assets/raphael.webp") 36% 20% / 150% auto no-repeat; }
 
 .scanstat { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
 .scanstat:has(> :not([hidden])) { padding: 8px 16px; border-top: 1px solid var(--line); }

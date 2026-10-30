@@ -19,13 +19,13 @@ export const youtube: Adapter = {
   reportReason: (c) =>
     c === "judol" || c === "spam" || c === "phishing" || c === "scam"
       ? "Spam atau menyesatkan"
-      : c === "sara"
+      : c === "sara" || c === "penistaan"
         ? "Konten kebencian atau kasar"
         : c === "pelecehan"
           ? "Konten seksual"
           : c === "ancaman"
             ? "Mempromosikan terorisme / kekerasan"
-            : c === "aman"
+            : c === "aman" || c === "kustom"
               ? genericReason(c)
               : "Pelecehan atau penindasan",
   isPostPage: (url) => /^\/(watch|shorts\/)/.test(url.pathname),

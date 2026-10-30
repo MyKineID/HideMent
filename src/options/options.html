@@ -30,22 +30,115 @@
 
   <div class="layout">
     <nav class="nav" aria-label="Bagian pengaturan">
-      <a href="#koneksi">Koneksi AI</a>
-      <a href="#deteksi">Deteksi</a>
-      <a href="#pindai">Pemindaian</a>
-      <a href="#tampilan">Tampilan</a>
-      <a href="#platform">Platform</a>
-      <a href="#ambang">Ambang skor</a>
-      <a href="#lapor">Pelaporan</a>
-      <a href="#daftar">Daftar kustom</a>
-      <a href="#data">Data</a>
+      <a href="#deteksi"><span data-icon="shield"></span>Deteksi</a>
+      <a href="#koneksi"><span data-icon="link"></span>Koneksi AI</a>
+      <a href="#pindai"><span data-icon="search"></span>Pemindaian</a>
+      <a href="#tampilan"><span data-icon="eye"></span>Tampilan</a>
+      <a href="#platform"><span data-icon="grid"></span>Platform</a>
+      <a href="#ambang"><span data-icon="gauge"></span>Ambang skor</a>
+      <a href="#lapor"><span data-icon="flag"></span>Pelaporan</a>
+      <a href="#belajar"><span data-icon="spark"></span>Contoh belajar</a>
+      <a href="#daftar"><span data-icon="list"></span>Daftar kustom</a>
+      <a href="#data"><span data-icon="disk"></span>Data</a>
     </nav>
 
     <main class="main" id="main">
+      <div class="hero">
+        <div class="hero-text">
+          <span class="hero-kicker">Halo, saya Raphael</span>
+          <h1>Kolom komentar yang lebih aman.</h1>
+          <p>Pilih jenis komentar yang mau dideteksi. Saya yang membaca, menilai, lalu menandai, memburamkan, atau menyembunyikannya untukmu.</p>
+          <div class="hero-stats">
+            <a class="hs" href="#deteksi"><b class="mono" id="heroModes">0/5</b><span>mode aktif</span></a>
+            <a class="hs" href="#koneksi"><b id="heroAi">Belum</b><span>koneksi AI</span></a>
+            <a class="hs" href="#platform"><b class="mono" id="heroPlat">0/4</b><span>platform</span></a>
+          </div>
+        </div>
+        <img class="hero-art" src="../assets/raphael.webp" alt="Ilustrasi Raphael, asisten analisis HideMent" />
+      </div>
+
+      <section id="deteksi" class="sec" aria-labelledby="h-deteksi">
+        <div class="sec-head sec-head-row">
+          <div>
+            <h2 id="h-deteksi">Mode deteksi</h2>
+            <p>Pilih satu atau beberapa sekaligus. Kritik wajar tidak pernah ditandai.</p>
+          </div>
+          <div class="mode-bulk">
+            <span class="mode-count" id="modeCount" aria-live="polite"></span>
+            <button class="btn quiet" id="modesAll" type="button">Pilih semua</button>
+            <button class="btn quiet" id="modesNone" type="button">Kosongkan</button>
+          </div>
+        </div>
+        <p class="notice" id="needsAi"><span data-icon="warn" data-size="16"></span><span>Mode selain Judol butuh koneksi AI. <a href="#koneksi">Hubungkan sekarang</a></span></p>
+        <div class="modes">
+          <label class="mode m-judol">
+            <input type="checkbox" data-key="modes.judol" />
+            <span class="mode-top"><span class="mode-ico" data-icon="seven" data-size="20"></span><span class="mode-check" aria-hidden="true"></span></span>
+            <b class="mode-title">Judol</b>
+            <small class="mode-desc">Promosi judi online, link phising, penipuan, dan spam.</small>
+            <span class="mode-tags"><span>Judi online</span><span>Phising</span><span>Penipuan</span><span>Spam</span></span>
+            <span class="mode-foot">Lokal + AI</span>
+          </label>
+          <label class="mode m-kebencian">
+            <input type="checkbox" data-key="modes.kebencian" />
+            <span class="mode-top"><span class="mode-ico" data-icon="warn" data-size="20"></span><span class="mode-check" aria-hidden="true"></span></span>
+            <b class="mode-title">Ujaran Kebencian</b>
+            <small class="mode-desc">Serangan ke orang. Yang dinilai niat dan dampaknya, bukan sekadar kata kasar.</small>
+            <span class="mode-tags"><span>Hinaan</span><span>Perundungan</span><span>Ancaman</span><span>Sarkasme</span></span>
+            <span class="mode-foot ai">Butuh AI</span>
+          </label>
+          <label class="mode m-pelecehan">
+            <input type="checkbox" data-key="modes.pelecehan" />
+            <span class="mode-top"><span class="mode-ico" data-icon="eyeOff" data-size="20"></span><span class="mode-check" aria-hidden="true"></span></span>
+            <b class="mode-title">Pelecehan Seksual</b>
+            <small class="mode-desc">Komentar cabul atau mesum ke seseorang, objektifikasi tubuh, ajakan seksual.</small>
+            <span class="mode-tags"><span>Cabul</span><span>Objektifikasi</span><span>Ajakan seksual</span></span>
+            <span class="mode-foot ai">Butuh AI</span>
+          </label>
+          <label class="mode m-agama">
+            <input type="checkbox" data-key="modes.agama" />
+            <span class="mode-top"><span class="mode-ico" data-icon="book" data-size="20"></span><span class="mode-check" aria-hidden="true"></span></span>
+            <b class="mode-title">Penistaan Agama</b>
+            <small class="mode-desc">Menghina ajaran, kitab suci, nabi atau tokoh suci, simbol, dan ibadah.</small>
+            <span class="mode-tags"><span>Ajaran &amp; kitab</span><span>Tokoh suci</span><span>Ibadah</span></span>
+            <span class="mode-foot ai">Butuh AI</span>
+          </label>
+          <label class="mode m-sara">
+            <input type="checkbox" data-key="modes.sara" />
+            <span class="mode-top"><span class="mode-ico" data-icon="users" data-size="20"></span><span class="mode-check" aria-hidden="true"></span></span>
+            <b class="mode-title">SARA</b>
+            <small class="mode-desc">Kebencian atau hasutan terhadap kelompok: suku, ras, etnis, penganut agama, antargolongan.</small>
+            <span class="mode-tags"><span>Suku</span><span>Ras</span><span>Antaragama</span><span>Antargolongan</span></span>
+            <span class="mode-foot ai">Butuh AI</span>
+          </label>
+          <label class="mode m-kustom">
+            <input type="checkbox" data-key="modes.kustom" />
+            <span class="mode-top"><span class="mode-ico" data-icon="spark" data-size="20"></span><span class="mode-check" aria-hidden="true"></span></span>
+            <b class="mode-title" id="customTitle">Kustom</b>
+            <small class="mode-desc" id="customDesc">Tentukan sendiri jenis komentar yang mau ditandai, misalnya spoiler atau promosi akun tertentu.</small>
+            <span class="mode-foot ai" id="customFoot">Butuh AI</span>
+          </label>
+        </div>
+        <div class="group custom-panel" id="customPanel" hidden>
+          <div class="custom-head"><span data-icon="spark" data-size="16"></span><b>Atur mode kustom</b></div>
+          <div class="fields">
+            <div class="field">
+              <label for="customName">Nama mode</label>
+              <input id="customName" type="text" maxlength="40" placeholder="mis. Spoiler" autocomplete="off" />
+            </div>
+            <div class="field field-wide">
+              <label for="customDefinition">Komentar seperti apa yang ditandai? <span class="count" id="customDefCount"></span></label>
+              <textarea id="customDefinition" maxlength="400" placeholder="mis. membocorkan akhir cerita film atau series yang sedang dibahas"></textarea>
+              <p class="hint">Tulis dengan kalimat biasa. Makin jelas batasnya, makin akurat. Tambahkan contoh di bagian Contoh belajar biar makin pas.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="koneksi" class="sec" aria-labelledby="h-koneksi">
         <div class="sec-head">
           <h2 id="h-koneksi">Koneksi AI</h2>
-          <p>Endpoint kompatibel OpenAI (mis. 9router) untuk mendeteksi komentar toxic. Deteksi judi online &amp; phising tetap berjalan tanpa koneksi.</p>
+          <p>Endpoint kompatibel OpenAI (mis. 9router) untuk semua mode selain Judol: ujaran kebencian, pelecehan seksual, penistaan agama, SARA, dan mode kustom. Deteksi judol tetap berjalan tanpa koneksi.</p>
         </div>
         <div class="group">
           <div class="fields">
@@ -84,32 +177,6 @@
         </details>
       </section>
 
-      <section id="deteksi" class="sec" aria-labelledby="h-deteksi">
-        <div class="sec-head">
-          <h2 id="h-deteksi">Deteksi</h2>
-          <p>Pilih jenis komentar yang ditandai. Kritik wajar tidak pernah ditandai.</p>
-        </div>
-        <div class="group">
-          <label class="item detect">
-            <span class="detect-ico judol" data-icon="seven" data-size="18"></span>
-            <span class="item-main">
-              <b>Judi online &amp; phising</b>
-              <small>Dicek lokal lebih dulu, tanpa AI. Komentar yang ragu diteruskan ke model.</small>
-              <span class="chips"><span>Judi online</span><span>Link phising</span><span>Penipuan</span><span>Spam</span></span>
-            </span>
-            <input class="switch" type="checkbox" data-key="modes.judol" />
-          </label>
-          <label class="item detect">
-            <span class="detect-ico toxic" data-icon="shield" data-size="18"></span>
-            <span class="item-main">
-              <b>Komentar toxic</b>
-              <small>Menilai niat dan dampak, bukan sekadar kata kasar. <span class="needs-ai" id="needsAi">Butuh koneksi AI.</span></small>
-              <span class="chips"><span>Hinaan</span><span>Perundungan</span><span>SARA</span><span>Ancaman</span><span>Pelecehan</span><span>Sarkasme</span></span>
-            </span>
-            <input class="switch" type="checkbox" data-key="modes.toxic" />
-          </label>
-        </div>
-      </section>
 
       <section id="pindai" class="sec" aria-labelledby="h-pindai">
         <div class="sec-head"><h2 id="h-pindai">Pemindaian</h2></div>
@@ -206,6 +273,44 @@
         </ol>
       </section>
 
+      <section id="belajar" class="sec" aria-labelledby="h-belajar">
+        <div class="sec-head">
+          <h2 id="h-belajar">Contoh belajar AI</h2>
+          <p>Tambahkan contoh komentar beserta labelnya. Setiap menganalisis, Raphael mengambil contoh yang paling mirip dan memakainya sebagai acuan, jadi hasilnya makin sesuai keinginanmu. Tanpa training, jalan di model apa pun.</p>
+        </div>
+        <div class="learn-stats">
+          <div><b class="mono" id="exCount">0</b><span>contoh tersimpan</span></div>
+          <div><b class="mono" id="exFeedback">0</b><span>dari "Bukan berbahaya"</span></div>
+          <div><b class="mono" id="exLabels">0</b><span>label terpakai</span></div>
+        </div>
+        <div class="group">
+          <label class="item"><span class="item-main"><b>Pakai contoh saat analisis</b><small>Maksimal 8 contoh paling mirip ikut dikirim per permintaan.</small></span><input class="switch" type="checkbox" data-key="learn.enabled" /></label>
+          <label class="item"><span class="item-main"><b>Ikutkan tombol “Bukan berbahaya”</b><small>Komentar yang kamu tandai aman otomatis jadi contoh berlabel Aman.</small></span><input class="switch" type="checkbox" data-key="learn.includeFeedback" /></label>
+        </div>
+        <div class="group learn-add">
+          <div class="field">
+            <label for="exText">Tambah contoh</label>
+            <textarea id="exText" placeholder="tempel komentarnya di sini"></textarea>
+          </div>
+          <div class="learn-add-row">
+            <div class="learn-label" id="exLabelHost"></div>
+            <button id="exAdd" class="btn" type="button"><span data-icon="plus" data-size="15"></span>Tambah contoh</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="item">
+            <div class="item-main"><b>Impor dari file</b><small>JSON Lines, JSON, atau CSV dengan kolom <span class="mono">text</span> dan <span class="mono">label</span>. Format dataset riset HideMent langsung bisa dipakai.</small></div>
+            <input id="exFile" type="file" accept=".jsonl,.json,.csv,.txt" hidden />
+            <button id="exImport" class="btn ghost" type="button"><span data-icon="upload" data-size="15"></span>Pilih file</button>
+          </div>
+        </div>
+        <div class="group ex-list-wrap">
+          <div class="ex-list-head"><b>Contoh terbaru</b><span class="row"><button id="exExport" class="btn quiet" type="button">Ekspor</button><button id="exClear" class="btn quiet" type="button">Hapus semua</button></span></div>
+          <ul class="ex-list" id="exList"></ul>
+          <p class="ex-empty" id="exEmpty">Belum ada contoh. Tambah satu di atas atau impor file.</p>
+        </div>
+      </section>
+
       <section id="daftar" class="sec" aria-labelledby="h-daftar">
         <div class="sec-head"><h2 id="h-daftar">Daftar kustom</h2></div>
         <div class="fields two">
@@ -229,7 +334,7 @@
           <div class="item"><div class="item-main"><b>Cache hasil analisis</b><small>Hapus agar komentar dianalisis ulang.</small></div><button id="clearCache" class="btn ghost" type="button">Hapus cache</button></div>
           <div class="item"><div class="item-main"><b>Reset semua pengaturan</b><small>Termasuk Base URL dan API key.</small></div><button id="resetAll" class="btn danger" type="button">Reset</button></div>
         </div>
-        <p class="foot">HideMent <span id="ver"></span> · dikembangkan dari Tempest oleh MyKineID · MIT</p>
+        <p class="foot">HideMent <span id="ver"></span> · dikembangkan dari Tempest oleh MyKineID · ilustrasi Raphael digambar sendiri oleh pembuat proyek · MIT</p>
       </section>
     </main>
   </div>

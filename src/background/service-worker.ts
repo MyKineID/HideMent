@@ -1,5 +1,6 @@
 import { prefilter } from "../core/judol-rules";
-import { DEFAULT_SETTINGS, isApiConfigured, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
+import { activeModes, DEFAULT_SETTINGS, isApiConfigured, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
+import { EXAMPLES_KEY, ExampleIndex, toLabel, type Example } from "../core/examples";
 import type { CommentInput, Platform, QueueItem, Verdict } from "../core/types";
 import { hashText } from "../core/normalize";
 import type { Msg, ReportResult, StatusInfo, TabMsg } from "../shared/messages";
@@ -18,7 +19,38 @@ onSettingsChanged((s) => {
   }
 });
 
-const batcher = new Batcher(() => settings);
+let examples: Example[] = [];
+let feedback: { text?: string; label?: string }[] = [];
+let exampleIndex: ExampleIndex | null = null;
+
+/** Index dibangun ulang hanya kalau daftar contoh/feedback berubah, bukan per batch. */
+function rebuildIndex(): void {
+  const fromFeedback = settings.learn.includeFeedback
+    ? feedback.flatMap((f) => {
+        const label = toLabel(f.label);
+        return f.text && label ? [{ text: f.text, label }] : [];
+      })
+    : [];
+  exampleIndex = new ExampleIndex([...examples, ...fromFeedback]);
+}
+
+const examplesReady = chrome.storage.local.get([EXAMPLES_KEY, "feedback"]).then((r) => {
+  examples = (r[EXAMPLES_KEY] ?? []) as Example[];
+  feedback = (r.feedback ?? []) as typeof feedback;
+});
+void Promise.all([ready, examplesReady]).then(rebuildIndex);
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes[EXAMPLES_KEY]) {
+    examples = (changes[EXAMPLES_KEY].newValue ?? []) as Example[];
+    void clearCache();
+  }
+  if (changes.feedback) feedback = (changes.feedback.newValue ?? []) as typeof feedback;
+  if (changes[EXAMPLES_KEY] || changes.feedback || changes.settings) rebuildIndex();
+});
+
+const batcher = new Batcher(() => settings, () => exampleIndex);
 
 const QUEUE_KEY = "queue";
 const QUEUE_MAX = 500;
@@ -87,10 +119,11 @@ async function analyze(tabId: number, platform: Platform, url: string, comments:
 
   for (const c of comments) {
     if (isWhitelisted(c.author)) {
-      immediate.push({ id: c.id, mode: "toxic", category: "aman", score: 0, reason: "akun di whitelist", source: "rule" });
+      immediate.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "akun di whitelist", source: "rule" });
       continue;
     }
-    const pf = prefilter(c, settings.modes, settings.customKeywords);
+    const modes = activeModes(settings);
+    const pf = prefilter(c, modes, settings.customKeywords);
     if (pf.verdict) {
       immediate.push(pf.verdict);
       record(tabId, platform, url, c, pf.verdict);
@@ -98,7 +131,7 @@ async function analyze(tabId: number, platform: Platform, url: string, comments:
     }
     if (!pf.needsAi) continue;
 
-    const key = cacheKey(c.text, settings.modes, settings.api.model);
+    const key = cacheKey(c.text, modes, settings.api.model, modes.kustom ? settings.custom.definition : "");
     const hit = await getCached(key);
     if (hit) {
       const v: Verdict = { ...hit, id: c.id, source: "cache" };

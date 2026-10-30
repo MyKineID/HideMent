@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL, type Category, type Verdict } from "../core/types";
+import { verdictLabel, type Category, type Verdict } from "../core/types";
 import type { ReportResult } from "../shared/messages";
 import type { Adapter } from "./adapters/types";
 
@@ -27,6 +27,8 @@ export const REASON_RE: Record<Category, RegExp[]> = {
   sara: [/kebencian|hate|benci|diskrimin|ras\b|rasis|agama|suku|etnis|slur/i],
   ancaman: [/ancaman|mengancam|threat/i, /kekerasan|violen/i],
   pelecehan: [/seksual|sexual/i, /pelecehan|harassment/i],
+  penistaan: [/agama|religi|kebencian|hate|benci/i],
+  kustom: [/lainnya|other|something else/i],
   aman: [],
 };
 
@@ -136,7 +138,7 @@ function mark(el: HTMLElement): void {
 
 export async function runReportFlow(el: HTMLElement, adapter: Adapter, v: Verdict, onSubmitted?: () => void): Promise<ReportResult> {
   const reason = adapter.reportReason(v.category);
-  const label = `Saran alasan: ${reason} (${CATEGORY_LABEL[v.category]})`;
+  const label = `Saran alasan: ${reason} (${verdictLabel(v)})`;
   await dismissLeftover();
   el.scrollIntoView({ block: "center" });
   await sleep(250);
@@ -204,7 +206,7 @@ function handOver(submit: HTMLElement, v: Verdict, reason: string, onSubmitted?:
   toast(
     "Tinggal tekan Kirim",
     `Alasan: ${reason}. Tekan Enter atau klik "${textOf(submit)}". ${onSubmitted ? "HideMent lanjut otomatis ke komentar berikutnya." : ""}`.trim(),
-    `${CATEGORY_LABEL[v.category]} · skor ${v.score}`,
+    `${verdictLabel(v)} · skor ${v.score}`,
     20000,
   );
   return { stage: "submit", reason, note: "" };

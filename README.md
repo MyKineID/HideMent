@@ -3,7 +3,7 @@
 ### HideMent
 **Hide Comment — sembunyikan komentar berbahaya, biarkan diskusi tetap hidup.**
 
-Ekstensi browser untuk mendeteksi dan menyembunyikan promosi judi online (judol), link phising, dan komentar toxic berbahasa Indonesia — termasuk hinaan, perundungan, dan sarkasme.
+Ekstensi browser untuk mendeteksi dan menyembunyikan promosi judi online (judol), link phising, ujaran kebencian, pelecehan seksual, penistaan agama, dan SARA berbahasa Indonesia.
 
 `Chrome / Edge (MV3)` · `YouTube` · `Instagram` · `TikTok` · `X` · `MIT`
 
@@ -81,12 +81,20 @@ Kenapa efisien:
 
 ## Fitur
 
-**Dua mode deteksi** (bisa aktif bersamaan):
+**Enam mode deteksi**, dipilih lewat checkbox (bawaan hanya Judol yang aktif):
 
 | Mode | Yang dideteksi |
 |---|---|
-| **Anti Judol / Link Phising** | judi online, link phising, penipuan (hadiah palsu, investasi bodong, pinjol), spam |
-| **Anti Toxic** | hinaan, perundungan, ujaran SARA, ancaman, pelecehan, sarkasme yang merendahkan |
+| **Judol** | judi online, link phising, penipuan (hadiah palsu, investasi bodong, pinjol), spam |
+| **Ujaran Kebencian** | hinaan, perundungan, ancaman, sarkasme yang merendahkan |
+| **Pelecehan Seksual** | komentar cabul/mesum ke seseorang, objektifikasi tubuh, ajakan seksual |
+| **Penistaan Agama** | menghina ajaran, kitab suci, nabi/tokoh suci, simbol, atau ibadah suatu agama |
+| **SARA** | kebencian/hasutan terhadap kelompok berdasarkan suku, ras, etnis, penganut agama, antargolongan |
+| **Kustom** | apa pun yang kamu definisikan sendiri dengan kalimat biasa (mis. spoiler, promosi akun tertentu) |
+
+Judol dicek lokal tanpa AI; mode lainnya butuh koneksi AI.
+
+**Contoh belajar AI**: tambahkan komentar berlabel (manual, impor JSON Lines/JSON/CSV, atau otomatis dari tombol "Bukan berbahaya"). Setiap analisis, HideMent mengambil sampai 8 contoh yang paling mirip (kemiripan trigram, tahan huruf hias & angka pengganti) dan mengirimnya ke AI sebagai acuan. Tidak ada training; jalan di model apa pun.
 
 **Fitur lainnya:**
 
@@ -172,7 +180,7 @@ Ketersediaan model bergantung pada penyedia AI yang kamu pakai. Jalankan `npm ru
 
 - **Popup** (klik ikon HideMent): lihat statistik tab, nyalakan/matikan mode, pilih aksi (Tandai / Blur / Sembunyi), jalankan **Pindai semua komentar**, atau buka Dashboard Antrian.
 - **Badge** di samping komentar: klik untuk detail alasan, sumber (aturan lokal / AI / cache), tombol **Bantu laporkan**, dan **Bukan berbahaya**.
-- **Dashboard Antrian** (side panel): filter Judol/Toxic, prioritas, cari teks/akun, **Lihat** untuk melompat ke komentar, **Lapor berikutnya** untuk alur lapor semi-otomatis, dan **Ekspor CSV**.
+- **Dashboard Antrian** (side panel): filter per mode (Judol, Kebencian, Pelecehan, Agama, SARA), prioritas, cari teks/akun, **Lihat** untuk melompat ke komentar, **Lapor berikutnya** untuk alur lapor semi-otomatis, dan **Ekspor CSV**.
 
 ## Privasi & keamanan
 
@@ -241,7 +249,7 @@ Temuan awal: sebagian besar komentar judol/phising justru **bernada positif** ("
 | Tes koneksi timeout | Server terhubung tapi model lambat/bermasalah. Pilih model lain atau naikkan Timeout. |
 | HTTP 401/403 | API key salah atau tidak punya akses ke model tersebut. |
 | Komentar Instagram/TikTok tidak terdeteksi | Struktur halaman berubah; perbarui selektor di `src/content/adapters/`. |
-| Hanya judol yang terdeteksi | AI belum terhubung; deteksi toxic membutuhkan endpoint AI. |
+| Hanya judol yang terdeteksi | AI belum terhubung; mode selain Judol membutuhkan endpoint AI. |
 | Hasil lama masih tampil setelah ganti aturan | Pengaturan → Data riset → **Hapus cache**, lalu pindai ulang. |
 
 ## Roadmap

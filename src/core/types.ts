@@ -1,16 +1,10 @@
-export type Mode = "judol" | "toxic";
+export type Mode = "judol" | "kebencian" | "pelecehan" | "agama" | "sara" | "kustom";
 
 export type Platform = "youtube" | "instagram" | "tiktok" | "x";
 
 export type JudolCategory = "judol" | "phishing" | "scam" | "spam";
-export type ToxicCategory =
-  | "hinaan"
-  | "perundungan"
-  | "sara"
-  | "ancaman"
-  | "pelecehan"
-  | "sarkasme";
-export type Category = JudolCategory | ToxicCategory | "aman";
+export type KebencianCategory = "hinaan" | "perundungan" | "ancaman" | "sarkasme";
+export type Category = JudolCategory | KebencianCategory | "pelecehan" | "penistaan" | "sara" | "kustom" | "aman";
 
 export type Priority = "tinggi" | "sedang" | "rendah";
 
@@ -31,6 +25,8 @@ export interface Verdict {
   score: number;
   reason: string;
   source: VerdictSource;
+  /** Nama tampilan untuk kategori "kustom" (nama mode buatan pengguna). */
+  label?: string;
 }
 
 export type ReportStatus = "pending" | "done" | "skipped";
@@ -59,14 +55,40 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   spam: "Spam",
   hinaan: "Hinaan",
   perundungan: "Perundungan",
-  sara: "Ujaran SARA",
   ancaman: "Ancaman",
-  pelecehan: "Pelecehan",
   sarkasme: "Sarkasme Merendahkan",
+  pelecehan: "Pelecehan Seksual",
+  penistaan: "Penistaan Agama",
+  sara: "SARA",
+  kustom: "Kustom",
   aman: "Aman",
 };
 
 export const MODE_CATEGORIES: Record<Mode, Category[]> = {
   judol: ["judol", "phishing", "scam", "spam"],
-  toxic: ["hinaan", "perundungan", "sara", "ancaman", "pelecehan", "sarkasme"],
+  kebencian: ["hinaan", "perundungan", "ancaman", "sarkasme"],
+  pelecehan: ["pelecehan"],
+  agama: ["penistaan"],
+  sara: ["sara"],
+  kustom: ["kustom"],
 };
+
+export const MODES = Object.keys(MODE_CATEGORIES) as Mode[];
+
+export const MODE_LABEL: Record<Mode, string> = {
+  judol: "Judol",
+  kebencian: "Ujaran Kebencian",
+  pelecehan: "Pelecehan Seksual",
+  agama: "Penistaan Agama",
+  sara: "SARA",
+  kustom: "Kustom",
+};
+
+export function verdictLabel(v: Pick<Verdict, "category" | "label">): string {
+  return v.label || CATEGORY_LABEL[v.category];
+}
+
+/** Mode yang memuat kategori ini; "aman" tidak punya mode sendiri. */
+export function modeOf(category: Category): Mode | null {
+  return MODES.find((m) => MODE_CATEGORIES[m].includes(category)) ?? null;
+}

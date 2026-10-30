@@ -17,6 +17,14 @@ const PLATFORM_HOSTS: [RegExp, Platform, string][] = [
 let settings: Settings = DEFAULT_SETTINGS;
 let lastLine = "";
 
+function renderModes(): void {
+  const chip = $("#customChip");
+  chip.hidden = !settings.custom.definition;
+  $("#customName").textContent = settings.custom.name || "Kustom";
+  const visible = [...document.querySelectorAll<HTMLInputElement>(".mchip:not([hidden]) input")];
+  $("#modeCount").textContent = `${visible.filter((i) => i.checked).length} aktif`;
+}
+
 function renderPresets(): void {
   const p = presetOf(settings);
   document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.preset === p)));
@@ -45,8 +53,14 @@ async function init(): Promise<void> {
   hydrateIcons();
   enhanceAll();
 
-  bindToggles(document, () => settings, (p) => void saveSettings(p as DeepPartial<Settings>).then((s) => (settings = s)));
+  bindToggles(document, () => settings, (p) =>
+    void saveSettings(p as DeepPartial<Settings>).then((s) => {
+      settings = s;
+      renderModes();
+    }),
+  );
   renderPresets();
+  renderModes();
   document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) =>
     b.addEventListener("click", async () => {
       settings = await saveSettings(presetPatch(b.dataset.preset as Preset));
@@ -56,6 +70,7 @@ async function init(): Promise<void> {
   onSettingsChanged((s) => {
     settings = s;
     refreshToggles(document, s);
+    renderModes();
     renderPresets();
   });
 
@@ -69,10 +84,10 @@ async function init(): Promise<void> {
 
     let line: [string, "ok" | "err" | "info"];
     if (!settings.enabled) line = ["HideMent sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
-    else if (!st.configured) line = ["AI belum terhubung, baru deteksi judol lokal yang aktif. Atur lewat tombol pengaturan di bawah.", "err"];
+    else if (!st.configured) line = ["Belum terhubung ke AI. Baru deteksi judol lokal yang jalan; hubungkan lewat tombol pengaturan di bawah.", "err"];
     else if (st.lastError) line = [st.lastError, "err"];
     else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.`, "ok"];
-    else line = [`Siap. Model ${st.model}${st.lastTtftMs ? ` · hasil pertama ${(st.lastTtftMs / 1000).toFixed(1)} dtk` : ""}.`, "ok"];
+    else line = ["Siap. Terhubung ke AI.", "ok"];
     const key = line.join("|");
     if (key !== lastLine) {
       lastLine = key;

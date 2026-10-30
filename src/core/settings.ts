@@ -13,6 +13,10 @@ export interface Settings {
     concurrency: number;
   };
   modes: Record<Mode, boolean>;
+  /** Mode buatan pengguna: nama tampilan + definisi yang dikirim ke AI. */
+  custom: { name: string; definition: string };
+  /** Contoh komentar berlabel yang dipakai AI sebagai acuan. */
+  learn: { enabled: boolean; includeFeedback: boolean };
   platforms: Record<Platform, boolean>;
   display: {
     showBadge: boolean;
@@ -52,7 +56,9 @@ export const DEFAULT_SETTINGS: Settings = {
     batchSize: 8,
     concurrency: 4,
   },
-  modes: { judol: true, toxic: true },
+  modes: { judol: true, kebencian: false, pelecehan: false, agama: false, sara: false, kustom: false },
+  custom: { name: "", definition: "" },
+  learn: { enabled: true, includeFeedback: true },
   platforms: { youtube: true, instagram: true, tiktok: true, x: true },
   display: {
     showBadge: true,
@@ -71,7 +77,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "settings";
-const SCHEMA = 3;
+const SCHEMA = 4;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -94,6 +100,8 @@ export const LIMITS = {
   batchSize: [1, 50],
   concurrency: [1, 8],
   scanMax: [50, 2000],
+  customName: 40,
+  customDefinition: 400,
   threshold: [10, 100],
 } as const;
 
@@ -147,6 +155,11 @@ export function sanitizeSettings(s: Settings): Settings {
       concurrency: clampInt(s.api?.concurrency, LIMITS.concurrency, d.api.concurrency),
     },
     modes: boolRecord(s.modes, d.modes),
+    custom: {
+      name: str(s.custom?.name, "").slice(0, LIMITS.customName),
+      definition: str(s.custom?.definition, "").slice(0, LIMITS.customDefinition),
+    },
+    learn: boolRecord(s.learn, d.learn),
     platforms: boolRecord(s.platforms, d.platforms),
     display: boolRecord(s.display, d.display),
     categoryAction,
@@ -162,6 +175,18 @@ export function sanitizeSettings(s: Settings): Settings {
   };
 }
 
+/** Schema < 4 punya satu saklar "toxic"; padanan terdekatnya mode Ujaran Kebencian. Mode baru lain mulai mati. */
+export function migrateModes(modes: object): Settings["modes"] {
+  const { toxic, ...rest } = modes as Partial<Settings["modes"]> & { toxic?: unknown };
+  if (typeof toxic !== "boolean") return rest as Settings["modes"];
+  return { kebencian: toxic, ...rest } as Settings["modes"];
+}
+
+/** Mode yang benar-benar dipakai: mode kustom hanya aktif kalau definisinya sudah diisi. */
+export function activeModes(s: Settings): Record<Mode, boolean> {
+  return { ...s.modes, kustom: s.modes.kustom && Boolean(s.custom.definition) };
+}
+
 export function resolveSettings(stored: unknown): Settings {
   return sanitizeSettings(merge(DEFAULT_SETTINGS, stored ?? {}));
 }
@@ -174,6 +199,7 @@ export async function loadSettings(): Promise<Settings> {
     if (stored.api && stored.api.batchSize === 20 && stored.api.concurrency === 2) {
       stored.api = { ...stored.api, batchSize: DEFAULT_SETTINGS.api.batchSize, concurrency: DEFAULT_SETTINGS.api.concurrency };
     }
+    if (stored.modes) stored.modes = migrateModes(stored.modes);
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
   }
   return resolveSettings(stored);

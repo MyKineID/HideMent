@@ -212,10 +212,10 @@ function renderCustom(): void {
   const { name, definition } = settings.custom;
   $("#customPanel").hidden = !settings.modes.kustom;
   $("#customTitle").textContent = name || "Kustom";
-  $("#customDesc").textContent = definition || "Tentukan sendiri jenis komentar yang mau ditandai, misalnya spoiler atau promosi akun tertentu.";
+  $("#customDesc").textContent = definition || "Tulis sendiri jenis komentar yang mau ditandai, misalnya spoiler.";
   const foot = $("#customFoot");
   const missing = settings.modes.kustom && !definition;
-  foot.textContent = missing ? "Isi definisinya dulu di bawah" : "Butuh AI";
+  foot.textContent = missing ? "Isi definisi dulu" : "Butuh AI";
   foot.classList.toggle("warn", missing);
   $("#customDefCount").textContent = definition ? `${definition.length}/400` : "";
 }

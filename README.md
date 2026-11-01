@@ -234,7 +234,10 @@ Instagram dan TikTok sering mengubah struktur halamannya. Kalau komentar tidak t
 
 ## Kontribusi
 
-Mau ikut membangun HideMent? Mulai dari [PRD kontributor](docs/prd/kontributor-onboarding.md): cara setup, alur Git, pembagian tugas, dan definisi selesai.
+Mau ikut membangun HideMent? Baca [Aturan bersama](docs/prd/kontributor-onboarding.md) (setup, alur Git, definisi selesai), lalu PRD tugasmu:
+
+- [PRD 1: Dukungan Platform Reddit](docs/prd/reddit-platform.md)
+- [PRD 2: Data & Akurasi AI](docs/prd/data-akurasi-ai.md)
 
 ## Riset & evaluasi
 

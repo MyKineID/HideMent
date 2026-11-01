@@ -1,10 +1,34 @@
-# PRD: Dukungan Platform Reddit
+# PRD 1: Dukungan Platform Reddit
+
+**Untuk:** Orang pertama
+**Durasi:** 4 minggu
+**Reviewer:** MyKineID
+
+---
+
+## Tugasmu, singkatnya
+
+> **Bikin HideMent jalan di Reddit, sama seperti di TikTok / YouTube / X.**
+>
+> Komentar Reddit terdeteksi & diberi label → tombol "Analyze komentar postingan ini" memuat semua komentar thread → link Reddit bisa ditempel di "Analyze dari link" → lapor otomatis jalan.
+
+Kamu **tidak** mengerjakan dataset/akurasi AI. Itu tugas orang kedua ([PRD 2](data-akurasi-ai.md)).
+Setup & aturan Git ada di [Aturan bersama](kontributor-onboarding.md).
+
+| Minggu | Kerjakan | Selesai kalau |
+|---|---|---|
+| 1 | Daftarkan platform Reddit + link Reddit dikenali (FR-1 s.d. FR-6) | Link `reddit.com/r/.../comments/...` muncul di "Analyze dari link"; test lulus |
+| 2 | Adapter Reddit: baca komentar, akun, link, jumlah komentar (FR-7 s.d. FR-16) | Label Aman/Sedang/Tinggi muncul di komentar thread Reddit |
+| 3 | Muat semua komentar ("more replies") + old.reddit (FR-17 s.d. FR-23) | Thread 300+ komentar termuat tanpa scroll manual |
+| 4 | Lapor otomatis Reddit (FR-24 s.d. FR-26) + README | "Sukses! N komentar berhasil dilaporkan" di subreddit uji |
+
+Detail lengkap tiap poin ada di bawah.
+
+---
 
 | | |
 |---|---|
-| **Status** | Draft, siap dikerjakan |
-| **Pemilik produk** | MyKineID |
-| **Pelaksana** | Kontributor A (lihat [PRD kontributor](kontributor-onboarding.md)) |
+| **Status** | Siap dikerjakan |
 | **Target rilis** | HideMent v0.3.0 |
 | **Dokumen terkait** | `src/content/adapters/`, `src/core/links.ts`, `research/labeling-guide.md` |
 

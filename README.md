@@ -238,6 +238,7 @@ Mau ikut membangun HideMent? Baca [Aturan bersama](docs/prd/kontributor-onboardi
 
 - [PRD 1: Dukungan Platform Reddit](docs/prd/reddit-platform.md)
 - [PRD 2: Data & Akurasi AI](docs/prd/data-akurasi-ai.md)
+- [PRD 3: Melengkapi HideMent](docs/prd/melengkapi-hidement.md): CI, test tampilan platform, lapor otomatis per platform (orang pertama); tema terang, ekspor/impor pengaturan, Ollama, rilis Chrome Web Store (orang kedua)
 
 ## Riset & evaluasi
 

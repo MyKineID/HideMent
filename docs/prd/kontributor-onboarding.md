@@ -8,6 +8,7 @@ Dibaca **dua-duanya** sebelum mulai. Isinya cara setup, cara kirim kerja, dan at
 |---|---|---|
 | **Orang pertama** | [PRD 1: Dukungan Platform Reddit](reddit-platform.md) | Bikin HideMent jalan di Reddit: deteksi, Analyze, Analyze dari link, lapor otomatis |
 | **Orang kedua** | [PRD 2: Data & Akurasi AI](data-akurasi-ai.md) | Kumpulkan komentar asli dari 9 link TikTok, cek labelnya, ukur & naikkan akurasi AI |
+| **Berdua** | [PRD 3: Melengkapi HideMent](melengkapi-hidement.md) | Orang pertama: CI, test tampilan platform, lapor otomatis per platform. Orang kedua: tema terang, ekspor/impor pengaturan, Ollama, rilis Chrome Web Store |
 
 Reviewer & yang merge: **MyKineID**. Durasi: 4 minggu. Repo: https://github.com/MyKineID/HideMent
 

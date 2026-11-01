@@ -2,8 +2,11 @@ import type { Category, Platform } from "../../core/types";
 
 export interface BadgeSlot {
   node: HTMLElement;
-  /** "inline" = disisipkan di akhir baris nama, "row" = baris sendiri tepat di atas teks komentar. */
-  where: "inline" | "row";
+  /**
+   * "inline" = disisipkan di akhir baris nama (node = baris nama), "after" = tepat setelah node (mis. link nama akun),
+   * "row" = baris sendiri tepat di atas teks komentar (cadangan kalau baris nama tidak ketemu).
+   */
+  where: "inline" | "after" | "row";
 }
 
 export interface Adapter {

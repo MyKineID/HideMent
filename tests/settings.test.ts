@@ -27,7 +27,7 @@ describe("sanitasi pengaturan", () => {
     });
     expect(s.enabled).toBe(true);
     expect(s.modes).toEqual({ judol: true, kebencian: false, pelecehan: false, agama: false, sara: false, kustom: false });
-    expect(s.scan.method).toBe("scroll");
+    expect(s.scan.method).toBe("manual");
     expect(s.whitelist).toEqual(["@akun"]);
     expect(s.categoryAction).toEqual({ spam: "blur" });
   });
@@ -63,5 +63,13 @@ describe("sanitasi pengaturan", () => {
       baseUrl: "http://localhost:20128/v1",
       apiKey: "sk-x",
     });
+  });
+});
+
+describe("cara memindai", () => {
+  it("bawaan menunggu tombol Analyze, pilihan lama tetap dihormati", () => {
+    expect(resolveSettings({}).scan.method).toBe("manual");
+    expect(resolveSettings({ scan: { method: "scroll" } }).scan.method).toBe("scroll");
+    expect(resolveSettings({ scan: { method: "fast" } }).scan.method).toBe("fast");
   });
 });

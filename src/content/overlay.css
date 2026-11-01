@@ -21,6 +21,7 @@
   white-space: nowrap;
   user-select: none;
   flex: none;
+  align-self: center;
   transition: background-color 0.12s;
 }
 .rg-chiprow .rg-badge { margin: 0 !important; }

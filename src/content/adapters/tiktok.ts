@@ -30,6 +30,9 @@ export const tiktok: Adapter = {
     textOf(el.querySelector('[data-e2e^="comment-username"]')) ||
     (el.querySelector<HTMLAnchorElement>('a[href^="/@"]')?.getAttribute("href") ?? "").replace(/^\/@/, "").split(/[/?]/)[0],
   getBadgeSlot: (el) => {
+    /* Baris nama akun TikTok berupa flex; badge ditempel di ujungnya supaya tidak menambah baris. */
+    const name = el.querySelector<HTMLElement>('[data-e2e^="comment-username"]');
+    if (name) return { node: name, where: "inline" };
     const t = el.querySelector<HTMLElement>(TEXT_SEL);
     return t ? { node: t, where: "row" } : null;
   },

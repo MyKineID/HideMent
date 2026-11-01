@@ -43,6 +43,11 @@ export const x: Adapter = {
     return (link?.getAttribute("href") ?? "").split("/")[1] ?? "";
   },
   getBadgeSlot: (el) => {
+    /* Baris "Nama ✓": lama = blok pertama User-Name, baru = span flex yang berisi link nama (bukan @handle). */
+    const legacy = el.querySelector<HTMLElement>('[data-testid="User-Name"] > div:first-child');
+    const nameLink = own<HTMLAnchorElement>(el, 'a[href^="/"]').find((a) => /^\/\w+$/.test(a.getAttribute("href") ?? "") && textOf(a) && !textOf(a).startsWith("@"));
+    const row = legacy ?? nameLink?.parentElement;
+    if (row) return { node: row, where: "inline" };
     const t = textElOf(el);
     return t ? { node: t, where: "row" } : null;
   },

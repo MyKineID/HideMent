@@ -92,12 +92,12 @@ async function init(): Promise<void> {
     $("#medium").textContent = fmt(info?.sedang ?? st.tabCounts.medium);
     $("#high").textContent = fmt(info?.tinggi ?? st.tabCounts.high);
     if (info?.total != null && !scanBusy) {
-      const left = Math.max(0, info.total - info.seen);
+      const labeled = info.aman + info.sedang + info.tinggi;
       $("#scanProg").hidden = false;
-      $("#scanText").textContent = info.seen
-        ? `${fmt(info.seen)} dari ${fmt(info.total)} komentar sudah dianalisis${left ? "" : " · lengkap"}`
-        : `Postingan ini punya ${fmt(info.total)} komentar. Klik Analyze untuk memuat & menilai semuanya.`;
-      $("#scanFill").style.width = `${Math.min(100, (info.seen / Math.max(1, info.total)) * 100)}%`;
+      $("#scanText").textContent = labeled
+        ? `${fmt(labeled)} dari ${fmt(info.total)} komentar sudah dianalisis${labeled >= info.total ? " · lengkap" : ""}`
+        : `Postingan ini punya ${fmt(info.total)} komentar. Tekan Analyze untuk memuat & menilai semuanya.`;
+      $("#scanFill").style.width = `${Math.min(100, (labeled / Math.max(1, info.total)) * 100)}%`;
     } else if (info && !info.isPost && !scanBusy) {
       $("#scanProg").hidden = false;
       $("#scanText").textContent = "Buka satu postingan/video dulu untuk menganalisis komentarnya.";

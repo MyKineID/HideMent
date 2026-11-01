@@ -78,7 +78,7 @@ Kenapa efisien:
 - **Judol yang jelas tidak pernah dikirim ke AI.** Aturan lokal menangkapnya dalam hitungan mikrodetik.
 - **Cache** (hingga 3.000 entri per sesi browser) mencegah komentar identik dinilai ulang.
 - **Batch + streaming**: komentar dikirim berkelompok (default 8 per request, 4 request paralel) dan hasilnya diproses baris per baris, jadi badge muncul satu per satu tanpa menunggu seluruh batch.
-- **Hanya komentar yang terlihat** yang dianalisis saat mode scroll biasa (IntersectionObserver), kecuali kamu menjalankan Pindai Cepat.
+- **Tidak ada yang dianalisis sebelum kamu menekan Analyze** (bawaan). Mode lain di Pengaturan → Pemindaian: *Saat scroll* (hanya komentar yang terlihat, lewat IntersectionObserver) atau *Pindai cepat* (otomatis tiap postingan dibuka).
 
 ## Fitur
 
@@ -102,7 +102,7 @@ Judol dicek lokal tanpa AI; mode lainnya butuh koneksi AI.
 **Fitur lainnya:**
 
 - **Jumlah komentar langsung terlihat**: begitu postingan dibuka, popup dan side panel menampilkan total komentar menurut platform (mis. 347 di X) beserta berapa yang sudah aman / sedang / tinggi.
-- **Analyze komentar postingan ini**: klik sekali, HideMent membuka panel komentar (TikTok), memuat & menganalisis semuanya termasuk balasan tanpa kamu scroll ("123 dari 2.709 komentar"). **Setiap komentar diberi label** Aman / Sedang / Tinggi, dan label tetap menempel saat kamu scroll manual (termasuk di X yang membuang & menggambar ulang komentar saat digulir). Bisa juga dijalankan otomatis tiap membuka postingan (metode *Pindai Cepat* di Pengaturan).
+- **Analyze komentar postingan ini**: klik sekali, HideMent membuka panel komentar (TikTok), memuat & menganalisis semuanya termasuk balasan tanpa kamu scroll ("123 dari 2.709 komentar"). **Setiap komentar diberi label** Aman / Sedang / Tinggi di samping nama akunnya (tidak menambah baris), dan label tetap menempel saat kamu scroll manual (termasuk di X yang membuang & menggambar ulang komentar saat digulir). Sebelum tombol ini ditekan, HideMent tidak mendeteksi apa pun; ubah di Pengaturan → Pemindaian kalau mau otomatis.
 - **Analyze dari link**: tempel satu atau banyak link postingan (boleh langsung dari chat WhatsApp). HideMent membukanya satu per satu di satu tab, menganalisis semua komentarnya, dan menampilkan ringkasan per link.
 - **Badge + skor risiko** (Tinggi / Sedang) di samping komentar, lengkap dengan alasannya.
 - **Tandai, blur, atau sembunyikan**, bisa diatur per kategori. Komentar yang diblur bisa dibuka dengan klik.

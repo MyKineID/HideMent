@@ -34,6 +34,8 @@ export interface PostInfo {
   total: number | null;
   /** Komentar unik yang sudah dimuat/terlihat di halaman. */
   seen: number;
+  /** Analyze sudah dijalankan di postingan ini (atau mode deteksinya otomatis). */
+  analyzed: boolean;
   aman: number;
   sedang: number;
   tinggi: number;

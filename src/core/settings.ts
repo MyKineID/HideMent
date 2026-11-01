@@ -28,8 +28,11 @@ export interface Settings {
   };
   categoryAction: Partial<Record<Category, ActionKind>>;
   scan: {
-    /** "scroll" = analisis komentar yang terlihat saat di-scroll; "fast" = otomatis memuat & menganalisis semua komentar postingan. */
-    method: "scroll" | "fast";
+    /**
+     * "manual" = tidak ada yang dianalisis sampai tombol "Analyze komentar postingan ini" ditekan di postingan itu;
+     * "scroll" = analisis komentar yang terlihat saat di-scroll; "fast" = otomatis memuat & menganalisis semua komentar postingan.
+     */
+    method: "manual" | "scroll" | "fast";
     /** Batas jumlah komentar yang dimuat Pindai Cepat. */
     max: number;
     /** Ikut buka balasan ("Tampilkan balasan"). */
@@ -69,7 +72,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showSafeBadge: true,
   },
   categoryAction: { spam: "highlight" },
-  scan: { method: "scroll", max: 300, replies: true },
+  scan: { method: "manual", max: 300, replies: true },
   report: { assist: true, autoQueue: false },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
@@ -77,7 +80,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "settings";
-const SCHEMA = 5;
+const SCHEMA = 6;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -164,7 +167,7 @@ export function sanitizeSettings(s: Settings): Settings {
     display: boolRecord(s.display, d.display),
     categoryAction,
     scan: {
-      method: s.scan?.method === "fast" ? "fast" : "scroll",
+      method: s.scan?.method === "fast" || s.scan?.method === "scroll" ? s.scan.method : "manual",
       max: clampInt(s.scan?.max, LIMITS.scanMax, d.scan.max),
       replies: bool(s.scan?.replies, d.scan.replies),
     },
@@ -202,6 +205,8 @@ export async function loadSettings(): Promise<Settings> {
     if (stored.modes) stored.modes = migrateModes(stored.modes);
     /* Schema 5: setiap komentar yang dianalisis diberi label, termasuk "Aman". */
     if (Number(raw.schema) < 5 && stored.display) stored.display = { ...stored.display, showSafeBadge: true };
+    /* Schema 6: bawaan lama "scroll" menganalisis sebelum pengguna meminta; sekarang menunggu tombol Analyze. */
+    if (Number(raw.schema) < 6 && stored.scan?.method === "scroll") stored.scan = { ...stored.scan, method: "manual" };
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
   }
   return resolveSettings(stored);

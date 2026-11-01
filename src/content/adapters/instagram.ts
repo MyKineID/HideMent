@@ -50,6 +50,8 @@ export const instagram: Adapter = {
   getText: (el) => textOf(textElOf(el)),
   getAuthor: authorOf,
   getBadgeSlot: (el) => {
+    const name = el.querySelector<HTMLAnchorElement>('a[href^="/"][role="link"], a[href^="/"]');
+    if (name && textOf(name)) return { node: name, where: "after" };
     const t = textElOf(el);
     return t ? { node: t, where: "row" } : null;
   },

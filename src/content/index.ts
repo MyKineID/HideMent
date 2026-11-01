@@ -4,6 +4,7 @@ import { MODES, type CommentInput, type Verdict } from "../core/types";
 import { send, type CollectedComment, type FastScanReply, type PostInfo, type TabMsg } from "../shared/messages";
 import { detectAdapter } from "./adapters";
 import { applyVerdict, clearMarks, focusElement } from "./overlay";
+import { postIdOf } from "../core/links";
 import { runReportFlow } from "./report-helper";
 import { FastScanner, scrollerFor } from "./fast-scan";
 
@@ -56,6 +57,13 @@ const pageComments = new Map<string, { text: string; author: string }>();
 const verdictByFp = new Map<string, Verdict>();
 const VERDICT_MEMORY = 6000;
 let lastUrl = location.href;
+/** Postingan tempat pengguna sudah menekan Analyze (mode "manual"); di postingan lain tidak ada yang dianalisis. */
+let armedPost: string | null = null;
+const postKey = () => postIdOf(location.href) ?? location.href;
+
+function analyzeAllowed(): boolean {
+  return settings.scan.method !== "manual" || armedPost === postKey();
+}
 let autoScanTimer: ReturnType<typeof setTimeout> | undefined;
 
 function active(): boolean {
@@ -150,6 +158,7 @@ function scan(): void {
     pageComments.clear();
     scheduleAutoScan();
   }
+  if (!analyzeAllowed()) return;
   for (const el of adapter.findComments(document)) {
     const text = adapter.getText(el);
     if (!text) continue;
@@ -273,10 +282,13 @@ function postInfo(): PostInfo {
     isPost: Boolean(adapter?.isPostPage(url)),
     total: adapter?.getCommentCount(document, url) ?? null,
     seen: pageComments.size,
+    analyzed: false,
     aman: 0,
     sedang: 0,
     tinggi: 0,
   };
+  info.analyzed = analyzeAllowed();
+  if (!info.analyzed) return info;
   for (const fp of pageComments.keys()) {
     const v = verdictByFp.get(fp);
     if (!v) continue;
@@ -310,6 +322,7 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
     return;
   }
   if (msg.type === "reportComment") {
+    armedPost = postKey();
     void findComment(msg.commentId, msg.text).then((el) => {
       if (!el || !adapter) {
         sendResponse({ stage: "none", reason: "", note: "Komentar ini tidak ditemukan lagi di halaman (mungkin halaman berganti). Buka ulang postingannya." });
@@ -329,6 +342,7 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
     if (!adapter.isPostPage(new URL(location.href))) {
       return reply({ ok: false, note: "Masuk ke postingannya dulu (buka satu video/postingan), lalu klik Analyze lagi." });
     }
+    armedPost = postKey();
     void scanner?.run();
     reply({ ok: true, total: adapter.getCommentCount(document, new URL(location.href)) });
     return;

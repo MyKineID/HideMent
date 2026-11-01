@@ -488,7 +488,7 @@ async function refreshPostInfo(): Promise<void> {
   scanStatus.innerHTML = info.total != null ? `<b>${fmt(info.total)}</b>` : `<b>${fmt(info.seen)}</b>`;
   scanStatus.append(
     info.total != null ? "komentar di postingan ini" : "komentar terlihat",
-    labeled ? ` · ${fmt(labeled)} dianalisis: ${info.aman} aman · ${info.sedang} sedang · ${info.tinggi} tinggi` : " · belum dianalisis",
+    labeled ? ` · ${fmt(labeled)} dianalisis: ${info.aman} aman · ${info.sedang} sedang · ${info.tinggi} tinggi` : info.analyzed ? " · menganalisis…" : " · tekan Analyze untuk mendeteksi",
   );
   $("#scanMeter").hidden = info.total == null;
   if (info.total) $("#scanFill").style.width = `${Math.min(100, (labeled / info.total) * 100)}%`;

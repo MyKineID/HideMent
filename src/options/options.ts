@@ -484,7 +484,14 @@ async function init(): Promise<void> {
   document.querySelectorAll<HTMLElement>("[data-scan]").forEach((b) =>
     b.addEventListener("click", async () => {
       const method = b.dataset.scan as Settings["scan"]["method"];
-      await save({ scan: { method } }, method === "fast" ? "Pindai Cepat aktif. Komentar postingan akan dimuat otomatis." : "Kembali ke scroll biasa.");
+      await save(
+        { scan: { method } },
+        {
+          manual: "Deteksi menunggu tombol Analyze di tiap postingan.",
+          scroll: "Komentar yang terlihat langsung dianalisis saat scroll.",
+          fast: "Pindai Cepat aktif. Komentar postingan akan dimuat otomatis.",
+        }[method],
+      );
       renderPresets();
     }),
   );

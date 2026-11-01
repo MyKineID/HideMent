@@ -2,8 +2,11 @@ import type { Category, Platform } from "../../core/types";
 
 export interface BadgeSlot {
   node: HTMLElement;
-  /** "inline" = disisipkan di akhir baris nama, "row" = baris sendiri tepat di atas teks komentar. */
-  where: "inline" | "row";
+  /**
+   * "inline" = disisipkan di akhir baris nama (node = baris nama), "after" = tepat setelah node (mis. link nama akun),
+   * "row" = baris sendiri tepat di atas teks komentar (cadangan kalau baris nama tidak ketemu).
+   */
+  where: "inline" | "after" | "row";
 }
 
 export interface Adapter {
@@ -19,6 +22,10 @@ export interface Adapter {
   reportReason(category: Category): string;
   /** Halaman satu postingan/video (tempat Pindai Cepat dijalankan otomatis). */
   isPostPage(url: URL): boolean;
+  /** Jumlah komentar yang ditampilkan platform untuk postingan yang sedang dibuka. null kalau tidak terbaca. */
+  getCommentCount(doc: Document, url: URL): number | null;
+  /** Buka panel/tab komentar kalau masih tertutup. true kalau ada yang diklik. */
+  openComments?(doc: Document): boolean;
 }
 
 export function textOf(el: Element | null | undefined): string {

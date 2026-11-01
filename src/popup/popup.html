@@ -16,15 +16,16 @@
     <input class="switch" type="checkbox" data-key="enabled" aria-label="Aktifkan HideMent di semua situs" />
   </header>
 
-  <section class="stats" aria-label="Statistik halaman ini">
-    <div><b class="mono" id="scanned">0</b><span>dipindai</span></div>
-    <div class="high"><b class="mono" id="high">0</b><span>tinggi</span></div>
+  <section class="stats" aria-label="Statistik postingan ini">
+    <div class="total"><b class="mono" id="total">–</b><span id="totalLabel">komentar</span></div>
+    <div class="safe"><b class="mono" id="safe">0</b><span>aman</span></div>
     <div class="mid"><b class="mono" id="medium">0</b><span>sedang</span></div>
+    <div class="high"><b class="mono" id="high">0</b><span>tinggi</span></div>
   </section>
 
   <section class="scan" id="scanBlock" hidden>
     <div class="row">
-      <button id="fastScan" class="btn grow" type="button"><span data-icon="bolt" data-size="15"></span><span class="lbl">Pindai semua komentar</span></button>
+      <button id="fastScan" class="btn grow" type="button"><span class="lbl">Analyze komentar postingan ini</span></button>
       <button id="stopScan" class="btn ghost icon" type="button" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
     </div>
     <div class="scan-prog" id="scanProg" hidden><span id="scanText" aria-live="polite"></span><span class="scan-meter"><i id="scanFill"></i></span></div>

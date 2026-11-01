@@ -26,6 +26,7 @@ Ekstensi browser untuk mendeteksi dan menyembunyikan promosi judi online (judol)
 - [Penggunaan](#penggunaan)
 - [Privasi & keamanan](#privasi--keamanan)
 - [Pengembangan](#pengembangan)
+- [Kontribusi](#kontribusi)
 - [Riset & evaluasi](#riset--evaluasi)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
@@ -77,7 +78,7 @@ Kenapa efisien:
 - **Judol yang jelas tidak pernah dikirim ke AI.** Aturan lokal menangkapnya dalam hitungan mikrodetik.
 - **Cache** (hingga 3.000 entri per sesi browser) mencegah komentar identik dinilai ulang.
 - **Batch + streaming**: komentar dikirim berkelompok (default 8 per request, 4 request paralel) dan hasilnya diproses baris per baris, jadi badge muncul satu per satu tanpa menunggu seluruh batch.
-- **Hanya komentar yang terlihat** yang dianalisis saat mode scroll biasa (IntersectionObserver), kecuali kamu menjalankan Pindai Cepat.
+- **Tidak ada yang dianalisis sebelum kamu menekan Analyze** (bawaan). Mode lain di Pengaturan → Pemindaian: *Saat scroll* (hanya komentar yang terlihat, lewat IntersectionObserver) atau *Pindai cepat* (otomatis tiap postingan dibuka).
 
 ## Fitur
 
@@ -94,15 +95,20 @@ Kenapa efisien:
 
 Judol dicek lokal tanpa AI; mode lainnya butuh koneksi AI.
 
-**Contoh belajar AI**: tambahkan komentar berlabel (manual, impor JSON Lines/JSON/CSV, atau otomatis dari tombol "Bukan berbahaya"). Setiap analisis, HideMent mengambil sampai 8 contoh yang paling mirip (kemiripan trigram, tahan huruf hias & angka pengganti) dan mengirimnya ke AI sebagai acuan. Tidak ada training; jalan di model apa pun.
+**Contoh belajar AI**: tambahkan komentar berlabel (manual, impor JSON Lines/JSON/CSV, otomatis dari tombol "Bukan berbahaya", atau tombol **Benar / Salah, aman** di Antrian). Setiap analisis, HideMent mengambil sampai 8 contoh yang paling mirip (kemiripan trigram, tahan huruf hias & angka pengganti) dan mengirimnya ke AI sebagai acuan. Tidak ada training; jalan di model apa pun.
+
+**Belajar dari link postingan**: tempel link (mis. video TikTok) di Pengaturan → Contoh belajar → *Pelajari komentar dari link*, atau nyalakan *Pelajari komentarnya untuk AI* di side panel. HideMent membuka tiap postingan, memuat & menganalisis semua komentarnya, lalu menyimpan yang hasilnya **yakin** (prioritas tinggi, dan aman menurut AI; yang ragu dilewati) sebagai contoh bersumber *dari link postingan*. Contoh ini tidak pernah menimpa label yang kamu buat sendiri, dibuang lebih dulu saat daftar penuh, dan bisa dihapus sekaligus (*Hapus dari link*). Input manual juga bisa banyak sekaligus: satu komentar per baris.
 
 **Fitur lainnya:**
 
-- **Dua metode pemindaian**: *Scroll biasa* (dianalisis saat terlihat) atau **Pindai Cepat**, yang otomatis memuat semua komentar sebuah postingan termasuk balasannya.
+- **Jumlah komentar langsung terlihat**: begitu postingan dibuka, popup dan side panel menampilkan total komentar menurut platform (mis. 347 di X) beserta berapa yang sudah aman / sedang / tinggi.
+- **Analyze komentar postingan ini**: klik sekali, HideMent membuka panel komentar (TikTok), memuat & menganalisis semuanya termasuk balasan tanpa kamu scroll ("123 dari 2.709 komentar"). **Setiap komentar diberi label** Aman / Sedang / Tinggi di samping nama akunnya (tidak menambah baris), dan label tetap menempel saat kamu scroll manual (termasuk di X yang membuang & menggambar ulang komentar saat digulir). Sebelum tombol ini ditekan, HideMent tidak mendeteksi apa pun; ubah di Pengaturan → Pemindaian kalau mau otomatis.
+- **Analyze dari link**: tempel satu atau banyak link postingan (boleh langsung dari chat WhatsApp). HideMent membukanya satu per satu di satu tab, menganalisis semua komentarnya, dan menampilkan ringkasan per link.
 - **Badge + skor risiko** (Tinggi / Sedang) di samping komentar, lengkap dengan alasannya.
 - **Tandai, blur, atau sembunyikan**, bisa diatur per kategori. Komentar yang diblur bisa dibuka dengan klik.
-- **Dashboard Antrian** di side panel: komentar berbahaya dari semua tab, diurutkan dari risiko tertinggi, bisa difilter, dicari, dan diekspor ke CSV.
-- **Lapor semi-otomatis** (opsional): HideMent membuka menu ⋯, mengklik "Laporkan", memilih alasan dan sub-alasan, lalu **berhenti di tombol Kirim**. Tombol kirim selalu ditekan pengguna, supaya salah deteksi tidak melaporkan orang yang tidak bersalah dan akun pengguna tidak dianggap melakukan laporan massal.
+- **Dashboard Antrian** di side panel: komentar berbahaya dari semua tab, diurutkan dari risiko tertinggi, bisa difilter, dicari, dan diekspor ke CSV atau **dataset JSONL** (format sama dengan `research/dataset`).
+- **Laporkan semua otomatis**: satu klik (plus konfirmasi) dan HideMent melaporkan semua komentar prioritas tinggi satu per satu: membuka menu ⋯, memilih alasan, **menekan Kirim**, lalu menunggu konfirmasi dari platform. Tidak perlu scroll mencari komentarnya; hasilnya muncul sebagai **"Sukses! N komentar berhasil dilaporkan"**. Komentar yang alasannya tidak cocok otomatis **tidak dikirim** dan ditandai *Gagal lapor*; komentar yang kamu tandai *Salah, aman* tidak pernah dilapor. Ada jeda antar laporan dan batas 50 per putaran.
+- **Lapor satu per satu** (mode bantu): HideMent mengisi form laporan lalu berhenti di tombol Kirim untuk kamu tekan sendiri.
 - **Whitelist** akun tepercaya dan **kata kunci judol kustom**.
 - **Tombol "Bukan berbahaya"** untuk mencatat salah deteksi sebagai data riset (bisa diekspor ke JSON).
 - **Tetap berguna tanpa AI**: deteksi judol & phising berbasis aturan lokal berjalan tanpa API key.
@@ -180,7 +186,15 @@ Ketersediaan model bergantung pada penyedia AI yang kamu pakai. Jalankan `npm ru
 
 - **Popup** (klik ikon HideMent): lihat statistik tab, nyalakan/matikan mode, pilih aksi (Tandai / Blur / Sembunyi), jalankan **Pindai semua komentar**, atau buka Dashboard Antrian.
 - **Badge** di samping komentar: klik untuk detail alasan, sumber (aturan lokal / AI / cache), tombol **Bantu laporkan**, dan **Bukan berbahaya**.
-- **Dashboard Antrian** (side panel): filter per mode (Judol, Kebencian, Pelecehan, Agama, SARA), prioritas, cari teks/akun, **Lihat** untuk melompat ke komentar, **Lapor berikutnya** untuk alur lapor semi-otomatis, dan **Ekspor CSV**.
+- **Dashboard Antrian** (side panel): filter per mode (Judol, Kebencian, Pelecehan, Agama, SARA), prioritas, cari teks/akun, **Lihat** untuk melompat ke komentar, **Laporkan semua otomatis** / **Satu per satu**, **Benar / Salah, aman** untuk data belajar AI, **Ekspor CSV** dan **Ekspor dataset (JSONL)**.
+- **Analyze dari link** (side panel, bagian atas): tempel link, nyalakan *Langsung laporkan otomatis* kalau mau sekalian dilapor, lalu klik **Analyze N link**.
+
+Alur yang disarankan untuk memperbaiki akurasi AI:
+
+1. Tempel link postingan di **Analyze dari link** (tanpa lapor otomatis dulu).
+2. Cek hasilnya di Antrian: klik **Benar** atau **Salah, aman** per komentar. Keduanya langsung masuk ke contoh belajar AI.
+3. Jalankan ulang analisis; komentar yang mirip sekarang dinilai dengan acuan contoh tadi.
+4. **Ekspor dataset (JSONL)** untuk evaluasi: `npm run eval -- <file>.jsonl`. Baris `perlu_review: true` (belum dicek manusia) otomatis dilewati supaya skor tidak palsu.
 
 ## Privasi & keamanan
 
@@ -188,7 +202,7 @@ Ketersediaan model bergantung pada penyedia AI yang kamu pakai. Jalankan `npm ru
 - Izin host untuk endpoint AI diminta **per host** saat kamu menekan Hubungkan (`optional_host_permissions`), bukan akses ke semua situs.
 - API key disimpan di `chrome.storage.local` di perangkatmu. Jangan memakai key produksi dengan hak akses luas.
 - Ekstensi **tidak mengekspos aset ke halaman web** (`web_accessible_resources` dihapus), sehingga situs tidak bisa mendeteksi keberadaan HideMent dengan memuat file ekstensi.
-- HideMent **tidak pernah mengirim laporan sendiri**.
+- HideMent hanya mengirim laporan sendiri saat kamu menekan **Laporkan semua otomatis** (atau menyalakan *Langsung laporkan otomatis* di Analyze dari link) dan mengonfirmasinya. Laporan dikirim memakai akunmu; platform bisa membatasi akun yang melapor terlalu banyak, jadi cek dulu hasil deteksinya.
 
 ## Pengembangan
 
@@ -217,6 +231,15 @@ Struktur:
 | `research/` | dataset, auto-label, evaluasi, benchmark |
 
 Instagram dan TikTok sering mengubah struktur halamannya. Kalau komentar tidak terdeteksi, perbarui selektornya di `src/content/adapters/`.
+
+## Kontribusi
+
+Mau ikut membangun HideMent? Baca [Aturan bersama](docs/prd/kontributor-onboarding.md) (setup, alur Git, definisi selesai), lalu PRD tugasmu:
+
+- [PRD 1: Dukungan Platform Reddit](docs/prd/reddit-platform.md)
+- [PRD 2: Data & Akurasi AI](docs/prd/data-akurasi-ai.md)
+- [PRD 3: Melengkapi HideMent](docs/prd/melengkapi-hidement.md): CI, test tampilan platform, lapor otomatis per platform (orang pertama); tema terang, ekspor/impor pengaturan, Ollama, rilis Chrome Web Store (orang kedua)
+- [PRD 4: Pengecekan YouTube, Instagram, TikTok](docs/prd/pengecekan-3-platform.md): checklist C1–C18 per platform (orang pertama: YouTube & Instagram, orang kedua: TikTok)
 
 ## Riset & evaluasi
 
@@ -249,6 +272,8 @@ Temuan awal: sebagian besar komentar judol/phising justru **bernada positif** ("
 | Tes koneksi timeout | Server terhubung tapi model lambat/bermasalah. Pilih model lain atau naikkan Timeout. |
 | HTTP 401/403 | API key salah atau tidak punya akses ke model tersebut. |
 | Komentar Instagram/TikTok tidak terdeteksi | Struktur halaman berubah; perbarui selektor di `src/content/adapters/`. |
+| Di X "0 dipindai" / jumlah komentar kosong | X sedang memakai dua versi DOM (dengan dan tanpa `data-testid`); adapter X mendukung keduanya. Kalau masih kosong, refresh tab setelah reload ekstensi. |
+| TikTok berhenti di ±20 komentar | TikTok hanya memberi halaman pertama ke pengunjung yang belum login. Login dulu, lalu Analyze lagi. |
 | Hanya judol yang terdeteksi | AI belum terhubung; mode selain Judol membutuhkan endpoint AI. |
 | Hasil lama masih tampil setelah ganti aturan | Pengaturan → Data riset → **Hapus cache**, lalu pindai ulang. |
 
@@ -257,7 +282,7 @@ Temuan awal: sebagian besar komentar judol/phising justru **bernada positif** ("
 - [ ] Light theme mengikuti tema sistem.
 - [ ] Ekspor/impor pengaturan (tanpa API key).
 - [ ] Dukungan Firefox (MV3).
-- [ ] Adapter platform tambahan (Facebook, Threads).
+- [ ] Adapter platform tambahan: Reddit ([PRD](docs/prd/reddit-platform.md)), Facebook, Threads.
 - [ ] Memperbesar dataset dengan komentar nyata yang sudah dianonimkan.
 - [ ] Mode model lokal (mis. server Ollama dengan endpoint kompatibel OpenAI) dengan panduan setup.
 

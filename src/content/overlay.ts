@@ -211,7 +211,8 @@ export function applyVerdict(el: HTMLElement, adapter: Adapter, v: Verdict, s: S
       row.className = "rg-chiprow";
       row.append(badge);
       slot.node.before(row);
-    } else (slot?.node ?? el).append(badge);
+    } else if (slot?.where === "after") slot.node.after(badge);
+    else (slot?.node ?? el).append(badge);
   }
   if (isSafe) {
     if (s.display.showSafeBadge && s.display.highlight) el.classList.add("rg-hl-aman");

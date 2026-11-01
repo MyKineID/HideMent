@@ -177,8 +177,9 @@
         <div class="sec-head"><h2 id="h-pindai">Pemindaian</h2></div>
         <div class="group">
           <div class="item">
-            <div class="item-main"><b id="scanLabel">Cara memindai</b><small>Saat scroll paling hemat. Pindai cepat memuat semua komentar postingan otomatis.</small></div>
+            <div class="item-main"><b id="scanLabel">Kapan mendeteksi</b><small>Tekan Analyze: tidak ada yang dianalisis sebelum kamu menekan tombol Analyze di postingan itu. Saat scroll: komentar yang terlihat langsung dianalisis. Pindai cepat: tiap postingan dibuka, semua komentar langsung dimuat & dianalisis.</small></div>
             <div class="seg" role="radiogroup" aria-labelledby="scanLabel">
+              <button type="button" role="radio" data-scan="manual" aria-checked="false">Tekan Analyze</button>
               <button type="button" role="radio" data-scan="scroll" aria-checked="false">Saat scroll</button>
               <button type="button" role="radio" data-scan="fast" aria-checked="false">Pindai cepat</button>
             </div>
@@ -284,8 +285,18 @@
         </div>
         <div class="group learn-add">
           <div class="field">
-            <label for="exText">Tambah contoh</label>
-            <textarea id="exText" placeholder="tempel komentarnya di sini"></textarea>
+            <label for="learnLinks">Belajar dari link postingan</label>
+            <textarea id="learnLinks" placeholder="Tempel link video TikTok, YouTube, IG, atau X. Boleh banyak sekaligus, langsung dari chat WhatsApp juga bisa."></textarea>
+            <p class="hint">HideMent membuka tiap link, memuat &amp; menganalisis semua komentarnya, lalu menyimpan yang hasilnya yakin (prioritas tinggi, dan aman menurut AI) sebagai contoh berlabel. Progresnya tampil di side panel. Label yang kamu buat sendiri tidak pernah ditimpa.</p>
+          </div>
+          <div class="learn-add-row">
+            <button id="learnLinksRun" class="btn" type="button" disabled><span data-icon="link" data-size="15"></span><span class="lbl">Pelajari komentar dari link</span></button>
+          </div>
+        </div>
+        <div class="group learn-add">
+          <div class="field">
+            <label for="exText">Tambah contoh manual</label>
+            <textarea id="exText" placeholder="tempel komentarnya di sini · satu komentar per baris untuk menambah banyak sekaligus"></textarea>
           </div>
           <div class="learn-add-row">
             <div class="learn-label" id="exLabelHost"></div>
@@ -300,7 +311,7 @@
           </div>
         </div>
         <div class="group ex-list-wrap">
-          <div class="ex-list-head"><b>Contoh terbaru</b><span class="row"><button id="exExport" class="btn quiet" type="button">Ekspor</button><button id="exClear" class="btn quiet" type="button">Hapus semua</button></span></div>
+          <div class="ex-list-head"><b>Contoh terbaru</b><span class="row"><button id="exClearLink" class="btn quiet" type="button">Hapus dari link</button><button id="exExport" class="btn quiet" type="button">Ekspor</button><button id="exClear" class="btn quiet" type="button">Hapus semua</button></span></div>
           <ul class="ex-list" id="exList"></ul>
           <p class="ex-empty" id="exEmpty">Belum ada contoh. Tambah satu di atas atau impor file.</p>
         </div>

@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type DeepPartial, type Settings } from "../core/settings";
 import type { Platform } from "../core/types";
-import { send, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
+import { send, type FastScanReply, type PostInfo, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
 import { $, bindToggles, refreshToggles } from "../shared/dom";
 import { hydrateIcons, type IconName } from "../shared/icons";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
@@ -16,6 +16,8 @@ const PLATFORM_HOSTS: [RegExp, Platform, string][] = [
 
 let settings: Settings = DEFAULT_SETTINGS;
 let lastLine = "";
+/** Selama Analyze berjalan, baris progres diisi pesan scanProgress, bukan ringkasan postingan. */
+let scanBusy = false;
 
 function renderModes(): void {
   const chip = $("#customChip");
@@ -78,9 +80,28 @@ async function init(): Promise<void> {
   const refresh = async () => {
     const st = await send<StatusInfo>({ type: "getStatus", tabId: tab?.id }).catch(() => null);
     if (!st) return;
-    $("#scanned").textContent = String(st.tabCounts.scanned);
-    $("#high").textContent = String(st.tabCounts.high);
-    $("#medium").textContent = String(st.tabCounts.medium);
+    /* Angka per postingan dari halaman itu sendiri: total komentar platform + sebaran label hasil analisis. */
+    const info =
+      match && tab?.id !== undefined
+        ? ((await chrome.tabs.sendMessage(tab.id, { type: "postInfo" } satisfies TabMsg).catch(() => null)) as PostInfo | null)
+        : null;
+    const fmt = (n: number) => n.toLocaleString("id-ID");
+    $("#total").textContent = info?.total != null ? fmt(info.total) : info ? fmt(info.seen) : "–";
+    $("#totalLabel").textContent = info?.total != null ? "komentar" : "terlihat";
+    $("#safe").textContent = fmt(info?.aman ?? 0);
+    $("#medium").textContent = fmt(info?.sedang ?? st.tabCounts.medium);
+    $("#high").textContent = fmt(info?.tinggi ?? st.tabCounts.high);
+    if (info?.total != null && !scanBusy) {
+      const labeled = info.aman + info.sedang + info.tinggi;
+      $("#scanProg").hidden = false;
+      $("#scanText").textContent = labeled
+        ? `${fmt(labeled)} dari ${fmt(info.total)} komentar sudah dianalisis${labeled >= info.total ? " · lengkap" : ""}`
+        : `Postingan ini punya ${fmt(info.total)} komentar. Tekan Analyze untuk memuat & menilai semuanya.`;
+      $("#scanFill").style.width = `${Math.min(100, (labeled / Math.max(1, info.total)) * 100)}%`;
+    } else if (info && !info.isPost && !scanBusy) {
+      $("#scanProg").hidden = false;
+      $("#scanText").textContent = "Buka satu postingan/video dulu untuk menganalisis komentarnya.";
+    }
 
     let line: [string, "ok" | "err" | "info"];
     if (!settings.enabled) line = ["HideMent sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
@@ -110,8 +131,9 @@ async function init(): Promise<void> {
       say(dlg, "HideMent belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.", "err");
       return;
     }
-    const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
+    const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
     if (!r?.ok) say(dlg, r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.", "err");
+    else if (r.total) say(dlg, `Postingan ini punya ${r.total.toLocaleString("id-ID")} komentar. Menganalisis…`);
   });
   stopBtn.addEventListener("click", () => {
     if (tab?.id !== undefined) chrome.tabs.sendMessage(tab.id, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
@@ -119,15 +141,20 @@ async function init(): Promise<void> {
   chrome.runtime.onMessage.addListener((msg: ScanProgress, sender) => {
     if (msg.type !== "scanProgress" || sender.tab?.id !== tab?.id) return;
     const running = msg.state === "running";
+    scanBusy = running;
     scanBtn.disabled = running;
     scanBtn.classList.toggle("busy", running);
-    scanBtn.querySelector(".lbl")!.textContent = running ? "Memindai komentar…" : "Pindai semua komentar";
+    scanBtn.querySelector(".lbl")!.textContent = running ? "Menganalisis komentar…" : "Analyze komentar postingan ini";
     stopBtn.hidden = !running;
     $("#scanProg").hidden = false;
     const text = $("#scanText");
     if (msg.state === "error") text.textContent = msg.note ?? "Gagal memindai";
-    else text.innerHTML = `<b>${msg.loaded}</b> ${running ? "komentar dimuat" : msg.state === "stopped" ? "dipindai · dihentikan" : "komentar dipindai"}`;
-    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
+    else {
+      const of = msg.total ? ` dari ${msg.total.toLocaleString("id-ID")}` : "";
+      text.innerHTML = `<b>${msg.loaded.toLocaleString("id-ID")}</b>`;
+      text.append(`${of} ${running ? "komentar dianalisis" : msg.state === "stopped" ? "komentar dianalisis · dihentikan" : "komentar dianalisis"}`);
+    }
+    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / Math.max(1, msg.max)) * 100)}%`;
   });
 
   $("#rescan").addEventListener("click", () => {

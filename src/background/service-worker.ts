@@ -3,6 +3,7 @@ import { activeModes, DEFAULT_SETTINGS, isApiConfigured, loadSettings, onSetting
 import { EXAMPLES_KEY, ExampleIndex, toLabel, type Example } from "../core/examples";
 import type { CommentInput, Platform, QueueItem, Verdict } from "../core/types";
 import { hashText } from "../core/normalize";
+import { postIdOf } from "../core/links";
 import type { Msg, ReportResult, StatusInfo, TabMsg } from "../shared/messages";
 import { ApiError, chat, listModels } from "./api";
 import { Batcher } from "./batcher";
@@ -59,6 +60,12 @@ const queueReady = chrome.storage.session.get(QUEUE_KEY).then((r) => (queue = (r
 let queueTimer: ReturnType<typeof setTimeout> | undefined;
 
 const tabCounts = new Map<number, { scanned: number; high: number; medium: number }>();
+/** Komentar per tab yang sudah dikirim ke AI tapi belum dijawab; Antrian menunggu angka ini 0 sebelum lapor otomatis. */
+const pendingAi = new Map<number, number>();
+
+function bumpPending(tabId: number, d: number): void {
+  pendingAi.set(tabId, Math.max(0, (pendingAi.get(tabId) ?? 0) + d));
+}
 
 function countsFor(tabId: number) {
   let c = tabCounts.get(tabId);
@@ -139,9 +146,15 @@ async function analyze(tabId: number, platform: Platform, url: string, comments:
       record(tabId, platform, url, c, v);
       continue;
     }
-    if (!aiOk) continue;
+    if (!aiOk) {
+      /* Tanpa AI hanya aturan lokal yang bisa menilai; tetap beri label supaya setiap komentar terlihat statusnya. */
+      immediate.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "lolos aturan lokal (AI belum terhubung)", source: "rule" });
+      continue;
+    }
 
+    bumpPending(tabId, 1);
     void batcher.classify({ input: c, hint: pf.hint }).then((v) => {
+      bumpPending(tabId, -1);
       if (!v) return;
       void setCached(key, v);
       record(tabId, platform, url, c, v);
@@ -204,12 +217,32 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       }
       const item = queue.find((q) => q.key === msg.key);
       if (!item) throw new Error("Komentar tidak ada di antrian");
+      let tab: chrome.tabs.Tab | undefined;
       try {
-        await chrome.tabs.update(item.tabId, { active: true });
+        tab = await chrome.tabs.update(item.tabId, { active: true });
       } catch {
         throw new Error("Tab komentar ini sudah ditutup. Buka lagi halamannya.");
       }
-      const res = (await chrome.tabs.sendMessage(item.tabId, { type: "reportComment", commentId: item.commentId, text: item.text, verdict: item.verdict } satisfies TabMsg)) as ReportResult | undefined;
+      const report = (find: "dom" | "scroll") =>
+        chrome.tabs.sendMessage(item.tabId, {
+          type: "reportComment", commentId: item.commentId, text: item.text, verdict: item.verdict, auto: msg.auto, find,
+        } satisfies TabMsg) as Promise<ReportResult | undefined>;
+      /*
+       * Urutan supaya terasa instan dan halaman tidak digulir:
+       * 1. komentarnya masih ada di halaman yang tampil → langsung buka menu lapornya;
+       * 2. tidak ada, tapi punya link sendiri (X, YouTube, IG) → buka link komentar itu, lalu lapor di sana;
+       * 3. tanpa link (TikTok) → buka lagi postingannya dan cari di panel komentar.
+       */
+      const permalink = item.url && item.url !== item.pageUrl ? item.url : null;
+      let res = await report("dom");
+      if (res?.missing && permalink) {
+        if (!samePage(tab?.url, permalink)) await openAndWait(item.tabId, permalink);
+        res = await report("dom");
+      }
+      if (!res || res.missing) {
+        await reopenPost(item.tabId, (await chrome.tabs.get(item.tabId).catch(() => tab))?.url, item.pageUrl);
+        res = await report("scroll");
+      }
       if (!res) throw new Error("Halaman belum siap. Refresh tab lalu coba lagi.");
       return res;
     }
@@ -231,6 +264,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
         configured: isApiConfigured(settings),
         model: settings.api.model,
         tabCounts: tabId !== undefined ? { ...countsFor(tabId) } : { scanned: 0, high: 0, medium: 0 },
+        pendingAi: tabId !== undefined ? (pendingAi.get(tabId) ?? 0) : 0,
         ...batcher.stats,
       };
       return info;
@@ -246,7 +280,10 @@ chrome.runtime.onMessage.addListener((msg: Msg, sender, sendResponse) => {
   return true;
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => tabCounts.delete(tabId));
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabCounts.delete(tabId);
+  pendingAi.delete(tabId);
+});
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.url) {
     tabCounts.delete(tabId);
@@ -270,6 +307,51 @@ async function injectContent(tabId: number): Promise<boolean> {
 async function pingTab(tabId: number): Promise<boolean> {
   const res = (await chrome.tabs.sendMessage(tabId, { type: "ping" } satisfies TabMsg).catch(() => null)) as { ok?: boolean } | null;
   return Boolean(res?.ok);
+}
+
+function waitTabLoaded(tabId: number, timeoutMs = 20000): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onUpdated = (id: number, info: chrome.tabs.OnUpdatedInfo) => {
+      if (id === tabId && info.status === "complete") done();
+    };
+    const timer = setTimeout(done, timeoutMs);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+  });
+}
+
+/** Halaman yang sama: path dan parameter penentu isi (YouTube: v & lc) sama, query pelacak diabaikan. */
+function samePage(a: string | undefined, b: string): boolean {
+  if (!a) return false;
+  try {
+    const [x, y] = [new URL(a), new URL(b)];
+    const key = (u: URL) => `${u.host}${u.pathname.replace(/\/$/, "")}?v=${u.searchParams.get("v") ?? ""}&lc=${u.searchParams.get("lc") ?? ""}`;
+    return key(x) === key(y);
+  } catch {
+    return false;
+  }
+}
+
+async function openAndWait(tabId: number, url: string): Promise<void> {
+  const loaded = waitTabLoaded(tabId);
+  await chrome.tabs.update(tabId, { url });
+  await loaded;
+  await ensureContent(tabId);
+}
+
+/** Tab sudah pindah ke postingan lain sejak komentar ini dianalisis: buka lagi postingan asalnya sebelum melapor. */
+async function reopenPost(tabId: number, current: string | undefined, pageUrl: string | undefined): Promise<void> {
+  if (!pageUrl || !current) return;
+  const [now, then] = [postIdOf(current), postIdOf(pageUrl)];
+  if (!then || now === then) return;
+  await chrome.tabs.update(tabId, { url: pageUrl });
+  await waitTabLoaded(tabId);
+  await ensureContent(tabId);
+  await new Promise((r) => setTimeout(r, 2500));
 }
 
 /** Pastikan tab punya content script yang hidup; pasang ulang kalau koneksinya putus. */

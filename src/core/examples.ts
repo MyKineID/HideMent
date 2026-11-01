@@ -9,7 +9,11 @@ import { CATEGORY_LABEL, type Category } from "./types";
  * jadi tetap cocok walau ditulis dengan huruf hias atau angka pengganti huruf.
  */
 
-export type ExampleSource = "manual" | "import" | "feedback";
+/**
+ * "review" = dicek pengguna di Antrian (tombol Benar/Salah) dari komentar yang sudah dianalisis.
+ * "link"   = dipelajari otomatis dari komentar postingan yang dianalisis lewat "Analyze dari link".
+ */
+export type ExampleSource = "manual" | "import" | "feedback" | "review" | "link";
 
 export interface Example extends PromptExample {
   at: number;
@@ -91,14 +95,29 @@ export function parseExamples(raw: string, source: ExampleSource = "import", now
   return rows.map((r) => rowToExample(r, source, now)).filter((e): e is Example => e !== null);
 }
 
-/** Gabungkan contoh baru ke daftar lama: teks yang sama diganti label terbarunya, daftar dibatasi EXAMPLES_MAX. */
+/**
+ * Gabungkan contoh baru ke daftar lama: teks yang sama diganti label terbarunya, daftar dibatasi EXAMPLES_MAX.
+ * Contoh "link" (label hasil analisis) tidak pernah menimpa label dari manusia, dan yang pertama dibuang saat penuh.
+ */
 export function mergeExamples(current: Example[], incoming: Example[]): Example[] {
   const byKey = new Map<string, Example>();
-  for (const e of [...current, ...incoming]) byKey.set(keyOf(e.text), e);
-  return [...byKey.values()].slice(-EXAMPLES_MAX);
+  for (const e of [...current, ...incoming]) {
+    const key = exampleKey(e.text);
+    const prev = byKey.get(key);
+    if (e.source === "link" && prev && prev.source !== "link") continue;
+    byKey.delete(key);
+    byKey.set(key, e);
+  }
+  const out = [...byKey.values()];
+  for (let i = 0; out.length > EXAMPLES_MAX && i < out.length; ) {
+    if (out[i].source === "link") out.splice(i, 1);
+    else i++;
+  }
+  return out.slice(-EXAMPLES_MAX);
 }
 
-function keyOf(text: string): string {
+/** Kunci dedup contoh: teks yang sudah dinormalisasi (huruf hias & angka pengganti disamakan). */
+export function exampleKey(text: string): string {
   return normalize(text).compact;
 }
 

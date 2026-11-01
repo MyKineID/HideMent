@@ -42,15 +42,36 @@
     </div>
   </header>
 
+  <details class="links" id="linkBox">
+    <summary>
+      <span data-icon="link" data-size="14"></span>
+      <span class="grow"><b>Analyze dari link</b><small id="linkSummary">Tempel link video TikTok, YouTube, IG, atau X</small></span>
+    </summary>
+    <div class="links-body">
+      <label for="linkInput" class="sr-only">Link postingan</label>
+      <textarea id="linkInput" rows="3" placeholder="Tempel satu atau banyak link. Boleh langsung dari chat WhatsApp."></textarea>
+      <label class="links-opt"><input type="checkbox" class="switch" id="linkLearn" checked /><span>Pelajari komentarnya untuk AI (jadi contoh belajar)</span></label>
+      <label class="links-opt"><input type="checkbox" class="switch" id="linkAutoReport" /><span>Langsung laporkan otomatis komentar prioritas <b>tinggi</b></span></label>
+      <div class="links-actions">
+        <button id="linkRun" class="btn sm grow" type="button" disabled><span class="lbl">Analyze link</span></button>
+        <button id="linkStop" class="btn ghost sm" type="button" hidden>Hentikan</button>
+      </div>
+      <ol id="linkList" class="link-list" aria-live="polite"></ol>
+    </div>
+  </details>
+
   <section class="rbar" id="rbar" hidden aria-label="Antrian lapor">
     <div class="rbar-idle" id="rIdle">
       <div class="grow"><b>Antrian lapor</b><small id="rCount"></small></div>
-      <button id="rNext" class="btn sm" type="button">Lapor berikutnya</button>
+      <button id="rAuto" class="btn sm" type="button"><span data-icon="flag" data-size="14"></span><span class="lbl">Laporkan semua otomatis</span></button>
+      <button id="rNext" class="btn ghost sm" type="button">Satu per satu</button>
     </div>
+    <p id="rResult" class="r-result" role="status" hidden></p>
     <div class="rbar-active" id="rActive" hidden>
       <div class="r-head"><span class="tag tinggi">Melapor</span><b id="rTarget" class="grow"></b><button id="rStop" class="btn quiet icon sm" type="button" aria-label="Hentikan sesi lapor" title="Hentikan sesi lapor"><span data-icon="close" data-size="14"></span></button></div>
       <p id="rNote" class="r-note" aria-live="polite"></p>
-      <div class="r-actions">
+      <span class="scan-meter r-meter" id="rMeter" hidden><i id="rFill"></i></span>
+      <div class="r-actions" id="rManual">
         <button id="rDone" class="btn sm grow" type="button">Sudah dilapor, lanjut</button>
         <button id="rSkip" class="btn ghost sm" type="button">Lewati</button>
       </div>
@@ -67,8 +88,9 @@
   <div class="scanstat"><span id="scanStatus" class="scan-status" hidden aria-live="polite"></span><span class="scan-meter" id="scanMeter" hidden><i id="scanFill"></i></span></div>
 
   <footer class="foot">
-    <button id="fastScan" class="btn grow" type="button"><span data-icon="bolt" data-size="14"></span><span class="lbl">Pindai semua komentar</span></button>
+    <button id="fastScan" class="btn grow" type="button"><span class="lbl">Analyze komentar postingan ini</span></button>
     <button id="stopScan" class="btn ghost icon" type="button" aria-label="Hentikan pemindaian" hidden><span data-icon="stop" data-size="14"></span></button>
+    <button id="exportData" class="btn ghost icon" type="button" aria-label="Ekspor dataset AI (JSONL)" title="Ekspor dataset AI (JSONL)"><span data-icon="book" data-size="16"></span></button>
     <button id="exportCsv" class="btn ghost icon" type="button" aria-label="Ekspor CSV" title="Ekspor CSV"><span data-icon="disk" data-size="16"></span></button>
     <button id="clear" class="btn ghost icon danger-ico" type="button" aria-label="Kosongkan antrian" title="Kosongkan antrian"><span data-icon="trash" data-size="16"></span></button>
   </footer>
@@ -80,7 +102,7 @@
         <span class="cat"></span>
         <span class="time"></span>
       </div>
-      <div class="meta"><span class="plat-ico"></span><span class="author"></span><span class="rtag" hidden></span></div>
+      <div class="meta"><span class="plat-ico"></span><span class="author"></span><span class="rtag" hidden></span><span class="ltag" hidden></span></div>
       <p class="text" tabindex="0" title="Klik untuk membuka atau menutup teks lengkap"></p>
       <p class="reason"></p>
       <div class="item-actions">
@@ -88,6 +110,11 @@
         <button class="btn quiet sm" data-a="focus" type="button"><span data-icon="eye" data-size="14"></span><span class="lbl">Lihat</span></button>
         <button class="btn quiet sm" data-a="copy" type="button"><span data-icon="copy" data-size="14"></span><span class="lbl">Salin</span></button>
         <button class="btn quiet sm" data-a="done" type="button"><span data-icon="check" data-size="14"></span><span class="lbl">Selesai</span></button>
+      </div>
+      <div class="learn-row">
+        <span class="learn-q">Deteksi ini benar?</span>
+        <button class="btn quiet sm" data-a="right" type="button"><span data-icon="check" data-size="14"></span><span class="lbl">Benar</span></button>
+        <button class="btn quiet sm" data-a="wrong" type="button"><span data-icon="close" data-size="14"></span><span class="lbl">Salah, aman</span></button>
       </div>
     </article>
   </template>

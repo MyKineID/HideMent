@@ -1,6 +1,6 @@
 {
   "name": "hidement",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "license": "MIT",
   "description": "HideMent (Hide Comment): ekstensi browser untuk mendeteksi & menyembunyikan komentar berbahaya berbahasa Indonesia (judol, link phising, toxic)",

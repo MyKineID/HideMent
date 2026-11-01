@@ -146,7 +146,11 @@ async function analyze(tabId: number, platform: Platform, url: string, comments:
       record(tabId, platform, url, c, v);
       continue;
     }
-    if (!aiOk) continue;
+    if (!aiOk) {
+      /* Tanpa AI hanya aturan lokal yang bisa menilai; tetap beri label supaya setiap komentar terlihat statusnya. */
+      immediate.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "lolos aturan lokal (AI belum terhubung)", source: "rule" });
+      continue;
+    }
 
     bumpPending(tabId, 1);
     void batcher.classify({ input: c, hint: pf.hint }).then((v) => {

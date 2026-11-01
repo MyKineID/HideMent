@@ -2,7 +2,9 @@ import { verdictLabel, type Mode, type QueueItem, type ReportStatus } from "../c
 import {
   send,
   type BroadcastMsg,
+  type CollectedComment,
   type FastScanReply,
+  type PostInfo,
   type ReportResult,
   type ScanProgress,
   type StatusInfo,
@@ -10,7 +12,7 @@ import {
 } from "../shared/messages";
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
 import { EXAMPLES_KEY, mergeExamples, type Example } from "../core/examples";
-import { autoReportCandidates, reviewedLabel, reviewExample, reviewMap, toDatasetRow, toJsonl, type ReviewMap } from "../core/dataset";
+import { autoReportCandidates, learnFromComments, reviewedLabel, reviewExample, reviewMap, toDatasetRow, toJsonl, type ReviewMap } from "../core/dataset";
 import { extractPostLinks, type PostLink } from "../core/links";
 import { $, download } from "../shared/dom";
 import { hydrateIcons, icon } from "../shared/icons";
@@ -215,11 +217,14 @@ $("#rStop").addEventListener("click", () => {
 
 /* ── data belajar AI ───────────────────────────────────── */
 
-async function review(it: QueueItem, correct: boolean): Promise<void> {
+async function addExamples(incoming: Example[]): Promise<void> {
+  if (!incoming.length) return;
   const raw = await chrome.storage.local.get(EXAMPLES_KEY);
-  const next = mergeExamples((raw[EXAMPLES_KEY] ?? []) as Example[], [reviewExample(it, correct)]);
+  const next = mergeExamples((raw[EXAMPLES_KEY] ?? []) as Example[], incoming);
   await chrome.storage.local.set({ [EXAMPLES_KEY]: next });
 }
+
+const review = (it: QueueItem, correct: boolean) => addExamples([reviewExample(it, correct)]);
 
 function setExamples(examples: Example[]): void {
   reviews = reviewMap(examples);
@@ -457,9 +462,36 @@ const scanLabel = scanBtn.querySelector<HTMLElement>(".lbl")!;
 const stopBtn = $<HTMLButtonElement>("#stopScan");
 const scanStatus = $("#scanStatus");
 
+/** Pesan penting (gagal, perlu login) ditahan sebentar supaya tidak langsung tertimpa ringkasan postingan. */
+let noteUntil = 0;
+
 function showScanNote(text: string): void {
   scanStatus.hidden = false;
   scanStatus.textContent = text;
+  noteUntil = Date.now() + 6000;
+}
+
+/** Ringkasan postingan di tab aktif: jumlah komentar menurut platform + berapa yang sudah dianalisis dan labelnya. */
+async function refreshPostInfo(): Promise<void> {
+  if (scanning || linkRunning || Date.now() < noteUntil) return;
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (tab?.id === undefined || !SUPPORTED_RE.test(tab.url ?? "")) return;
+  const info = (await chrome.tabs.sendMessage(tab.id, { type: "postInfo" } satisfies TabMsg).catch(() => null)) as PostInfo | null;
+  if (!info || scanning || linkRunning) return;
+  scanStatus.hidden = false;
+  if (!info.isPost) {
+    scanStatus.textContent = "Buka satu postingan/video untuk menganalisis komentarnya.";
+    $("#scanMeter").hidden = true;
+    return;
+  }
+  const labeled = info.aman + info.sedang + info.tinggi;
+  scanStatus.innerHTML = info.total != null ? `<b>${fmt(info.total)}</b>` : `<b>${fmt(info.seen)}</b>`;
+  scanStatus.append(
+    info.total != null ? "komentar di postingan ini" : "komentar terlihat",
+    labeled ? ` · ${fmt(labeled)} dianalisis: ${info.aman} aman · ${info.sedang} sedang · ${info.tinggi} tinggi` : " · belum dianalisis",
+  );
+  $("#scanMeter").hidden = info.total == null;
+  if (info.total) $("#scanFill").style.width = `${Math.min(100, (labeled / info.total) * 100)}%`;
 }
 
 /** Sambungkan ke tab lalu minta content script menganalisis semua komentar postingan yang sedang dibuka. */
@@ -516,6 +548,7 @@ interface Job extends PostLink {
   found: number;
   sent: number;
   failed: number;
+  learned: number;
   note: string;
 }
 
@@ -549,6 +582,7 @@ function jobStatus(j: Job): string {
         `${j.found} berbahaya`,
         j.sent ? `${j.sent} dilapor ✓` : "",
         j.failed ? `${j.failed} gagal` : "",
+        j.learned ? `${j.learned} dipelajari AI` : "",
         j.note,
       ]
         .filter(Boolean)
@@ -643,7 +677,7 @@ async function waitAi(tabId: number, maxMs = 120000): Promise<void> {
   }
 }
 
-async function runJob(job: Job, autoReport: boolean): Promise<void> {
+async function runJob(job: Job, autoReport: boolean, learn: boolean): Promise<void> {
   const fail = (note: string) => {
     job.state = "error";
     job.note = note;
@@ -679,6 +713,14 @@ async function runJob(job: Job, autoReport: boolean): Promise<void> {
   const found = queue.filter((q) => q.tabId === tabId && q.at >= startedAt);
   job.found = found.length;
 
+  if (learn && !linkAbort) {
+    const comments = ((await chrome.tabs.sendMessage(tabId, { type: "collect" } satisfies TabMsg).catch(() => null)) as CollectedComment[] | null) ?? [];
+    const learned = learnFromComments(comments, settings.thresholds);
+    await addExamples(learned);
+    job.learned = learned.length;
+    render();
+  }
+
   if (autoReport && !linkAbort) {
     const targets = autoReportCandidates(found, reviews);
     if (targets.length) {
@@ -699,6 +741,7 @@ async function runLinks(): Promise<void> {
   const links = extractPostLinks(linkInput.value);
   if (!links.length || linkRunning) return;
   const autoReport = $<HTMLInputElement>("#linkAutoReport").checked;
+  const learn = $<HTMLInputElement>("#linkLearn").checked;
   if (autoReport) {
     const ok = await confirmDialog({
       title: "Analyze & laporkan",
@@ -710,7 +753,7 @@ async function runLinks(): Promise<void> {
     });
     if (!ok) return;
   }
-  jobs = links.map((l) => ({ ...l, state: "wait", loaded: 0, total: null, found: 0, sent: 0, failed: 0, note: "" }));
+  jobs = links.map((l) => ({ ...l, state: "wait", loaded: 0, total: null, found: 0, sent: 0, failed: 0, learned: 0, note: "" }));
   linkRunning = true;
   linkAbort = false;
   linkSummary = "";
@@ -719,7 +762,7 @@ async function runLinks(): Promise<void> {
   try {
     for (const job of jobs) {
       if (linkAbort) break;
-      await runJob(job, autoReport).catch((e: Error) => {
+      await runJob(job, autoReport, learn).catch((e: Error) => {
         job.state = "error";
         job.note = e.message;
       });
@@ -728,9 +771,17 @@ async function runLinks(): Promise<void> {
   } finally {
     for (const j of jobs) if (j.state !== "done" && j.state !== "error") Object.assign(j, { state: "error", note: "Dihentikan" });
     linkRunning = false;
-    const sum = (k: "loaded" | "found" | "sent" | "failed") => jobs.reduce((n, j) => n + j[k], 0);
+    const sum = (k: "loaded" | "found" | "sent" | "failed" | "learned") => jobs.reduce((n, j) => n + j[k], 0);
     const finished = jobs.filter((j) => j.state === "done").length;
-    linkSummary = `Selesai ${finished}/${jobs.length} postingan · ${fmt(sum("loaded"))} komentar · ${sum("found")} berbahaya${autoReport ? ` · ${sum("sent")} dilapor` : ""}`;
+    linkSummary = [
+      `Selesai ${finished}/${jobs.length} postingan`,
+      `${fmt(sum("loaded"))} komentar`,
+      `${sum("found")} berbahaya`,
+      autoReport ? `${sum("sent")} dilapor` : "",
+      learn ? `${sum("learned")} dipelajari AI` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
     if (autoReport) result = reportSummary({ sent: sum("sent"), failed: sum("failed") });
     render();
   }
@@ -753,6 +804,30 @@ chrome.tabs.onRemoved.addListener((id) => {
   if (id === runnerTab) runnerTab = undefined;
   scanWaiters.get(id)?.(null);
 });
+
+/** Halaman Pengaturan → "Pelajari komentar dari link" menitipkan daftar link di storage.session lalu membuka panel ini. */
+const LEARN_KEY = "learnLinks";
+
+async function takeLearnRequest(): Promise<void> {
+  const text = (await chrome.storage.session.get(LEARN_KEY))[LEARN_KEY] as string | undefined;
+  if (!text || linkRunning) return;
+  await chrome.storage.session.remove(LEARN_KEY);
+  linkInput.value = text;
+  $<HTMLDetailsElement>("#linkBox").open = true;
+  $<HTMLInputElement>("#linkLearn").checked = true;
+  $<HTMLInputElement>("#linkAutoReport").checked = false;
+  jobs = [];
+  linkSummary = "";
+  renderLinks();
+  void runLinks();
+}
+
+void takeLearnRequest();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "session" && changes[LEARN_KEY]?.newValue) void takeLearnRequest();
+});
+setInterval(() => void refreshPostInfo(), 2000);
+chrome.tabs.onActivated.addListener(() => void refreshPostInfo());
 
 /* ── pesan dari halaman & service worker ───────────────── */
 

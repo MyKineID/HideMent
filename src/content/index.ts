@@ -1,7 +1,7 @@
 import { hashText } from "../core/normalize";
-import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
+import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
 import { MODES, type CommentInput, type Verdict } from "../core/types";
-import { send, type FastScanReply, type TabMsg } from "../shared/messages";
+import { send, type CollectedComment, type FastScanReply, type PostInfo, type TabMsg } from "../shared/messages";
 import { detectAdapter } from "./adapters";
 import { applyVerdict, clearMarks, focusElement } from "./overlay";
 import { runReportFlow } from "./report-helper";
@@ -47,7 +47,14 @@ let scanTimer: ReturnType<typeof setTimeout> | undefined;
 let observer: MutationObserver | undefined;
 /** Saat Pindai Cepat berjalan, komentar langsung dianalisis tanpa menunggu terlihat di layar. */
 let eager = false;
-const sentFingerprints = new Set<string>();
+/** Komentar unik (per fingerprint teks) yang sudah terlihat di postingan yang sedang dibuka; direset saat pindah halaman. */
+const pageComments = new Map<string, { text: string; author: string }>();
+/**
+ * Hasil analisis per fingerprint teks. X & Instagram membuang komentar dari DOM saat digulir lalu membuatnya ulang;
+ * dengan peta ini label langsung dipasang lagi tanpa dianalisis ulang, jadi saat scroll manual tinggal dilihat.
+ */
+const verdictByFp = new Map<string, Verdict>();
+const VERDICT_MEMORY = 6000;
 let lastUrl = location.href;
 let autoScanTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -71,7 +78,6 @@ function queueForAnalysis(el: HTMLElement): void {
   if (!id || verdicts.has(id) || !adapter) return;
   const text = adapter.getText(el).slice(0, MAX_TEXT);
   if (!text) return;
-  sentFingerprints.add(el.dataset.rgFp ?? text);
   outbox.set(id, { id, text, author: adapter.getAuthor(el), url: adapter.getPermalink(el) ?? undefined });
   clearTimeout(sendTimer);
   sendTimer = setTimeout(flush, outbox.size >= MAX_PER_MESSAGE ? 0 : SEND_DELAY_MS);
@@ -94,6 +100,8 @@ async function flush(): Promise<void> {
 function applyOne(v: Verdict): void {
   const el = elements.get(v.id);
   if (!el || !adapter) return;
+  /* Diingat walau elemennya sudah dibuang platform: saat komentar itu digambar ulang, labelnya langsung dipasang. */
+  remember(el, v);
   if (!el.isConnected) {
     elements.delete(v.id);
     return;
@@ -102,10 +110,20 @@ function applyOne(v: Verdict): void {
   applyVerdict(el, adapter, v, settings, {
     onDismiss: (target, verdict) => {
       clearMarks(target, adapter);
-      verdicts.set(verdict.id, { ...verdict, category: "aman", score: 0, reason: "ditandai aman oleh pengguna" });
+      const safe: Verdict = { ...verdict, category: "aman", score: 0, reason: "ditandai aman oleh pengguna" };
+      verdicts.set(verdict.id, safe);
+      remember(target, safe);
       void recordFeedback(adapter.getText(target), verdict);
     },
   });
+}
+
+function remember(el: HTMLElement, v: Verdict): void {
+  const fp = el.dataset.rgFp;
+  if (!fp) return;
+  verdictByFp.delete(fp);
+  verdictByFp.set(fp, v);
+  if (verdictByFp.size > VERDICT_MEMORY) verdictByFp.delete(verdictByFp.keys().next().value!);
 }
 
 /* Ditulis berurutan: klik "Bukan berbahaya" beruntun tidak boleh saling menimpa daftar di storage. */
@@ -127,10 +145,16 @@ function recordFeedback(text: string, v: Verdict): Promise<void> {
 function scan(): void {
   if (orphaned()) return retire();
   if (!active() || !adapter) return;
+  if (location.href !== lastUrl) {
+    lastUrl = location.href;
+    pageComments.clear();
+    scheduleAutoScan();
+  }
   for (const el of adapter.findComments(document)) {
     const text = adapter.getText(el);
     if (!text) continue;
     const fingerprint = hashText(text);
+    if (!pageComments.has(fingerprint)) pageComments.set(fingerprint, { text, author: adapter.getAuthor(el) });
     let id = el.dataset.rgId;
     if (id && !elements.has(id)) id = undefined;
     if (id && el.dataset.rgFp !== fingerprint) {
@@ -143,16 +167,13 @@ function scan(): void {
       el.dataset.rgId = id;
       el.dataset.rgFp = fingerprint;
       elements.set(id, el);
-      if (eager) queueForAnalysis(el);
+      const known = verdictByFp.get(fingerprint);
+      if (known) applyOne({ ...known, id });
+      else if (eager) queueForAnalysis(el);
       else visibility.observe(el);
     } else if (eager && !verdicts.has(id) && !outbox.has(id)) {
       queueForAnalysis(el);
     }
-  }
-  if (location.href !== lastUrl) {
-    lastUrl = location.href;
-    sentFingerprints.clear();
-    scheduleAutoScan();
   }
   if (elements.size > 4000) {
     for (const [id, el] of elements) {
@@ -168,7 +189,7 @@ const scanner = adapter
       adapter,
       scanNow: () => {
         scan();
-        return sentFingerprints.size;
+        return pageComments.size;
       },
       setEager: (on) => {
         eager = on;
@@ -245,6 +266,30 @@ function stop(): void {
   for (const el of elements.values()) clearMarks(el, adapter);
 }
 
+/** Ringkasan postingan yang sedang dibuka untuk popup & side panel: jumlah komentar platform dan sebaran label. */
+function postInfo(): PostInfo {
+  const url = new URL(location.href);
+  const info: PostInfo = {
+    isPost: Boolean(adapter?.isPostPage(url)),
+    total: adapter?.getCommentCount(document, url) ?? null,
+    seen: pageComments.size,
+    aman: 0,
+    sedang: 0,
+    tinggi: 0,
+  };
+  for (const fp of pageComments.keys()) {
+    const v = verdictByFp.get(fp);
+    if (!v) continue;
+    const p = v.category === "aman" ? "rendah" : priorityOf(v.score, settings.thresholds);
+    info[p === "rendah" ? "aman" : p]++;
+  }
+  return info;
+}
+
+function collect(): CollectedComment[] {
+  return [...pageComments].map(([fp, c]) => ({ ...c, verdict: verdictByFp.get(fp) }));
+}
+
 function reapplyAll(): void {
   if (!adapter) return;
   for (const v of verdicts.values()) applyOne(v);
@@ -254,6 +299,14 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
   if (retired) return;
   if (msg.type === "ping") {
     sendResponse({ ok: true, platform: adapter?.platform ?? null, active: active() });
+    return;
+  }
+  if (msg.type === "postInfo") {
+    sendResponse(postInfo());
+    return;
+  }
+  if (msg.type === "collect") {
+    sendResponse(collect());
     return;
   }
   if (msg.type === "reportComment") {
@@ -291,6 +344,7 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
   }
   if (msg.type === "rescan") {
     verdicts.clear();
+    verdictByFp.clear();
     for (const el of elements.values()) {
       if (adapter) clearMarks(el, adapter);
       delete el.dataset.rgId;
@@ -314,6 +368,7 @@ if (adapter) {
     const modesChanged = MODES.some((m) => was[m] !== now[m]) || (now.kustom && prev.custom.definition !== s.custom.definition);
     if (modesChanged || prev.api.model !== s.api.model) {
       verdicts.clear();
+      verdictByFp.clear();
       for (const el of elements.values()) {
         clearMarks(el, adapter);
         visibility.observe(el);

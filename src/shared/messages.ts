@@ -23,7 +23,27 @@ export type TabMsg =
   | { type: "fastScan" }
   | { type: "ping" }
   | { type: "stopScan" }
-  | { type: "rescan" };
+  | { type: "rescan" }
+  | { type: "postInfo" }
+  | { type: "collect" };
+
+/** Ringkasan postingan yang sedang dibuka (dibaca popup & side panel). */
+export interface PostInfo {
+  isPost: boolean;
+  /** Jumlah komentar menurut platform (angka di bawah postingan). */
+  total: number | null;
+  /** Komentar unik yang sudah dimuat/terlihat di halaman. */
+  seen: number;
+  aman: number;
+  sedang: number;
+  tinggi: number;
+}
+
+export interface CollectedComment {
+  text: string;
+  author: string;
+  verdict?: Verdict;
+}
 
 export type BroadcastMsg = { type: "queueUpdated"; queue: QueueItem[] };
 

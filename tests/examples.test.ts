@@ -54,3 +54,22 @@ describe("pilih contoh paling mirip", () => {
     expect(picked.length).toBeLessThanOrEqual(3);
   });
 });
+
+describe("contoh dari link postingan", () => {
+  const at = 1;
+  it("tidak menimpa label dari manusia, tapi boleh ditimpa manusia", () => {
+    const manual = { text: "info slot gacor", label: "aman" as Category, at, source: "manual" as const };
+    const link = { text: "info slot gacor", label: "judol" as Category, at, source: "link" as const };
+    expect(mergeExamples([manual], [link])).toEqual([manual]);
+    expect(mergeExamples([link], [manual])).toEqual([manual]);
+  });
+
+  it("dibuang lebih dulu saat daftar penuh", () => {
+    const links = Array.from({ length: 2000 }, (_, i) => ({ text: `komentar link nomor ${i}`, label: "aman" as Category, at, source: "link" as const }));
+    const manual = { text: "contoh manual penting", label: "judol" as Category, at, source: "manual" as const };
+    const out = mergeExamples([manual, ...links], [{ text: "komentar link baru", label: "aman", at, source: "link" }]);
+    expect(out).toHaveLength(2000);
+    expect(out).toContainEqual(manual);
+    expect(out.at(-1)?.text).toBe("komentar link baru");
+  });
+});

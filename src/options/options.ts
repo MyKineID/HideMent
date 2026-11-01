@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
 import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, type Category } from "../core/types";
 import { EXAMPLES_KEY, mergeExamples, parseExamples, type Example } from "../core/examples";
+import { extractPostLinks } from "../core/links";
 import type { ModelList } from "../background/api";
 import { send } from "../shared/messages";
 import { $, bindToggles, download, refreshToggles } from "../shared/dom";
@@ -224,7 +225,7 @@ function renderCustom(): void {
 
 let examples: Example[] = [];
 let feedbackCount = 0;
-const SOURCE_LABEL: Record<Example["source"], string> = { manual: "ditambah manual", import: "dari file", feedback: "dari feedback", review: "dicek di Antrian" };
+const SOURCE_LABEL: Record<Example["source"], string> = { manual: "ditambah manual", import: "dari file", feedback: "dari feedback", review: "dicek di Antrian", link: "dari link postingan" };
 
 /** Komponen select dibangun sekali dari opsinya, jadi saat label berubah (nama mode kustom) select dibuat ulang. */
 function fillLabelSelect(): void {
@@ -286,11 +287,46 @@ function setupExamples(): void {
   fillLabelSelect();
   $("#exAdd").addEventListener("click", async () => {
     const box = $<HTMLTextAreaElement>("#exText");
-    const text = box.value.trim();
-    if (!text) return tell("Tulis dulu komentar contohnya.", "info");
+    /* Satu komentar per baris: menempel daftar komentar sekaligus jadi banyak contoh dengan label yang sama. */
+    const lines = [...new Set(box.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))];
+    if (!lines.length) return tell("Tulis dulu komentar contohnya.", "info");
     const label = $<HTMLSelectElement>("#exLabel").value as Category;
-    await saveExamples(mergeExamples(examples, [{ text: text.slice(0, 600), label, at: Date.now(), source: "manual" }]), `Contoh ditambahkan sebagai ${catLabel(label)}.`);
+    const now = Date.now();
+    const added = lines.map((t) => ({ text: t.slice(0, 600), label, at: now, source: "manual" as const }));
+    await saveExamples(mergeExamples(examples, added), `${added.length > 1 ? `${added.length} contoh` : "Contoh"} ditambahkan sebagai ${catLabel(label)}.`);
     box.value = "";
+  });
+
+  const linksBox = $<HTMLTextAreaElement>("#learnLinks");
+  const linksBtn = $<HTMLButtonElement>("#learnLinksRun");
+  let windowId: number | undefined;
+  void chrome.windows.getCurrent().then((w) => (windowId = w.id));
+  linksBox.addEventListener("input", () => {
+    const n = extractPostLinks(linksBox.value).length;
+    linksBtn.disabled = n === 0;
+    linksBtn.querySelector(".lbl")!.textContent = n ? `Pelajari komentar dari ${n} link` : "Pelajari komentar dari link";
+  });
+  linksBtn.addEventListener("click", () => {
+    const n = extractPostLinks(linksBox.value).length;
+    if (!n) return tell("Tempel dulu link postingannya.", "info");
+    /* Side panel yang menjalankan; dibuka langsung di klik ini karena sidePanel.open butuh gestur pengguna. */
+    void chrome.storage.session.set({ learnLinks: linksBox.value });
+    if (windowId !== undefined) void chrome.sidePanel.open({ windowId }).catch(() => undefined);
+    tell(`${n} link dikirim ke side panel. Biarkan tab yang dibuka HideMent sampai selesai; contoh baru muncul di daftar di bawah.`);
+  });
+
+  $("#exClearLink").addEventListener("click", async () => {
+    const n = examples.filter((e) => e.source === "link").length;
+    if (!n) return tell("Belum ada contoh dari link.", "info");
+    const ok = await confirmDialog({ title: "Hapus contoh dari link", message: `Hapus ${n} contoh yang dipelajari otomatis dari link? Contoh manual, impor, dan hasil cek tetap ada.`, confirmText: "Hapus", danger: true });
+    if (ok) await saveExamples(examples.filter((e) => e.source !== "link"), `${n} contoh dari link dihapus.`);
+  });
+
+  /* Side panel menambah contoh (Benar/Salah, belajar dari link) sambil halaman ini terbuka. */
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes[EXAMPLES_KEY]) return;
+    examples = (changes[EXAMPLES_KEY].newValue ?? []) as Example[];
+    renderExamples();
   });
   const file = $<HTMLInputElement>("#exFile");
   $("#exImport").addEventListener("click", () => file.click());

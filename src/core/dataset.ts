@@ -1,11 +1,14 @@
 import { exampleKey, type Example } from "./examples";
-import type { Category, QueueItem } from "./types";
+import { priorityOf, type Settings } from "./settings";
+import type { Category, QueueItem, Verdict } from "./types";
 
 /*
- * Dari hasil analisis ke data belajar AI. Hasil AI tidak pernah langsung dijadikan contoh (itu membuat AI
- * belajar dari tebakannya sendiri). Yang masuk hanya komentar yang sudah dicek pengguna:
- * "Benar" = label AI dipakai, "Salah" = komentar itu sebenarnya aman. Contoh ini lalu ikut dikirim
- * ke AI sebagai acuan untuk komentar yang mirip, jadi kesalahan yang sama tidak terulang.
+ * Dari hasil analisis ke data belajar AI, lewat dua jalur:
+ * - Cek pengguna di Antrian: "Benar" = label AI dipakai, "Salah" = komentar itu sebenarnya aman.
+ *   Label ini selalu menang.
+ * - "Analyze dari link" dengan "Pelajari komentarnya": hanya hasil yang yakin (learnFromComments),
+ *   bersumber "link" supaya bisa dibedakan, dihapus massal, dan tidak pernah menimpa label manusia.
+ * Contoh lalu ikut dikirim ke AI sebagai acuan untuk komentar yang mirip.
  */
 
 /** Label hasil cek pengguna per teks komentar (kunci = exampleKey). */
@@ -68,4 +71,30 @@ export function toDatasetRow(item: QueueItem, reviews: ReviewMap): DatasetRow {
 
 export function toJsonl(rows: object[]): string {
   return rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
+}
+
+export interface LearnInput {
+  text: string;
+  verdict?: Verdict;
+}
+
+/**
+ * Komentar postingan yang dianalisis lewat "Analyze dari link" → contoh belajar AI.
+ * Hanya hasil yang yakin yang diambil: prioritas tinggi (label kategorinya) dan "aman" yang dinilai AI.
+ * Yang sedang/ragu dan "aman" dari aturan lokal saja dilewati, lalu "aman" dibatasi supaya contoh tidak
+ * dibanjiri komentar biasa. Label buatan manusia tetap menang (lihat mergeExamples).
+ */
+export function learnFromComments(comments: LearnInput[], thresholds: Settings["thresholds"], now = Date.now(), maxSafe = 40): Example[] {
+  const harmful: Example[] = [];
+  const safe: Example[] = [];
+  for (const { text, verdict: v } of comments) {
+    const t = text.trim();
+    if (!v || t.length < 4) continue;
+    const priority = priorityOf(v.score, thresholds);
+    if (v.category !== "aman" && priority === "tinggi") harmful.push({ text: t.slice(0, 600), label: v.category, at: now, source: "link" });
+    else if ((v.category === "aman" || priority === "rendah") && v.source !== "rule" && safe.length < maxSafe) {
+      safe.push({ text: t.slice(0, 600), label: "aman", at: now, source: "link" });
+    }
+  }
+  return [...harmful, ...safe];
 }

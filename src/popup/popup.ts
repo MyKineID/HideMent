@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type DeepPartial, type Settings } from "../core/settings";
 import type { Platform } from "../core/types";
-import { send, type FastScanReply, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
+import { send, type FastScanReply, type PostInfo, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
 import { $, bindToggles, refreshToggles } from "../shared/dom";
 import { hydrateIcons, type IconName } from "../shared/icons";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
@@ -16,6 +16,8 @@ const PLATFORM_HOSTS: [RegExp, Platform, string][] = [
 
 let settings: Settings = DEFAULT_SETTINGS;
 let lastLine = "";
+/** Selama Analyze berjalan, baris progres diisi pesan scanProgress, bukan ringkasan postingan. */
+let scanBusy = false;
 
 function renderModes(): void {
   const chip = $("#customChip");
@@ -78,9 +80,28 @@ async function init(): Promise<void> {
   const refresh = async () => {
     const st = await send<StatusInfo>({ type: "getStatus", tabId: tab?.id }).catch(() => null);
     if (!st) return;
-    $("#scanned").textContent = String(st.tabCounts.scanned);
-    $("#high").textContent = String(st.tabCounts.high);
-    $("#medium").textContent = String(st.tabCounts.medium);
+    /* Angka per postingan dari halaman itu sendiri: total komentar platform + sebaran label hasil analisis. */
+    const info =
+      match && tab?.id !== undefined
+        ? ((await chrome.tabs.sendMessage(tab.id, { type: "postInfo" } satisfies TabMsg).catch(() => null)) as PostInfo | null)
+        : null;
+    const fmt = (n: number) => n.toLocaleString("id-ID");
+    $("#total").textContent = info?.total != null ? fmt(info.total) : info ? fmt(info.seen) : "–";
+    $("#totalLabel").textContent = info?.total != null ? "komentar" : "terlihat";
+    $("#safe").textContent = fmt(info?.aman ?? 0);
+    $("#medium").textContent = fmt(info?.sedang ?? st.tabCounts.medium);
+    $("#high").textContent = fmt(info?.tinggi ?? st.tabCounts.high);
+    if (info?.total != null && !scanBusy) {
+      const left = Math.max(0, info.total - info.seen);
+      $("#scanProg").hidden = false;
+      $("#scanText").textContent = info.seen
+        ? `${fmt(info.seen)} dari ${fmt(info.total)} komentar sudah dianalisis${left ? "" : " · lengkap"}`
+        : `Postingan ini punya ${fmt(info.total)} komentar. Klik Analyze untuk memuat & menilai semuanya.`;
+      $("#scanFill").style.width = `${Math.min(100, (info.seen / Math.max(1, info.total)) * 100)}%`;
+    } else if (info && !info.isPost && !scanBusy) {
+      $("#scanProg").hidden = false;
+      $("#scanText").textContent = "Buka satu postingan/video dulu untuk menganalisis komentarnya.";
+    }
 
     let line: [string, "ok" | "err" | "info"];
     if (!settings.enabled) line = ["HideMent sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
@@ -120,6 +141,7 @@ async function init(): Promise<void> {
   chrome.runtime.onMessage.addListener((msg: ScanProgress, sender) => {
     if (msg.type !== "scanProgress" || sender.tab?.id !== tab?.id) return;
     const running = msg.state === "running";
+    scanBusy = running;
     scanBtn.disabled = running;
     scanBtn.classList.toggle("busy", running);
     scanBtn.querySelector(".lbl")!.textContent = running ? "Menganalisis komentar…" : "Analyze komentar postingan ini";

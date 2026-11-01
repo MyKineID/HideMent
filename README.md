@@ -95,11 +95,14 @@ Kenapa efisien:
 
 Judol dicek lokal tanpa AI; mode lainnya butuh koneksi AI.
 
-**Contoh belajar AI**: tambahkan komentar berlabel (manual, impor JSON Lines/JSON/CSV, otomatis dari tombol "Bukan berbahaya", atau tombol **Benar / Salah, aman** di Antrian). Setiap analisis, HideMent mengambil sampai 8 contoh yang paling mirip (kemiripan trigram, tahan huruf hias & angka pengganti) dan mengirimnya ke AI sebagai acuan. Tidak ada training; jalan di model apa pun. Hasil AI **tidak pernah** otomatis dijadikan contoh: hanya komentar yang sudah kamu cek, supaya AI tidak belajar dari tebakannya sendiri.
+**Contoh belajar AI**: tambahkan komentar berlabel (manual, impor JSON Lines/JSON/CSV, otomatis dari tombol "Bukan berbahaya", atau tombol **Benar / Salah, aman** di Antrian). Setiap analisis, HideMent mengambil sampai 8 contoh yang paling mirip (kemiripan trigram, tahan huruf hias & angka pengganti) dan mengirimnya ke AI sebagai acuan. Tidak ada training; jalan di model apa pun.
+
+**Belajar dari link postingan**: tempel link (mis. video TikTok) di Pengaturan → Contoh belajar → *Pelajari komentar dari link*, atau nyalakan *Pelajari komentarnya untuk AI* di side panel. HideMent membuka tiap postingan, memuat & menganalisis semua komentarnya, lalu menyimpan yang hasilnya **yakin** (prioritas tinggi, dan aman menurut AI; yang ragu dilewati) sebagai contoh bersumber *dari link postingan*. Contoh ini tidak pernah menimpa label yang kamu buat sendiri, dibuang lebih dulu saat daftar penuh, dan bisa dihapus sekaligus (*Hapus dari link*). Input manual juga bisa banyak sekaligus: satu komentar per baris.
 
 **Fitur lainnya:**
 
-- **Analyze komentar postingan ini**: buka satu postingan/video, klik sekali. HideMent membuka panel komentar (TikTok), membaca **jumlah komentar** yang ditampilkan platform, lalu memuat & menganalisis semuanya termasuk balasan ("123 dari 2.709 komentar"). Bisa juga dijalankan otomatis tiap membuka postingan (metode *Pindai Cepat* di Pengaturan).
+- **Jumlah komentar langsung terlihat**: begitu postingan dibuka, popup dan side panel menampilkan total komentar menurut platform (mis. 347 di X) beserta berapa yang sudah aman / sedang / tinggi.
+- **Analyze komentar postingan ini**: klik sekali, HideMent membuka panel komentar (TikTok), memuat & menganalisis semuanya termasuk balasan tanpa kamu scroll ("123 dari 2.709 komentar"). **Setiap komentar diberi label** Aman / Sedang / Tinggi, dan label tetap menempel saat kamu scroll manual (termasuk di X yang membuang & menggambar ulang komentar saat digulir). Bisa juga dijalankan otomatis tiap membuka postingan (metode *Pindai Cepat* di Pengaturan).
 - **Analyze dari link**: tempel satu atau banyak link postingan (boleh langsung dari chat WhatsApp). HideMent membukanya satu per satu di satu tab, menganalisis semua komentarnya, dan menampilkan ringkasan per link.
 - **Badge + skor risiko** (Tinggi / Sedang) di samping komentar, lengkap dengan alasannya.
 - **Tandai, blur, atau sembunyikan**, bisa diatur per kategori. Komentar yang diblur bisa dibuka dengan klik.
@@ -264,6 +267,8 @@ Temuan awal: sebagian besar komentar judol/phising justru **bernada positif** ("
 | Tes koneksi timeout | Server terhubung tapi model lambat/bermasalah. Pilih model lain atau naikkan Timeout. |
 | HTTP 401/403 | API key salah atau tidak punya akses ke model tersebut. |
 | Komentar Instagram/TikTok tidak terdeteksi | Struktur halaman berubah; perbarui selektor di `src/content/adapters/`. |
+| Di X "0 dipindai" / jumlah komentar kosong | X sedang memakai dua versi DOM (dengan dan tanpa `data-testid`); adapter X mendukung keduanya. Kalau masih kosong, refresh tab setelah reload ekstensi. |
+| TikTok berhenti di ±20 komentar | TikTok hanya memberi halaman pertama ke pengunjung yang belum login. Login dulu, lalu Analyze lagi. |
 | Hanya judol yang terdeteksi | AI belum terhubung; mode selain Judol membutuhkan endpoint AI. |
 | Hasil lama masih tampil setelah ganti aturan | Pengaturan → Data riset → **Hapus cache**, lalu pindai ulang. |
 

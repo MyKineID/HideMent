@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { autoReportCandidates, reviewExample, reviewMap, toDatasetRow, toJsonl } from "../src/core/dataset";
+import { autoReportCandidates, learnFromComments, reviewExample, reviewMap, toDatasetRow, toJsonl } from "../src/core/dataset";
 import type { Example } from "../src/core/examples";
-import type { QueueItem } from "../src/core/types";
+import type { QueueItem, Verdict } from "../src/core/types";
 
 function item(text: string, score: number, extra: Partial<QueueItem> = {}): QueueItem {
   return {
@@ -49,4 +49,31 @@ describe("kandidat lapor otomatis", () => {
 it("JSONL satu objek per baris", () => {
   expect(toJsonl([{ a: 1 }, { b: "x" }])).toBe('{"a":1}\n{"b":"x"}\n');
   expect(toJsonl([])).toBe("");
+});
+
+describe("belajar dari komentar link", () => {
+  const t = { high: 80, medium: 50 };
+  const v = (category: Verdict["category"], score: number, source: Verdict["source"] = "ai"): Verdict => ({ id: "1", mode: "judol", category, score, reason: "", source });
+  it("ambil yang yakin saja", () => {
+    const out = learnFromComments(
+      [
+        { text: "PULAU138 gacor wd terus", verdict: v("judol", 95, "rule") },
+        { text: "bagus banget videonya kak", verdict: v("aman", 5) },
+        { text: "agak mencurigakan nih", verdict: v("spam", 60) },
+        { text: "terlalu pendek", verdict: v("aman", 0, "rule") },
+        { text: "belum dinilai AI" },
+        { text: "ok", verdict: v("aman", 0) },
+      ],
+      t,
+      9,
+    );
+    expect(out).toEqual([
+      { text: "PULAU138 gacor wd terus", label: "judol", at: 9, source: "link" },
+      { text: "bagus banget videonya kak", label: "aman", at: 9, source: "link" },
+    ]);
+  });
+  it("contoh aman dibatasi", () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({ text: `komentar biasa ${i}`, verdict: v("aman", 3) }));
+    expect(learnFromComments(many, t, 1, 4)).toHaveLength(4);
+  });
 });

@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
     blur: true,
     hide: false,
     clickToReveal: true,
-    showSafeBadge: false,
+    showSafeBadge: true,
   },
   categoryAction: { spam: "highlight" },
   scan: { method: "scroll", max: 300, replies: true },
@@ -77,7 +77,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "settings";
-const SCHEMA = 4;
+const SCHEMA = 5;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -200,6 +200,8 @@ export async function loadSettings(): Promise<Settings> {
       stored.api = { ...stored.api, batchSize: DEFAULT_SETTINGS.api.batchSize, concurrency: DEFAULT_SETTINGS.api.concurrency };
     }
     if (stored.modes) stored.modes = migrateModes(stored.modes);
+    /* Schema 5: setiap komentar yang dianalisis diberi label, termasuk "Aman". */
+    if (Number(raw.schema) < 5 && stored.display) stored.display = { ...stored.display, showSafeBadge: true };
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
   }
   return resolveSettings(stored);

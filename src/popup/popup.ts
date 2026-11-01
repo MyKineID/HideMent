@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, saveSettings, type DeepPartial, type Settings } from "../core/settings";
 import type { Platform } from "../core/types";
-import { send, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
+import { send, type FastScanReply, type ScanProgress, type StatusInfo, type TabMsg } from "../shared/messages";
 import { $, bindToggles, refreshToggles } from "../shared/dom";
 import { hydrateIcons, type IconName } from "../shared/icons";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
@@ -110,8 +110,9 @@ async function init(): Promise<void> {
       say(dlg, "HideMent belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi.", "err");
       return;
     }
-    const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as { ok: boolean; note?: string } | null;
+    const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
     if (!r?.ok) say(dlg, r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.", "err");
+    else if (r.total) say(dlg, `Postingan ini punya ${r.total.toLocaleString("id-ID")} komentar. Menganalisis…`);
   });
   stopBtn.addEventListener("click", () => {
     if (tab?.id !== undefined) chrome.tabs.sendMessage(tab.id, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
@@ -121,13 +122,17 @@ async function init(): Promise<void> {
     const running = msg.state === "running";
     scanBtn.disabled = running;
     scanBtn.classList.toggle("busy", running);
-    scanBtn.querySelector(".lbl")!.textContent = running ? "Memindai komentar…" : "Pindai semua komentar";
+    scanBtn.querySelector(".lbl")!.textContent = running ? "Menganalisis komentar…" : "Analyze komentar postingan ini";
     stopBtn.hidden = !running;
     $("#scanProg").hidden = false;
     const text = $("#scanText");
     if (msg.state === "error") text.textContent = msg.note ?? "Gagal memindai";
-    else text.innerHTML = `<b>${msg.loaded}</b> ${running ? "komentar dimuat" : msg.state === "stopped" ? "dipindai · dihentikan" : "komentar dipindai"}`;
-    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / msg.max) * 100)}%`;
+    else {
+      const of = msg.total ? ` dari ${msg.total.toLocaleString("id-ID")}` : "";
+      text.innerHTML = `<b>${msg.loaded.toLocaleString("id-ID")}</b>`;
+      text.append(`${of} ${running ? "komentar dianalisis" : msg.state === "stopped" ? "komentar dianalisis · dihentikan" : "komentar dianalisis"}`);
+    }
+    $("#scanFill").style.width = `${Math.min(100, (msg.loaded / Math.max(1, msg.max)) * 100)}%`;
   });
 
   $("#rescan").addEventListener("click", () => {

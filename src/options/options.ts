@@ -224,7 +224,7 @@ function renderCustom(): void {
 
 let examples: Example[] = [];
 let feedbackCount = 0;
-const SOURCE_LABEL: Record<Example["source"], string> = { manual: "ditambah manual", import: "dari file", feedback: "dari feedback" };
+const SOURCE_LABEL: Record<Example["source"], string> = { manual: "ditambah manual", import: "dari file", feedback: "dari feedback", review: "dicek di Antrian" };
 
 /** Komponen select dibangun sekali dari opsinya, jadi saat label berubah (nama mode kustom) select dibuat ulang. */
 function fillLabelSelect(): void {

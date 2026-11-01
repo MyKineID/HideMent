@@ -9,7 +9,8 @@ import { CATEGORY_LABEL, type Category } from "./types";
  * jadi tetap cocok walau ditulis dengan huruf hias atau angka pengganti huruf.
  */
 
-export type ExampleSource = "manual" | "import" | "feedback";
+/** "review" = dicek pengguna di Antrian (tombol Benar/Salah) dari komentar yang sudah dianalisis. */
+export type ExampleSource = "manual" | "import" | "feedback" | "review";
 
 export interface Example extends PromptExample {
   at: number;
@@ -94,11 +95,12 @@ export function parseExamples(raw: string, source: ExampleSource = "import", now
 /** Gabungkan contoh baru ke daftar lama: teks yang sama diganti label terbarunya, daftar dibatasi EXAMPLES_MAX. */
 export function mergeExamples(current: Example[], incoming: Example[]): Example[] {
   const byKey = new Map<string, Example>();
-  for (const e of [...current, ...incoming]) byKey.set(keyOf(e.text), e);
+  for (const e of [...current, ...incoming]) byKey.set(exampleKey(e.text), e);
   return [...byKey.values()].slice(-EXAMPLES_MAX);
 }
 
-function keyOf(text: string): string {
+/** Kunci dedup contoh: teks yang sudah dinormalisasi (huruf hias & angka pengganti disamakan). */
+export function exampleKey(text: string): string {
   return normalize(text).compact;
 }
 

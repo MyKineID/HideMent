@@ -1,11 +1,11 @@
 import { hashText } from "../core/normalize";
 import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
 import { MODES, type CommentInput, type Verdict } from "../core/types";
-import { send, type TabMsg } from "../shared/messages";
+import { send, type FastScanReply, type TabMsg } from "../shared/messages";
 import { detectAdapter } from "./adapters";
 import { applyVerdict, clearMarks, focusElement } from "./overlay";
 import { runReportFlow } from "./report-helper";
-import { FastScanner } from "./fast-scan";
+import { FastScanner, scrollerFor } from "./fast-scan";
 
 const adapter = detectAdapter(location.hostname);
 
@@ -176,6 +176,7 @@ const scanner = adapter
       },
       max: () => settings.scan.max,
       replies: () => settings.scan.replies,
+      total: () => adapter.getCommentCount(document, new URL(location.href)),
     })
   : null;
 
@@ -185,7 +186,10 @@ function scheduleAutoScan(): void {
   autoScanTimer = setTimeout(() => void scanner?.run(), 1800);
 }
 
-/** Cari komentar: lewat id dulu, lalu teksnya. Kalau sudah dihapus dari DOM (X/TikTok), gulir halaman untuk mencarinya. */
+/**
+ * Cari komentar: lewat id dulu, lalu teksnya. Kalau sudah dihapus dari DOM (X/TikTok), gulir wadah komentar
+ * (panel komentar TikTok/Instagram, atau jendela untuk YouTube/X) untuk mencarinya, jadi pengguna tidak perlu scroll sendiri.
+ */
 async function findComment(id: string, text: string): Promise<HTMLElement | null> {
   if (!adapter) return null;
   const byId = elements.get(id);
@@ -194,17 +198,25 @@ async function findComment(id: string, text: string): Promise<HTMLElement | null
   const byText = () => adapter.findComments(document).find((el) => adapter.getText(el).startsWith(needle)) ?? null;
   let hit = byText();
   if (hit) return hit;
-  const startY = scrollY;
-  window.scrollTo({ top: 0 });
-  for (let i = 0; i < 40 && !hit; i++) {
+  if (adapter.openComments?.(document)) {
+    for (let i = 0; i < 15 && !adapter.findComments(document).length; i++) await new Promise((r) => setTimeout(r, 300));
+    if ((hit = byText())) return hit;
+  }
+  const comments = adapter.findComments(document);
+  const box = scrollerFor(comments[comments.length - 1]);
+  const getY = () => (box ? box.scrollTop : scrollY);
+  const setY = (y: number) => (box ? (box.scrollTop = y) : window.scrollTo({ top: y }));
+  const startY = getY();
+  setY(0);
+  for (let i = 0; i < 60 && !hit; i++) {
     await new Promise((r) => setTimeout(r, 300));
     hit = byText();
     if (hit) break;
-    const before = scrollY;
-    window.scrollBy(0, innerHeight * 0.8);
-    if (scrollY === before) break;
+    const before = getY();
+    setY(before + (box ? box.clientHeight : innerHeight) * 0.8);
+    if (getY() === before) break;
   }
-  if (!hit) window.scrollTo({ top: startY });
+  if (!hit) setY(startY);
   return hit;
 }
 
@@ -251,19 +263,21 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
         return;
       }
       el.classList.remove("rg-hidden-host");
-      void runReportFlow(el, adapter, msg.verdict, () => {
-        chrome.runtime.sendMessage({ type: "reportSubmitted", commentId: msg.commentId }).catch(() => undefined);
+      void runReportFlow(el, adapter, msg.verdict, {
+        auto: msg.auto,
+        onSubmitted: () => chrome.runtime.sendMessage({ type: "reportSubmitted", commentId: msg.commentId }).catch(() => undefined),
       }).then(sendResponse);
     });
     return true;
   }
   if (msg.type === "fastScan") {
-    if (!active()) {
-      sendResponse({ ok: false, note: "HideMent nonaktif di situs ini." });
-      return;
+    const reply = (r: FastScanReply) => sendResponse(r);
+    if (!active() || !adapter) return reply({ ok: false, note: "HideMent nonaktif di situs ini." });
+    if (!adapter.isPostPage(new URL(location.href))) {
+      return reply({ ok: false, note: "Masuk ke postingannya dulu (buka satu video/postingan), lalu klik Analyze lagi." });
     }
     void scanner?.run();
-    sendResponse({ ok: true });
+    reply({ ok: true, total: adapter.getCommentCount(document, new URL(location.href)) });
     return;
   }
   if (msg.type === "stopScan") scanner?.stop();

@@ -1,3 +1,4 @@
+import { parseCount } from "../../core/links";
 import { genericReason, textOf, type Adapter } from "./types";
 
 export const youtube: Adapter = {
@@ -29,4 +30,7 @@ export const youtube: Adapter = {
               ? genericReason(c)
               : "Pelecehan atau penindasan",
   isPostPage: (url) => /^\/(watch|shorts\/)/.test(url.pathname),
+  getCommentCount: (doc) =>
+    parseCount(doc.querySelector("ytd-comments-header-renderer #count")?.textContent) ??
+    parseCount(doc.querySelector("ytd-reel-video-renderer[is-active] #comments-button")?.textContent),
 };

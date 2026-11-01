@@ -2,9 +2,9 @@ import type { ScanProgress } from "../shared/messages";
 import type { Adapter } from "./adapters/types";
 
 /*
- * Pindai Cepat: memuat semua komentar sebuah postingan tanpa pengguna perlu scroll.
- * HideMent menggulir wadah komentar sampai mentok, membuka "Tampilkan balasan",
- * lalu mengembalikan posisi scroll ke tempat semula.
+ * Analyze komentar postingan ini: memuat semua komentar sebuah postingan tanpa pengguna perlu scroll.
+ * HideMent membuka panel komentar kalau masih tertutup, membaca jumlah komentar yang ditampilkan platform,
+ * menggulir wadah komentar sampai mentok, membuka "Tampilkan balasan", lalu mengembalikan posisi scroll.
  */
 
 const EXPAND_RE =
@@ -24,9 +24,13 @@ export interface FastScanDeps {
   setEager(on: boolean): void;
   max(): number;
   replies(): boolean;
+  /** Jumlah komentar menurut platform (dibaca ulang tiap putaran karena angkanya kadang baru muncul belakangan). */
+  total(): number | null;
 }
 
-function scrollerFor(el: Element | undefined): HTMLElement | null {
+export const fmt = (n: number) => n.toLocaleString("id-ID");
+
+export function scrollerFor(el: Element | undefined): HTMLElement | null {
   for (let p = el?.parentElement; p && p !== document.body; p = p.parentElement) {
     const oy = getComputedStyle(p).overflowY;
     if ((oy === "auto" || oy === "scroll") && p.scrollHeight > p.clientHeight + 40) return p;
@@ -51,7 +55,9 @@ export class FastScanner {
   }
 
   private emit(state: ScanProgress["state"], loaded: number, note?: string): void {
-    const msg: ScanProgress = { type: "scanProgress", state, loaded, max: this.deps.max(), note };
+    const total = this.deps.total();
+    const max = total ? Math.min(this.deps.max(), total) : this.deps.max();
+    const msg: ScanProgress = { type: "scanProgress", state, loaded, max, total, note };
     chrome.runtime.sendMessage(msg).catch(() => undefined);
     this.renderBar(msg);
   }
@@ -70,10 +76,10 @@ export class FastScanner {
     const text = this.bar.querySelector<HTMLElement>(".rg-sb-text")!;
     if (p.state === "error") text.textContent = p.note ?? "Komentar tidak ditemukan";
     else {
-      text.textContent = p.state === "running" ? "Memindai komentar " : p.state === "stopped" ? "Dihentikan · " : "Selesai · ";
+      text.textContent = p.state === "running" ? "Menganalisis " : p.state === "stopped" ? "Dihentikan · " : "Selesai · ";
       const b = document.createElement("b");
-      b.textContent = String(p.loaded);
-      text.append(b, p.state === "running" ? "" : " komentar");
+      b.textContent = fmt(p.loaded);
+      text.append(b, p.total ? ` dari ${fmt(p.total)} komentar` : " komentar", p.note ? ` · ${p.note}` : "");
     }
     this.bar.querySelector<HTMLElement>(".rg-sb-meter i")!.style.width = `${Math.min(100, (p.loaded / p.max) * 100)}%`;
     this.bar.querySelector("button")!.hidden = done;
@@ -117,12 +123,22 @@ export class FastScanner {
     try {
       this.emit("running", this.deps.scanNow());
 
-      for (let i = 0; i < 10 && !this.abort && adapter.findComments(document).length === 0; i++) {
-        window.scrollBy(0, innerHeight * 0.9);
-        await sleep(700);
+      /* TikTok dkk.: komentar ada di panel yang harus dibuka dulu. Menggulir jendela di sana justru pindah ke video lain. */
+      const hasComments = () => adapter.findComments(document).length > 0;
+      if (adapter.openComments) {
+        for (let i = 0; i < 3 && !this.abort && !hasComments(); i++) {
+          adapter.openComments(document);
+          for (let t = 0; t < 12 && !hasComments(); t++) await sleep(300);
+        }
+      } else {
+        for (let i = 0; i < 10 && !this.abort && !hasComments(); i++) {
+          window.scrollBy(0, innerHeight * 0.9);
+          await sleep(700);
+        }
       }
-      if (!adapter.findComments(document).length) {
-        this.emit("error", 0, "Komentar tidak ditemukan. Buka kolom komentar postingan dulu.");
+      if (!hasComments()) {
+        const total = this.deps.total();
+        this.emit("error", 0, total === 0 ? "Postingan ini belum punya komentar." : "Komentar tidak ditemukan. Buka kolom komentar postingan dulu.");
         return;
       }
 
@@ -130,7 +146,8 @@ export class FastScanner {
       let stagnant = 0;
       while (!this.abort && stagnant < 4) {
         const loaded = this.deps.scanNow();
-        if (loaded >= this.deps.max()) break;
+        const total = this.deps.total();
+        if (loaded >= this.deps.max() || (total && loaded >= total)) break;
         const comments = adapter.findComments(document);
         const root = comments[0]?.closest("main, [role='dialog']") ?? document;
         const expanded = this.expandReplies(root, 6);
@@ -141,6 +158,7 @@ export class FastScanner {
           scrollerStart = sc.scrollTop;
         }
         if (scroller) scroller.scrollTop = scroller.scrollHeight;
+        else if (adapter.openComments) comments[comments.length - 1]?.scrollIntoView({ block: "end" });
         else window.scrollTo(0, document.documentElement.scrollHeight);
         await sleep(expanded ? 1100 : 850);
 
@@ -149,7 +167,11 @@ export class FastScanner {
         last = now;
         this.emit("running", now);
       }
-      this.emit(this.abort ? "stopped" : "done", this.deps.scanNow());
+      const loaded = this.deps.scanNow();
+      const total = this.deps.total();
+      /* Jauh di bawah jumlah resmi tapi tidak bertambah lagi: biasanya platform membatasi tamu (TikTok tanpa login hanya memberi 20). */
+      const cut = !this.abort && total && this.deps.replies() && loaded < this.deps.max() && loaded < total * 0.5;
+      this.emit(this.abort ? "stopped" : "done", loaded, cut ? "Platform berhenti memuat komentar. Pastikan sudah login, lalu coba lagi." : undefined);
     } finally {
       if (scroller) scroller.scrollTop = scrollerStart;
       window.scrollTo({ top: startY });

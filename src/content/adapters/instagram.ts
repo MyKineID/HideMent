@@ -1,3 +1,4 @@
+import { parseCount } from "../../core/links";
 import { genericReason, textOf, type Adapter } from "./types";
 
 const REPLY_RE = /^(reply|balas|see translation|lihat terjemahan)$/i;
@@ -58,4 +59,11 @@ export const instagram: Adapter = {
   reportReason: (c) =>
     c === "judol" || c === "spam" ? "Spam" : c === "scam" || c === "phishing" ? "Penipuan atau kecurangan" : genericReason(c),
   isPostPage: (url) => /^\/(p|reel|reels)\//.test(url.pathname),
+  getCommentCount: (doc) => {
+    for (const el of doc.querySelectorAll("main a, main span, div[role='dialog'] span")) {
+      const m = textOf(el).match(/^(?:lihat semua|view all)\s+(.+?)\s+(?:komentar|comments)$/i);
+      if (m) return parseCount(m[1]);
+    }
+    return null;
+  },
 };

@@ -1,3 +1,4 @@
+import { parseCount } from "../../core/links";
 import { genericReason, textOf, type Adapter } from "./types";
 
 export const x: Adapter = {
@@ -17,4 +18,9 @@ export const x: Adapter = {
   getPermalink: (el) => el.querySelector<HTMLAnchorElement>('a[href*="/status/"] time')?.closest("a")?.href ?? null,
   reportReason: (c) => (c === "judol" || c === "spam" ? "Spam" : genericReason(c)),
   isPostPage: (url) => /\/status\/\d+/.test(url.pathname),
+  getCommentCount: (doc, url) => {
+    const id = url.pathname.match(/\/status\/(\d+)/)?.[1];
+    const main = [...doc.querySelectorAll('article[data-testid="tweet"]')].find((a) => id && a.querySelector(`a[href*="/status/${id}"] time`));
+    return parseCount(main?.querySelector('[data-testid="reply"]')?.getAttribute("aria-label"));
+  },
 };

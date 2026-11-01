@@ -29,7 +29,7 @@ export interface Verdict {
   label?: string;
 }
 
-export type ReportStatus = "pending" | "done" | "skipped";
+export type ReportStatus = "pending" | "done" | "skipped" | "failed";
 
 export interface QueueItem {
   key: string;

@@ -18,6 +18,8 @@ interface Row {
   sentimen?: "positif" | "netral" | "negatif";
   platform?: string;
   note?: string;
+  /** Baris dari label.ts / ekspor Antrian yang labelnya belum dicek manusia. */
+  perlu_review?: boolean;
 }
 
 const file = process.argv[2] ?? "research/dataset/sample.jsonl";
@@ -31,10 +33,13 @@ const api = {
 const modes = { ...DEFAULT_SETTINGS.modes, kebencian: true, pelecehan: true, agama: true, sara: true };
 const useAi = Boolean(api.baseUrl && api.model);
 
-const rows: Row[] = (await readFile(file, "utf8"))
+const allRows: Row[] = (await readFile(file, "utf8"))
   .split("\n")
   .filter((l) => l.trim())
   .map((l) => JSON.parse(l));
+/* Label yang belum dicek manusia hanyalah tebakan model; memakainya sebagai kunci jawaban membuat skor palsu. */
+const rows = allRows.filter((r) => r.perlu_review !== true);
+if (rows.length < allRows.length) console.log(`Melewati ${allRows.length - rows.length} baris perlu_review (belum dicek manusia).`);
 
 const predictions = new Map<number, Verdict>();
 const aiItems: { idx: number; item: AiItem }[] = [];

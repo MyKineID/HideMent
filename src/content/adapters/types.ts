@@ -19,6 +19,10 @@ export interface Adapter {
   reportReason(category: Category): string;
   /** Halaman satu postingan/video (tempat Pindai Cepat dijalankan otomatis). */
   isPostPage(url: URL): boolean;
+  /** Jumlah komentar yang ditampilkan platform untuk postingan yang sedang dibuka. null kalau tidak terbaca. */
+  getCommentCount(doc: Document, url: URL): number | null;
+  /** Buka panel/tab komentar kalau masih tertutup. true kalau ada yang diklik. */
+  openComments?(doc: Document): boolean;
 }
 
 export function textOf(el: Element | null | undefined): string {

@@ -160,6 +160,9 @@
 .rg-toast b { display: block; margin-bottom: 4px; font-size: 14px; font-weight: 600; }
 .rg-toast-reason { margin: 8px 0; padding: 6px 10px; background: #1c1e22; border-radius: 6px; color: #a9d1f5; font-weight: 500; }
 .rg-toast small { color: #868a92; }
+.rg-toast[data-tone="ok"] { border-color: #2f6b47; }
+.rg-toast[data-tone="ok"] b { color: #7fd6a0; }
+.rg-toast[data-tone="err"] b { color: #f59a9a; }
 
 .rg-report-target { outline: 2px solid #f06a6a !important; outline-offset: 2px; border-radius: 6px; }
 

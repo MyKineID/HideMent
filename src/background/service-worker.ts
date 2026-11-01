@@ -223,10 +223,26 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       } catch {
         throw new Error("Tab komentar ini sudah ditutup. Buka lagi halamannya.");
       }
-      await reopenPost(item.tabId, tab?.url, item.pageUrl);
-      const res = (await chrome.tabs.sendMessage(item.tabId, {
-        type: "reportComment", commentId: item.commentId, text: item.text, verdict: item.verdict, auto: msg.auto,
-      } satisfies TabMsg)) as ReportResult | undefined;
+      const report = (find: "dom" | "scroll") =>
+        chrome.tabs.sendMessage(item.tabId, {
+          type: "reportComment", commentId: item.commentId, text: item.text, verdict: item.verdict, auto: msg.auto, find,
+        } satisfies TabMsg) as Promise<ReportResult | undefined>;
+      /*
+       * Urutan supaya terasa instan dan halaman tidak digulir:
+       * 1. komentarnya masih ada di halaman yang tampil → langsung buka menu lapornya;
+       * 2. tidak ada, tapi punya link sendiri (X, YouTube, IG) → buka link komentar itu, lalu lapor di sana;
+       * 3. tanpa link (TikTok) → buka lagi postingannya dan cari di panel komentar.
+       */
+      const permalink = item.url && item.url !== item.pageUrl ? item.url : null;
+      let res = await report("dom");
+      if (res?.missing && permalink) {
+        if (!samePage(tab?.url, permalink)) await openAndWait(item.tabId, permalink);
+        res = await report("dom");
+      }
+      if (!res || res.missing) {
+        await reopenPost(item.tabId, (await chrome.tabs.get(item.tabId).catch(() => tab))?.url, item.pageUrl);
+        res = await report("scroll");
+      }
       if (!res) throw new Error("Halaman belum siap. Refresh tab lalu coba lagi.");
       return res;
     }
@@ -306,6 +322,25 @@ function waitTabLoaded(tabId: number, timeoutMs = 20000): Promise<void> {
     const timer = setTimeout(done, timeoutMs);
     chrome.tabs.onUpdated.addListener(onUpdated);
   });
+}
+
+/** Halaman yang sama: path dan parameter penentu isi (YouTube: v & lc) sama, query pelacak diabaikan. */
+function samePage(a: string | undefined, b: string): boolean {
+  if (!a) return false;
+  try {
+    const [x, y] = [new URL(a), new URL(b)];
+    const key = (u: URL) => `${u.host}${u.pathname.replace(/\/$/, "")}?v=${u.searchParams.get("v") ?? ""}&lc=${u.searchParams.get("lc") ?? ""}`;
+    return key(x) === key(y);
+  } catch {
+    return false;
+  }
+}
+
+async function openAndWait(tabId: number, url: string): Promise<void> {
+  const loaded = waitTabLoaded(tabId);
+  await chrome.tabs.update(tabId, { url });
+  await loaded;
+  await ensureContent(tabId);
 }
 
 /** Tab sudah pindah ke postingan lain sejak komentar ini dianalisis: buka lagi postingan asalnya sebelum melapor. */

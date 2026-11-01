@@ -19,7 +19,15 @@ export type Msg =
 export type TabMsg =
   | { type: "verdicts"; verdicts: Verdict[] }
   | { type: "focusComment"; commentId: string; text: string }
-  | { type: "reportComment"; commentId: string; text: string; verdict: Verdict; auto?: boolean }
+  | {
+      type: "reportComment";
+      commentId: string;
+      text: string;
+      verdict: Verdict;
+      auto?: boolean;
+      /** "dom" = hanya cari di halaman yang sedang tampil (tanpa scroll); "scroll" = boleh menggulir wadah komentar. */
+      find?: "dom" | "scroll";
+    }
   | { type: "fastScan" }
   | { type: "ping" }
   | { type: "stopScan" }
@@ -75,6 +83,8 @@ export interface ReportResult {
   stage: ReportStage;
   reason: string;
   note: string;
+  /** Komentar tidak ada di halaman yang sedang tampil (mode find "dom"); service worker lalu membuka link komentarnya. */
+  missing?: boolean;
 }
 
 export interface StatusInfo {

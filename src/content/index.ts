@@ -220,7 +220,7 @@ function scheduleAutoScan(): void {
  * Cari komentar: lewat id dulu, lalu teksnya. Kalau sudah dihapus dari DOM (X/TikTok), gulir wadah komentar
  * (panel komentar TikTok/Instagram, atau jendela untuk YouTube/X) untuk mencarinya, jadi pengguna tidak perlu scroll sendiri.
  */
-async function findComment(id: string, text: string): Promise<HTMLElement | null> {
+async function findComment(id: string, text: string, mode: "dom" | "scroll" = "scroll"): Promise<HTMLElement | null> {
   if (!adapter) return null;
   const byId = elements.get(id);
   if (byId?.isConnected) return byId;
@@ -228,6 +228,14 @@ async function findComment(id: string, text: string): Promise<HTMLElement | null
   const byText = () => adapter.findComments(document).find((el) => adapter.getText(el).startsWith(needle)) ?? null;
   let hit = byText();
   if (hit) return hit;
+  if (mode === "dom") {
+    /* Halaman link komentar baru saja dibuka: tunggu sebentar sampai komentarnya digambar, tanpa menggulir. */
+    for (let i = 0; i < 16 && !hit; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      hit = byText();
+    }
+    return hit;
+  }
   if (adapter.openComments?.(document)) {
     for (let i = 0; i < 15 && !adapter.findComments(document).length; i++) await new Promise((r) => setTimeout(r, 300));
     if ((hit = byText())) return hit;
@@ -323,9 +331,14 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
   }
   if (msg.type === "reportComment") {
     armedPost = postKey();
-    void findComment(msg.commentId, msg.text).then((el) => {
+    void findComment(msg.commentId, msg.text, msg.find).then((el) => {
       if (!el || !adapter) {
-        sendResponse({ stage: "none", reason: "", note: "Komentar ini tidak ditemukan lagi di halaman (mungkin halaman berganti). Buka ulang postingannya." });
+        sendResponse({
+          stage: "none",
+          reason: "",
+          note: "Komentar ini tidak ditemukan lagi di halaman (mungkin halaman berganti). Buka ulang postingannya.",
+          missing: msg.find === "dom",
+        });
         return;
       }
       el.classList.remove("rg-hidden-host");

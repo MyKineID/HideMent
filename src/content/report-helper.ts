@@ -146,7 +146,8 @@ function toast(title: string, body: string, reason: string, ms = 10000, foot = F
 function mark(el: HTMLElement): void {
   document.querySelectorAll(".rg-report-target").forEach((n) => n.classList.remove("rg-report-target"));
   el.classList.add("rg-report-target");
-  el.scrollIntoView({ block: "nearest" });
+  /* Hanya menggulir di dalam form lapor (pilihan alasan yang panjang), bukan halamannya. */
+  if (el.closest(DIALOG_SEL)) el.scrollIntoView({ block: "nearest" });
 }
 
 /** Tutup form laporan yang tidak jadi dikirim supaya laporan berikutnya mulai dari keadaan bersih. */
@@ -199,9 +200,7 @@ export async function runReportFlow(el: HTMLElement, adapter: Adapter, v: Verdic
     return { stage, reason, note };
   };
   await dismissLeftover();
-  el.scrollIntoView({ block: "center" });
-  await sleep(250);
-
+  /* Menu ⋯ diklik langsung walau komentarnya di luar layar: halaman tidak digeser, form lapor muncul di tempat. */
   const menuBtn = adapter.getMenuButton(el);
   if (!menuBtn && auto) return fail("none", "Menu titik tiga komentar ini tidak ditemukan.");
   if (!menuBtn) {

@@ -1,0 +1,37 @@
+<!-- Fixture test adapter old.reddit.com, dianonimkan. Struktur HTML klasik: .thing.comment, isi di
+     .entry > .usertext .usertext-body .md, komentar bersarang di .child DI LUAR .entry induknya. -->
+<div class="commentarea">
+  <div class="panestack-title"><span class="title">all 3 comments</span></div>
+
+  <div class="thing comment" data-fullname="t1_komen1">
+    <div class="entry">
+      <p class="tagline">
+        <a href="/user/pengguna_a123" class="author">pengguna_a123</a>
+        <a class="bylink" data-event-action="permalink" href="https://old.reddit.com/r/uji_hidement/comments/1abc123/judul_thread/komen1/">permalink</a>
+      </p>
+      <div class="usertext"><div class="usertext-body"><div class="md"><p>komentar lama yang pertama</p></div></div></div>
+      <ul class="buttons">
+        <li><a href="javascript:void(0)" class="reportbutton">report</a></li>
+      </ul>
+    </div>
+    <div class="child">
+      <div class="thing comment" data-fullname="t1_komen2">
+        <div class="entry">
+          <p class="tagline">
+            <a href="/user/pengguna_b456" class="author">pengguna_b456</a>
+            <a class="bylink" href="https://old.reddit.com/r/uji_hidement/comments/1abc123/judul_thread/komen2/">permalink</a>
+          </p>
+          <div class="usertext"><div class="usertext-body"><div class="md"><p>balasan bersarang di old reddit</p></div></div></div>
+          <ul class="buttons"><li><a href="javascript:void(0)" class="reportbutton">report</a></li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thing comment" data-fullname="t1_komen3">
+    <div class="entry">
+      <p class="tagline"><span class="author">[deleted]</span></p>
+      <div class="usertext"><div class="usertext-body"><div class="md">[removed]</div></div></div>
+    </div>
+  </div>
+</div>

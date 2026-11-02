@@ -8,10 +8,11 @@ import { say } from "../shared/raphael";
 import { enhanceAll } from "../shared/ui";
 
 const PLATFORM_HOSTS: [RegExp, Platform, string][] = [
-  [/(^|\.)youtube\.com$/, "youtube", "YouTube"],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, "youtube", "YouTube"],
   [/(^|\.)instagram\.com$/, "instagram", "Instagram"],
   [/(^|\.)tiktok\.com$/, "tiktok", "TikTok"],
   [/(^|\.)(x|twitter)\.com$/, "x", "X"],
+  [/(^|\.)reddit\.com$/, "reddit", "Reddit"],
 ];
 
 let settings: Settings = DEFAULT_SETTINGS;
@@ -50,7 +51,7 @@ async function init(): Promise<void> {
     t.addEventListener("change", () => saveSettings({ platforms: { [match[1]]: t.checked } }));
     $("#scanBlock").hidden = false;
   } else {
-    site.textContent = "Buka YouTube, IG, TikTok, atau X";
+    site.textContent = "Buka YouTube, IG, TikTok, X, atau Reddit";
   }
   hydrateIcons();
   enhanceAll();

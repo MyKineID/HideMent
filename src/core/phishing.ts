@@ -27,7 +27,7 @@ const RISKY_TLDS = new Set([
 
 const TRUSTED_DOMAINS = [
   "youtube.com", "youtu.be", "google.com", "instagram.com", "tiktok.com", "x.com",
-  "twitter.com", "facebook.com", "wikipedia.org", "github.com", "detik.com", "kompas.com",
+  "twitter.com", "reddit.com", "redd.it", "facebook.com", "wikipedia.org", "github.com", "detik.com", "kompas.com",
   "go.id", "ac.id", "sch.id", "spotify.com", "open.spotify.com", "shopee.co.id",
   "tokopedia.com", "netflix.com", "whatsapp.com",
 ];

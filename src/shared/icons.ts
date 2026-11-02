@@ -19,6 +19,7 @@ const ICONS = {
   instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17" cy="7" r=".9" fill="currentColor"/>',
   tiktok: '<path d="M14 3.5v11.2a3.7 3.7 0 1 1-3.7-3.7"/><path d="M14 3.5a5 5 0 0 0 5 5"/>',
   x: '<path d="m4 4 16 16M20 4 4 20"/>',
+  reddit: '<ellipse cx="12" cy="14" rx="8" ry="5.5"/><path d="M12 8.5 14.3 4.6"/><circle cx="15" cy="4" r="1"/><circle cx="9.2" cy="13" r=".9" fill="currentColor"/><circle cx="14.8" cy="13" r=".9" fill="currentColor"/><path d="M9.2 16.2c.9.7 1.8 1 2.8 1s1.9-.3 2.8-1"/>',
   flag: '<path d="M5 21V4"/><path d="M5 4.5h11l-2 4 2 4H5"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   warn: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.2"/><circle cx="12" cy="16.9" r=".6" fill="currentColor"/>',

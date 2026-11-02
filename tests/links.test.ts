@@ -21,6 +21,13 @@ describe("link postingan dari teks bebas", () => {
     expect(links.map((l) => l.platform)).toEqual(["youtube", "instagram", "x", "youtube"]);
   });
 
+  it("link Reddit: thread, old.reddit, redd.it, dan share", () => {
+    const links = extractPostLinks(
+      "https://www.reddit.com/r/indonesia/comments/1abc123/megathread/ https://old.reddit.com/r/indonesia/comments/1abc123/megathread/def456/ https://redd.it/1xyz789 share: https://reddit.com/r/indonesia/s/kode123",
+    );
+    expect(links.map((l) => l.platform)).toEqual(["reddit", "reddit", "reddit", "reddit"]);
+  });
+
   it("id postingan untuk mencocokkan halaman setelah redirect", () => {
     expect(postIdOf("https://www.tiktok.com/@banjul21/video/7697160117355056405?_r=1")).toBe("7697160117355056405");
     expect(postIdOf("https://x.com/a/status/123")).toBe("123");
@@ -28,6 +35,13 @@ describe("link postingan dari teks bebas", () => {
     expect(postIdOf("https://www.youtube.com/watch?v=dQw4")).toBe("dQw4");
     expect(postIdOf("https://www.youtube.com/shorts/xyz")).toBe("xyz");
     expect(postIdOf("bukan url")).toBeNull();
+  });
+
+  it("id postingan Reddit: id thread-nya, bukan id komentar; link share tidak punya id", () => {
+    expect(postIdOf("https://www.reddit.com/r/indonesia/comments/1abc123/megathread/")).toBe("1abc123");
+    expect(postIdOf("https://old.reddit.com/r/indonesia/comments/1abc123/megathread/def456/")).toBe("1abc123");
+    expect(postIdOf("https://redd.it/1xyz789")).toBe("1xyz789");
+    expect(postIdOf("https://www.reddit.com/r/indonesia/s/kode123")).toBeNull();
   });
 });
 
@@ -52,7 +66,7 @@ describe("jumlah komentar", () => {
 });
 
 describe("konfirmasi laporan terkirim", () => {
-  it.each(["Terima kasih atas laporanmu", "Thanks for reporting", "Laporan kamu telah dikirim", "Report submitted", "We'll review your report"])(
+  it.each(["Terima kasih atas laporanmu", "Thanks for reporting", "Laporan kamu telah dikirim", "Report submitted", "We'll review your report", "Thanks for your report", "Your report was submitted"])(
     "terkirim: %s",
     (t) => expect(SENT_RE.test(t)).toBe(true),
   );

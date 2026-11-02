@@ -1,6 +1,6 @@
 export type Mode = "judol" | "kebencian" | "pelecehan" | "agama" | "sara" | "kustom";
 
-export type Platform = "youtube" | "instagram" | "tiktok" | "x";
+export type Platform = "youtube" | "instagram" | "tiktok" | "x" | "reddit";
 
 export type JudolCategory = "judol" | "phishing" | "scam" | "spam";
 export type KebencianCategory = "hinaan" | "perundungan" | "ancaman" | "sarkasme";

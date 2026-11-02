@@ -5,7 +5,7 @@
 
 Ekstensi browser untuk mendeteksi dan menyembunyikan promosi judi online (judol), link phising, ujaran kebencian, pelecehan seksual, penistaan agama, dan SARA berbahasa Indonesia.
 
-`Chrome / Edge (MV3)` · `YouTube` · `Instagram` · `TikTok` · `X` · `MIT`
+`Chrome / Edge (MV3)` · `YouTube` · `Instagram` · `TikTok` · `X` · `Reddit` · `MIT`
 
 <br clear="left"/>
 
@@ -222,7 +222,7 @@ Struktur:
 | `src/core/` | normalisasi teks, aturan judol & phising, prompt AI, pengaturan + validasi |
 | `src/background/` | service worker, klien API (streaming SSE), batcher, cache |
 | `src/content/` | pemindai komentar per platform, overlay, Pindai Cepat, bantu laporkan |
-| `src/content/adapters/` | selektor DOM per platform (YouTube, Instagram, TikTok, X) |
+| `src/content/adapters/` | selektor DOM per platform (YouTube, Instagram, TikTok, X, Reddit) |
 | `src/popup/`, `src/options/`, `src/sidepanel/` | antarmuka |
 | `src/shared/` | ikon, komponen UI, pesan antar-konteks, suara sistem Raphael |
 | `src/styles/theme.css` | token warna & komponen global |
@@ -230,7 +230,7 @@ Struktur:
 | `tests/` | unit test |
 | `research/` | dataset, auto-label, evaluasi, benchmark |
 
-Instagram dan TikTok sering mengubah struktur halamannya. Kalau komentar tidak terdeteksi, perbarui selektornya di `src/content/adapters/`.
+Instagram, TikTok, dan Reddit sering mengubah struktur halamannya. Kalau komentar tidak terdeteksi, perbarui selektornya di `src/content/adapters/`.
 
 ## Kontribusi
 
@@ -272,6 +272,7 @@ Temuan awal: sebagian besar komentar judol/phising justru **bernada positif** ("
 | Tes koneksi timeout | Server terhubung tapi model lambat/bermasalah. Pilih model lain atau naikkan Timeout. |
 | HTTP 401/403 | API key salah atau tidak punya akses ke model tersebut. |
 | Komentar Instagram/TikTok tidak terdeteksi | Struktur halaman berubah; perbarui selektor di `src/content/adapters/`. |
+| Komentar Reddit tidak terdeteksi | Reddit punya dua DOM: baru (`www.`/`sh.reddit.com`, web component `shreddit-*`) dan lama (`old.reddit.com`). Adapter mendukung keduanya. Kalau masih kosong, refresh tab setelah reload ekstensi. |
 | Di X "0 dipindai" / jumlah komentar kosong | X sedang memakai dua versi DOM (dengan dan tanpa `data-testid`); adapter X mendukung keduanya. Kalau masih kosong, refresh tab setelah reload ekstensi. |
 | TikTok berhenti di ±20 komentar | TikTok hanya memberi halaman pertama ke pengunjung yang belum login. Login dulu, lalu Analyze lagi. |
 | Hanya judol yang terdeteksi | AI belum terhubung; mode selain Judol membutuhkan endpoint AI. |
@@ -282,7 +283,8 @@ Temuan awal: sebagian besar komentar judol/phising justru **bernada positif** ("
 - [ ] Light theme mengikuti tema sistem.
 - [ ] Ekspor/impor pengaturan (tanpa API key).
 - [ ] Dukungan Firefox (MV3).
-- [ ] Adapter platform tambahan: Reddit ([PRD](docs/prd/reddit-platform.md)), Facebook, Threads.
+- [x] Adapter Reddit ([PRD](docs/prd/reddit-platform.md)) — mendukung Reddit baru (`www.`/`sh.`) dan `old.reddit.com`.
+- [ ] Adapter platform tambahan: Facebook, Threads.
 - [ ] Memperbesar dataset dengan komentar nyata yang sudah dianonimkan.
 - [ ] Mode model lokal (mis. server Ollama dengan endpoint kompatibel OpenAI) dengan panduan setup.
 

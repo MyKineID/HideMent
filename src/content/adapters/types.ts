@@ -26,6 +26,8 @@ export interface Adapter {
   getCommentCount(doc: Document, url: URL): number | null;
   /** Buka panel/tab komentar kalau masih tertutup. true kalau ada yang diklik. */
   openComments?(doc: Document): boolean;
+  /** Alasan menolak lapor otomatis di URL ini (mis. old.reddit); null/undefined = lapor otomatis didukung (FR-23). */
+  autoReportRefusal?(url: URL): string | null;
 }
 
 export function textOf(el: Element | null | undefined): string {

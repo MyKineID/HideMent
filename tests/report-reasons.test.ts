@@ -61,6 +61,40 @@ describe("label lapor X versi 2026", () => {
   for (const [cat, want] of cases) it(`${cat} → ${want}`, () => expect(pickReason(cat, X2026)).toBe(want));
 });
 
+describe("alasan lapor Reddit", () => {
+  const REDDIT = [
+    "Spam",
+    "Harassment",
+    "Sexualization",
+    "Hate",
+    "Threatening violence",
+    "Sharing personal information",
+    "Minor safety or exploitation",
+    "Something else",
+    "Cancel",
+    "Submit",
+  ];
+  const cases: [Category, string][] = [
+    ["judol", "Spam"],
+    ["spam", "Spam"],
+    ["phishing", "Spam"],
+    ["scam", "Spam"],
+    ["hinaan", "Harassment"],
+    ["perundungan", "Harassment"],
+    ["sara", "Hate"],
+    ["penistaan", "Hate"],
+    ["ancaman", "Threatening violence"],
+    ["pelecehan", "Sexualization"],
+    ["kustom", "Something else"],
+  ];
+  for (const [cat, want] of cases) it(`${cat} → ${want}`, () => expect(pickReason(cat, REDDIT)).toBe(want));
+
+  it("komentar aman & tombol kirim tidak pernah terpilih", () => {
+    expect(pickReason("aman", REDDIT)).toBeNull();
+    expect(pickReason("spam", ["Submit", "Cancel"])).toBeNull();
+  });
+});
+
 describe("sub-alasan (layar kedua)", () => {
   const SUB = ["Hinaan atau penghinaan terarah", "Konten seksual yang tidak diinginkan", "Ancaman kekerasan", "Lainnya", "Berikutnya"];
   it("hinaan → Hinaan atau penghinaan terarah", () => expect(pickReason("hinaan", SUB)).toBe("Hinaan atau penghinaan terarah"));

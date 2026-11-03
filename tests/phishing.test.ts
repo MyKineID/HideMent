@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { normalize } from "../src/core/normalize";
-import { analyzePhishing, extractLinks } from "../src/core/phishing";
+import { analyzePhishing, extractLinks, isTrusted } from "../src/core/phishing";
 
 const links = (t: string) => extractLinks(normalize(t)).map((l) => l.domain);
+
+describe("domain terpercaya", () => {
+  it("link platform yang didukung (termasuk Reddit) tidak dianggap phising", () => {
+    expect(isTrusted("reddit.com")).toBe(true);
+    expect(isTrusted("www.reddit.com")).toBe(true);
+    expect(isTrusted("redd.it")).toBe(true);
+    expect(isTrusted("domain-mencurigakan.xyz")).toBe(false);
+  });
+});
 
 describe("ekstraksi link", () => {
   it("menemukan URL biasa & tanpa protokol", () => {

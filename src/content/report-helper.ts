@@ -44,6 +44,26 @@ const MENU_SEL =
   '[data-e2e="comment-report"], [role="menuitem"], tp-yt-paper-item, ytd-menu-service-item-renderer, [role="menu"] [role="button"], [role="dialog"] button, [role="dialog"] [role="button"], [role="listbox"] li, li[data-e2e], button';
 const DIALOG_SEL = '[role="dialog"], [aria-modal="true"], tp-yt-paper-dialog, ytd-popup-container, [data-e2e*="report" i]';
 const OPTION_SEL = '[role="radio"], [role="option"], [role="menuitemradio"], label, [role="button"], button, li, tp-yt-paper-radio-button';
+/** Host web component yang konten menu/dialognya bisa hidup di dalam shadow root (mis. Reddit, FR-24). */
+const SHADOW_HOST_SEL =
+  "shreddit-overflow-menu, shreddit-comment-overflow-menu, shreddit-report-dialog, faceplate-dialog, shreddit-comment";
+
+/** Shadow root yang terbuka di sekitar host di atas; kosong di platform tanpa web component. */
+function shadowRoots(): ShadowRoot[] {
+  const out: ShadowRoot[] = [];
+  const push = (r: ShadowRoot | null) => {
+    if (r && !out.includes(r)) out.push(r);
+  };
+  for (const host of document.querySelectorAll<HTMLElement>(SHADOW_HOST_SEL)) {
+    push(host.shadowRoot);
+    for (const nested of host.shadowRoot?.querySelectorAll<HTMLElement>(SHADOW_HOST_SEL) ?? []) push(nested.shadowRoot);
+  }
+  return out;
+}
+
+/** Kontrol submit form (mis. tombol "Report" form inline old.reddit) bukan item menu yang boleh diklik alur. */
+const isSubmitControl = (el: HTMLElement): boolean =>
+  (el instanceof HTMLButtonElement && el.type === "submit") || el.matches('button[type="submit"], input[type="submit"]');
 
 /** Pilih teks alasan paling spesifik (terpendek) yang cocok dengan kategori; tombol kirim/lanjut tidak pernah dipilih. */
 export function pickReason(category: Category, options: string[]): string | null {
@@ -71,17 +91,26 @@ async function waitFor<T>(find: () => T | null | undefined, timeoutMs = 3500): P
 }
 
 function findReportItem(): HTMLElement | null {
+  const hit = (el: HTMLElement): boolean => {
+    if (ours(el) || !visible(el) || isSubmitControl(el)) return false;
+    const t = textOf(el);
+    return REPORT_ITEM_RE.test(t) && t.length < 40;
+  };
   for (const el of document.querySelectorAll<HTMLElement>(MENU_SEL)) {
-    if (ours(el) || !visible(el)) continue;
-    if (REPORT_ITEM_RE.test(textOf(el)) && textOf(el).length < 40) return el;
+    if (hit(el)) return el;
+  }
+  /* Menu web component (mis. Reddit) bisa dirender di dalam shadow root (FR-24). */
+  for (const root of shadowRoots()) {
+    for (const el of root.querySelectorAll<HTMLElement>(MENU_SEL)) {
+      if (hit(el)) return el;
+    }
   }
   return null;
 }
 
 function findReasonOption(category: Category): HTMLElement | null {
   const candidates = new Map<string, HTMLElement>();
-  for (const root of document.querySelectorAll<HTMLElement>(DIALOG_SEL)) {
-    if (!visible(root) || ours(root)) continue;
+  for (const root of [...document.querySelectorAll<HTMLElement>(DIALOG_SEL), ...shadowRoots()] as ParentNode[]) {
     for (const el of root.querySelectorAll<HTMLElement>(OPTION_SEL)) {
       const t = textOf(el);
       if (t && visible(el) && !ours(el) && !candidates.has(t)) candidates.set(t, el);
@@ -93,8 +122,7 @@ function findReasonOption(category: Category): HTMLElement | null {
 
 function dialogButtons(): HTMLElement[] {
   const out: HTMLElement[] = [];
-  for (const root of document.querySelectorAll<HTMLElement>(DIALOG_SEL)) {
-    if (!visible(root) || ours(root)) continue;
+  for (const root of [...document.querySelectorAll<HTMLElement>(DIALOG_SEL), ...shadowRoots()] as ParentNode[]) {
     root.querySelectorAll<HTMLElement>('button, [role="button"], tp-yt-paper-button, yt-button-shape button').forEach((b) => {
       if (visible(b) && !ours(b) && !out.includes(b)) out.push(b);
     });
@@ -199,6 +227,11 @@ export async function runReportFlow(el: HTMLElement, adapter: Adapter, v: Verdic
     toast("Lapor otomatis gagal", note, label, 5000, FOOT_AUTO, "err");
     return { stage, reason, note };
   };
+  /* Platform bisa menolak lapor otomatis (mis. old.reddit, FR-23) — dicek sebelum menyentuh menu/form apa pun. */
+  if (auto) {
+    const refusal = adapter.autoReportRefusal?.(new URL(location.href)) ?? null;
+    if (refusal) return fail("none", refusal);
+  }
   await dismissLeftover();
   /* Menu ⋯ diklik langsung walau komentarnya di luar layar: halaman tidak digeser, form lapor muncul di tempat. */
   const menuBtn = adapter.getMenuButton(el);

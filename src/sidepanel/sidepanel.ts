@@ -18,8 +18,8 @@ import { $, download } from "../shared/dom";
 import { hydrateIcons, icon } from "../shared/icons";
 import { confirmDialog, enhanceAll } from "../shared/ui";
 
-const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok", x: "X" };
-const SUPPORTED_RE = /^https:\/\/(www\.|m\.)?(youtube|instagram|tiktok|x|twitter)\.com\//;
+const PLATFORM_LABEL: Record<QueueItem["platform"], string> = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok", x: "X", reddit: "Reddit" };
+const SUPPORTED_RE = /^https:\/\/(www\.|m\.|old\.|sh\.)?(youtube|instagram|tiktok|x|twitter|reddit)\.com\//;
 /** Jeda antar laporan otomatis supaya platform tidak menganggapnya spam dan form sempat tertutup rapi. */
 const REPORT_GAP_MS = 2500;
 const AUTO_REPORT_MAX = 50;
@@ -508,7 +508,7 @@ scanBtn.addEventListener("click", async () => {
   if (scanning || linkRunning) return;
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id === undefined) return;
-  if (!SUPPORTED_RE.test(tab.url ?? "")) return showScanNote("Tab aktif bukan YouTube / Instagram / TikTok / X.");
+  if (!SUPPORTED_RE.test(tab.url ?? "")) return showScanNote("Tab aktif bukan YouTube / Instagram / TikTok / X / Reddit.");
   showScanNote("Menyambungkan ke postingan…");
   const r = await analyzeTab(tab.id);
   if (!r.ok) return showScanNote(r.note ?? "Gagal menganalisis.");
@@ -602,7 +602,7 @@ function renderLinks(): void {
   linkRunBtn.querySelector(".lbl")!.textContent = linkRunning ? "Sedang berjalan…" : links.length ? `Analyze ${links.length} link` : "Analyze link";
   linkStopBtn.hidden = !linkRunning;
   linkInput.disabled = linkRunning;
-  setText($("#linkSummary"), linkSummary || (links.length ? `${links.length} link terdeteksi` : "Tempel link video TikTok, YouTube, IG, atau X"));
+  setText($("#linkSummary"), linkSummary || (links.length ? `${links.length} link terdeteksi` : "Tempel link Reddit, TikTok, YouTube, IG, atau X"));
 
   linkList.hidden = !jobs.length;
   jobs.forEach((j, i) => {

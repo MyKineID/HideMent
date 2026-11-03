@@ -9,6 +9,7 @@ const URL_RE = /https?:\/\/[^\s<>"'()[\]]+/gi;
 
 const HOSTS: [RegExp, Platform][] = [
   [/(^|\.)tiktok\.com$/, "tiktok"],
+  [/(^|\.)(reddit\.com|redd\.it)$/, "reddit"],
   [/(^|\.)(youtube\.com|youtu\.be)$/, "youtube"],
   [/(^|\.)instagram\.com$/, "instagram"],
   [/(^|\.)(x|twitter)\.com$/, "x"],
@@ -46,7 +47,11 @@ export function extractPostLinks(text: string): PostLink[] {
 export function postIdOf(raw: string): string | null {
   try {
     const u = new URL(raw);
+    /* Reddit: /r/<sub>/comments/<id>/... — permalink komentar tetap mengarah ke id THREAD-nya; redd.it/<id>.
+       Link share /r/<sub>/s/<kode> tidak memuat id (null): tab runner membukanya lalu redirect-nya diikuti sendiri. */
     return (
+      u.pathname.match(/\/comments\/([\w-]+)/)?.[1] ??
+      (/(^|\.)redd\.it$/.test(u.hostname) ? (u.pathname.match(/^\/([\w-]+)/)?.[1] ?? null) : null) ??
       u.pathname.match(/\/(?:video|photo|status)\/(\d+)/)?.[1] ??
       u.pathname.match(/^\/(?:p|reel|reels|shorts)\/([\w-]+)/)?.[1] ??
       u.searchParams.get("v") ??

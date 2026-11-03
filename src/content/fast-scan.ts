@@ -7,8 +7,11 @@ import type { Adapter } from "./adapters/types";
  * menggulir wadah komentar sampai mentok, membuka "Tampilkan balasan", lalu mengembalikan posisi scroll.
  */
 
+/* Reddit: "more replies", "1 more reply", "View more comments", "muat komentar lainnya" (FR-17).
+   "Continue this thread"/"Lanjutkan utas ini" SENGAJA tidak dicocokkan: membuka halaman baru dan
+   memutus pemindaian — cabang itu cukup tercatat sebagai yang tidak termuat (FR-18). */
 const EXPAND_RE =
-  /^\d+\s+(balasan|replies|reply)$|(tampilkan|lihat|muat|show|view|load)\b.{0,30}\b(balasan|replies|reply|komentar|comments|tambahan|additional)/i;
+  /^\d+\s+(balasan|replies|reply)$|(tampilkan|lihat|muat|show|view|load)\b.{0,30}\b(balasan|replies|reply|komentar|comments|tambahan|additional)|^more\s+repl(y|ies)$|^\d+\s+more\s+repl(y|ies)$|^\d*\s*(balasan|komentar)\s+(lagi|lainnya)$/i;
 const SKIP_RE = /sembunyikan|hide|tutup|terjemah|translate|yang asli|original/i;
 const LOAD_MORE_SEL = '[aria-label*="load more comments" i], [aria-label*="muat komentar" i], [aria-label*="more comments" i]';
 const BUTTON_SEL = 'button, [role="button"], tp-yt-paper-button, ytd-button-renderer, span[role="button"]';

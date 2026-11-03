@@ -1,0 +1,25 @@
+<!-- Fixture test adapter Reddit baru (www/sh.reddit.com), dianonimkan: nama pengguna, subreddit, dan
+     isi komentar semuanya palsu. Struktur meniru shreddit: komentar bersarang = elemen terpisah,
+     metadata lewat atribut (author, permalink, comment-count), isi di [slot="comment"]. -->
+<main>
+  <shreddit-post author="uji_op" comment-count="5" permalink="/r/uji_hidement/comments/1abc123/judul_thread/" title="Judul thread uji">
+    <div slot="text-body"><p>Isi postingan yang netral.</p></div>
+    <button slot="interact" aria-label="5 comments">5 comments</button>
+  </shreddit-post>
+
+  <shreddit-comment author="pengguna_a123" permalink="/r/uji_hidement/comments/1abc123/judul_thread/komen1/">
+    <div slot="comment"><p>komentar pertama yang isinya biasa saja</p></div>
+    <shreddit-comment author="pengguna_b456" permalink="/r/uji_hidement/comments/1abc123/judul_thread/komen2/">
+      <div slot="comment"><p>balasan tingkat dua yang terpisah dari komentar induknya</p></div>
+    </shreddit-comment>
+  </shreddit-comment>
+
+  <shreddit-comment author="[deleted]" permalink="/r/uji_hidement/comments/1abc123/judul_thread/komen3/">
+    <div slot="comment"><p>[removed]</p></div>
+  </shreddit-comment>
+
+  <shreddit-comment author="u/pengguna_c789" permalink="/r/uji_hidement/comments/1abc123/judul_thread/komen4/">
+    <div slot="comment"><p>komentar dengan awalan u/ pada atribut author</p></div>
+    <button aria-label="more options"></button>
+  </shreddit-comment>
+</main>

@@ -62,7 +62,7 @@ export const DEFAULT_SETTINGS: Settings = {
   modes: { judol: true, kebencian: false, pelecehan: false, agama: false, sara: false, kustom: false },
   custom: { name: "", definition: "" },
   learn: { enabled: true, includeFeedback: true },
-  platforms: { youtube: true, instagram: true, tiktok: true, x: true },
+  platforms: { youtube: true, instagram: true, tiktok: true, x: true, reddit: true },
   display: {
     showBadge: true,
     highlight: true,

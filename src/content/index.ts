@@ -393,7 +393,8 @@ if (adapter) {
     start();
     const [was, now] = [activeModes(prev), activeModes(s)];
     const modesChanged = MODES.some((m) => was[m] !== now[m]) || (now.kustom && prev.custom.definition !== s.custom.definition);
-    if (modesChanged || prev.api.model !== s.api.model) {
+    const keywordsChanged = prev.customKeywords.join("\n") !== s.customKeywords.join("\n");
+    if (modesChanged || keywordsChanged) {
       verdicts.clear();
       verdictByFp.clear();
       for (const el of elements.values()) {

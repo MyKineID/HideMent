@@ -5,7 +5,7 @@ import { runReportFlow } from "./report-helper";
 import { icon } from "../shared/icons";
 
 const MARK_CLASSES = ["rg-hl-tinggi", "rg-hl-sedang", "rg-hl-aman", "rg-hidden-host"];
-const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan lokal (tanpa AI)", ai: "AI", cache: "AI (dari cache)" };
+const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan judol lokal", model: "Mesin lokal Raphael (tanpa AI)" };
 
 export interface OverlayCallbacks {
   onDismiss(el: HTMLElement, v: Verdict): void;
@@ -96,7 +96,7 @@ function togglePopover(badge: HTMLElement, v: Verdict, level: Level, el: HTMLEle
   pop.querySelector<HTMLElement>(".rg-pop-bar i")!.style.width = `${Math.max(2, v.score)}%`;
   pop.querySelector(".rg-r-reason")!.textContent = v.reason || "—";
   pop.querySelector(".rg-r-mode")!.textContent = level === "aman" ? "—" : (MODE_LABEL[v.mode] ?? "—");
-  pop.querySelector(".rg-r-src")!.textContent = SOURCE_LABEL[v.source];
+  pop.querySelector(".rg-r-src")!.textContent = SOURCE_LABEL[v.source] ?? "Mesin lokal";
   if (level === "aman") pop.querySelector(".rg-pop-actions")!.remove();
   else if (!assist) pop.querySelector('[data-a="report"]')!.remove();
 

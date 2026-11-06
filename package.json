@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "license": "MIT",
-  "description": "HideMent (Hide Comment): ekstensi browser untuk mendeteksi & menyembunyikan komentar berbahaya berbahasa Indonesia (judol, link phising, toxic)",
+  "description": "HideMent (Hide Comment): ekstensi browser untuk mendeteksi & menyembunyikan komentar berbahaya berbahasa Indonesia (judol, link phising, toxic) dengan mesin lokal tanpa AI",
   "repository": {
     "type": "git",
     "url": "https://github.com/MyKineID/HideMent.git"
@@ -21,7 +21,8 @@
     "check": "npm run typecheck && npm test && npm run build",
     "eval": "tsx research/eval.ts",
     "label": "tsx research/label.ts",
-    "bench": "tsx research/bench.ts"
+    "bench": "tsx research/bench.ts",
+    "seed": "node scripts/make-seed.mjs"
   },
   "devDependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

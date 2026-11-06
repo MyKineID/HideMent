@@ -108,7 +108,7 @@ details.adv[open] > summary { margin-bottom: 10px; }
 .mode-check { width: 20px; height: 20px; border: 1.6px solid #4a4e56; border-radius: 5px; background: var(--bg); transition: background-color .15s, border-color .15s; }
 .mode:hover .mode-check { border-color: var(--text-3); }
 .mode-desc { grid-column: 1 / -1; align-self: start; min-height: calc(3 * 1.5em); font-size: 13px; line-height: 1.5; color: var(--text-2); }
-.no-ai .mode-foot.ai, .mode-foot.warn { color: var(--warn-text); }
+.mode-foot.warn { color: var(--warn-text); }
 
 .custom-panel { padding-top: 14px; border-color: color-mix(in srgb, #6cb4ee 40%, var(--line)); }
 .custom-head { display: flex; align-items: center; gap: 8px; padding: 0 16px; color: var(--accent); }
@@ -142,6 +142,32 @@ details.adv[open] > summary { margin-bottom: 10px; }
 .ex-tag.sara { --c: #4fc7b8; }
 .ex-tag.kustom { --c: #6cb4ee; }
 .ex-empty { padding: 18px 16px; font-size: 13px; color: var(--text-3); }
+
+.eng-meta { margin-top: 6px; font-size: 12px; color: var(--text-3); }
+
+/* Coba mesin: keyakinan tiap kategori, seperti jawaban pilihan ganda model keputusan. */
+.try-out { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); }
+.try-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.try-head b { font-size: 13px; font-weight: 500; }
+.try-time { margin-left: auto; font-size: 12px; color: var(--text-3); }
+.try-reason { font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
+.try-bars { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.try-bars li { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 32px; align-items: center; gap: 10px; font-size: 12px; color: var(--text-2); }
+.try-bars b { font-weight: 500; text-align: right; color: var(--text-2); }
+.try-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.try-meter { height: 6px; overflow: hidden; background: var(--surface-3); border-radius: 999px; }
+.try-meter i { display: block; height: 100%; background: var(--text-3); border-radius: inherit; transition: width .2s; }
+.try-bars li.mid .try-meter i { background: var(--warn); }
+.try-bars li.high .try-meter i { background: var(--danger); }
+.try-bars li.mid b { color: var(--warn-text); }
+.try-bars li.high b { color: var(--danger-text); }
+.try-sim { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.try-sim-head { font-size: 12px; color: var(--text-3); }
+.try-sim ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.try-sim li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 12px; }
+.try-sim-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.try-sim b { font-weight: 500; color: var(--text-3); }
+@media (max-width: 640px) { .try-bars li { grid-template-columns: minmax(0, 96px) minmax(0, 1fr) 28px; } }
 
 .mode:has(> input:checked) { background: color-mix(in srgb, var(--c) 9%, var(--surface)); border-color: color-mix(in srgb, var(--c) 55%, transparent); }
 .mode:has(> input:checked) .mode-ico { color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }

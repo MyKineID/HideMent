@@ -17,9 +17,9 @@
         <b>HideMent</b>
         <span class="brand-sub">Pengaturan</span>
       </div>
-      <div class="conn" id="connTag" data-state="off" role="status">
+      <div class="conn" id="connTag" data-state="ok" role="status">
         <span class="conn-dot" aria-hidden="true"></span>
-        <span class="conn-text">Belum terhubung</span>
+        <span class="conn-text">Mesin lokal aktif</span>
       </div>
       <label class="power">
         <span id="powerState">Aktif</span>
@@ -31,7 +31,7 @@
   <div class="layout">
     <nav class="nav" aria-label="Bagian pengaturan">
       <a href="#deteksi"><span data-icon="shield"></span>Deteksi</a>
-      <a href="#koneksi"><span data-icon="link"></span>Koneksi AI</a>
+      <a href="#mesin"><span data-icon="bolt"></span>Mesin lokal</a>
       <a href="#pindai"><span data-icon="search"></span>Pemindaian</a>
       <a href="#tampilan"><span data-icon="eye"></span>Tampilan</a>
       <a href="#platform"><span data-icon="grid"></span>Platform</a>
@@ -50,7 +50,7 @@
           <p>Pilih jenis komentar yang mau dideteksi. Saya yang membaca, menilai, lalu menandai, memburamkan, atau menyembunyikannya untukmu.</p>
           <div class="hero-stats">
             <a class="hs" href="#deteksi"><b class="mono" id="heroModes">0/5</b><span>mode aktif</span></a>
-            <a class="hs" href="#koneksi"><b id="heroAi">Belum</b><span>koneksi AI</span></a>
+            <a class="hs" href="#mesin"><b id="heroAi" class="ok">Lokal</b><span>tanpa AI &amp; API</span></a>
             <a class="hs" href="#platform"><b class="mono" id="heroPlat">0/4</b><span>platform</span></a>
           </div>
         </div>
@@ -69,47 +69,46 @@
             <button class="btn quiet" id="modesNone" type="button">Kosongkan</button>
           </div>
         </div>
-        <p class="notice" id="needsAi"><span data-icon="warn" data-size="16"></span><span>Mode selain Judol butuh koneksi AI. <a href="#koneksi">Hubungkan sekarang</a></span></p>
         <div class="modes">
           <label class="mode m-judol">
             <input type="checkbox" data-key="modes.judol" />
             <span class="mode-ico" data-icon="seven" data-size="20"></span>
-            <span class="mode-head"><b class="mode-title">Judol</b><span class="mode-foot">Jalan tanpa AI</span></span>
+            <span class="mode-head"><b class="mode-title">Judol</b><span class="mode-foot">Lokal</span></span>
             <span class="mode-check" aria-hidden="true"></span>
-            <small class="mode-desc">Promosi judi online, link phising, penipuan, dan spam. Yang ragu diteruskan ke AI.</small>
+            <small class="mode-desc">Promosi judi online, link phising, penipuan, dan spam, termasuk yang disamarkan.</small>
           </label>
           <label class="mode m-kebencian">
             <input type="checkbox" data-key="modes.kebencian" />
             <span class="mode-ico" data-icon="warn" data-size="20"></span>
-            <span class="mode-head"><b class="mode-title">Ujaran Kebencian</b><span class="mode-foot ai">Butuh AI</span></span>
+            <span class="mode-head"><b class="mode-title">Ujaran Kebencian</b><span class="mode-foot">Lokal</span></span>
             <span class="mode-check" aria-hidden="true"></span>
             <small class="mode-desc">Hinaan, perundungan, ancaman, dan sarkasme yang merendahkan orang.</small>
           </label>
           <label class="mode m-pelecehan">
             <input type="checkbox" data-key="modes.pelecehan" />
             <span class="mode-ico" data-icon="eyeOff" data-size="20"></span>
-            <span class="mode-head"><b class="mode-title">Pelecehan Seksual</b><span class="mode-foot ai">Butuh AI</span></span>
+            <span class="mode-head"><b class="mode-title">Pelecehan Seksual</b><span class="mode-foot">Lokal</span></span>
             <span class="mode-check" aria-hidden="true"></span>
             <small class="mode-desc">Komentar cabul atau mesum ke seseorang, objektifikasi tubuh, dan ajakan seksual.</small>
           </label>
           <label class="mode m-agama">
             <input type="checkbox" data-key="modes.agama" />
             <span class="mode-ico" data-icon="book" data-size="20"></span>
-            <span class="mode-head"><b class="mode-title">Penistaan Agama</b><span class="mode-foot ai">Butuh AI</span></span>
+            <span class="mode-head"><b class="mode-title">Penistaan Agama</b><span class="mode-foot">Lokal</span></span>
             <span class="mode-check" aria-hidden="true"></span>
             <small class="mode-desc">Menghina ajaran, kitab suci, nabi atau tokoh suci, simbol, dan ibadah agama.</small>
           </label>
           <label class="mode m-sara">
             <input type="checkbox" data-key="modes.sara" />
             <span class="mode-ico" data-icon="users" data-size="20"></span>
-            <span class="mode-head"><b class="mode-title">SARA</b><span class="mode-foot ai">Butuh AI</span></span>
+            <span class="mode-head"><b class="mode-title">SARA</b><span class="mode-foot">Lokal</span></span>
             <span class="mode-check" aria-hidden="true"></span>
             <small class="mode-desc">Kebencian atau hasutan terhadap suku, ras, etnis, penganut agama, atau golongan.</small>
           </label>
           <label class="mode m-kustom">
             <input type="checkbox" data-key="modes.kustom" />
             <span class="mode-ico" data-icon="spark" data-size="20"></span>
-            <span class="mode-head"><b class="mode-title" id="customTitle">Kustom</b><span class="mode-foot ai" id="customFoot">Butuh AI</span></span>
+            <span class="mode-head"><b class="mode-title" id="customTitle">Kustom</b><span class="mode-foot" id="customFoot">Lokal</span></span>
             <span class="mode-check" aria-hidden="true"></span>
             <small class="mode-desc" id="customDesc">Tulis sendiri jenis komentar yang mau ditandai, misalnya spoiler.</small>
           </label>
@@ -122,54 +121,36 @@
               <input id="customName" type="text" maxlength="40" placeholder="mis. Spoiler" autocomplete="off" />
             </div>
             <div class="field field-wide">
-              <label for="customDefinition">Komentar seperti apa yang ditandai? <span class="count" id="customDefCount"></span></label>
-              <textarea id="customDefinition" maxlength="400" placeholder="mis. membocorkan akhir cerita film atau series yang sedang dibahas"></textarea>
-              <p class="hint">Tulis dengan kalimat biasa. Makin jelas batasnya, makin akurat. Tambahkan contoh di bagian Contoh belajar biar makin pas.</p>
+              <label for="customDefinition">Kata kunci atau frasa yang ditandai <span class="count" id="customDefCount"></span></label>
+              <textarea id="customDefinition" maxlength="400" placeholder="mis. ending, mati di akhir, pelakunya ternyata, spoiler"></textarea>
+              <p class="hint">Pisahkan dengan koma atau baris baru. Frasa pendek (1–4 kata) langsung jadi penanda kuat; kalimat panjang dipecah jadi kata-kata yang lebih lemah. Tambahkan contoh berlabel Kustom di Contoh belajar supaya mesin juga mengenali variasi kalimatnya.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="koneksi" class="sec" aria-labelledby="h-koneksi">
+      <section id="mesin" class="sec" aria-labelledby="h-mesin">
         <div class="sec-head">
-          <h2 id="h-koneksi">Koneksi AI</h2>
-          <p>Endpoint kompatibel OpenAI (mis. 9router) untuk semua mode selain Judol: ujaran kebencian, pelecehan seksual, penistaan agama, SARA, dan mode kustom. Deteksi judol tetap berjalan tanpa koneksi.</p>
+          <h2 id="h-mesin">Mesin deteksi lokal</h2>
+          <p>Semua mode dinilai di browser tanpa AI: kamus berbobot, model Naive Bayes, dan pencarian contoh paling mirip dari database berlabel. Gratis, tanpa API key, tanpa internet.</p>
+          <p class="eng-meta mono" id="engMeta"></p>
         </div>
-        <div class="group">
-          <div class="fields">
-            <div class="field">
-              <label for="baseUrl">Base URL</label>
-              <input id="baseUrl" type="url" placeholder="http://localhost:20128/v1" spellcheck="false" autocomplete="off" />
+        <div class="group learn-add">
+          <div class="field">
+            <label for="tryText">Coba mesin</label>
+            <textarea id="tryText" placeholder="Tulis atau tempel satu komentar, mis. &quot;dasar goblok, gak usah upload lagi&quot;" spellcheck="false"></textarea>
+            <p class="hint">Setiap kategori dari mode yang aktif diberi keyakinan 0–100; yang tertinggi jadi hasilnya.</p>
+          </div>
+          <div class="try-out" id="tryOut" aria-live="polite" hidden>
+            <div class="try-head"><span class="ex-tag" id="tryCat"></span><b class="mono" id="tryScore"></b><span class="try-time mono" id="tryTime"></span></div>
+            <p class="try-reason" id="tryReason"></p>
+            <ul class="try-bars" id="tryBars"></ul>
+            <div class="try-sim" id="trySimWrap" hidden>
+              <span class="try-sim-head">Contoh paling mirip</span>
+              <ul id="trySim"></ul>
             </div>
-            <div class="field">
-              <label for="apiKey">API key</label>
-              <div class="row">
-                <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" />
-                <button id="toggleKey" class="btn ghost icon" type="button" aria-label="Tampilkan API key" aria-pressed="false" data-icon="eye"></button>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="item-main"><b>Server</b><small>Chrome meminta izin akses hanya ke host ini.</small></div>
-            <button id="connect" class="btn" type="button">Hubungkan</button>
-          </div>
-          <div class="item" id="modelStep">
-            <div class="item-main"><b id="modelLabel">Model</b><small id="modelCount">Hubungkan dulu untuk memuat daftar model.</small></div>
-            <div id="modelPicker" class="picker"></div>
-          </div>
-          <div class="item">
-            <div class="item-main"><b>Uji koneksi</b><small id="testResult" aria-live="polite">Kirim satu permintaan kecil ke model terpilih.</small></div>
-            <button id="testApi" class="btn ghost" type="button">Tes koneksi</button>
           </div>
         </div>
-        <details class="adv">
-          <summary>Pengaturan lanjutan</summary>
-          <div class="group">
-            <div class="item"><label class="item-main" for="timeout"><b>Timeout</b><small>Detik menunggu jawaban model.</small></label><div class="num-field"><input id="timeout" type="number" min="5" max="180" /></div></div>
-            <div class="item"><label class="item-main" for="batchSize"><b>Komentar per request</b><small>Lebih besar lebih hemat, tapi tiap jawaban lebih lama.</small></label><div class="num-field"><input id="batchSize" type="number" min="1" max="50" /></div></div>
-            <div class="item"><label class="item-main" for="concurrency"><b>Request paralel</b><small>Jumlah request yang berjalan bersamaan.</small></label><div class="num-field"><input id="concurrency" type="number" min="1" max="8" /></div></div>
-          </div>
-        </details>
       </section>
 
 
@@ -272,8 +253,8 @@
 
       <section id="belajar" class="sec" aria-labelledby="h-belajar">
         <div class="sec-head">
-          <h2 id="h-belajar">Contoh belajar AI</h2>
-          <p>Tambahkan contoh komentar beserta labelnya. Setiap menganalisis, Raphael mengambil contoh yang paling mirip dan memakainya sebagai acuan, jadi hasilnya makin sesuai keinginanmu. Tanpa training, jalan di model apa pun.</p>
+          <h2 id="h-belajar">Contoh belajar</h2>
+          <p>Tambahkan contoh komentar beserta labelnya. Mesin lokal langsung mempelajarinya (dilatih ulang dalam hitungan milidetik): komentar yang hampir sama mengikuti labelmu, dan pola katanya ikut dipakai menilai komentar lain.</p>
         </div>
         <div class="learn-stats">
           <div><b class="mono" id="exCount">0</b><span>contoh tersimpan</span></div>
@@ -281,14 +262,14 @@
           <div><b class="mono" id="exLabels">0</b><span>label terpakai</span></div>
         </div>
         <div class="group">
-          <label class="item"><span class="item-main"><b>Pakai contoh saat analisis</b><small>Maksimal 8 contoh paling mirip ikut dikirim per permintaan.</small></span><input class="switch" type="checkbox" data-key="learn.enabled" /></label>
+          <label class="item"><span class="item-main"><b>Pakai contoh saat analisis</b><small>Contoh dipelajari mesin lokal, tidak dikirim ke mana pun.</small></span><input class="switch" type="checkbox" data-key="learn.enabled" /></label>
           <label class="item"><span class="item-main"><b>Ikutkan tombol “Bukan berbahaya”</b><small>Komentar yang kamu tandai aman otomatis jadi contoh berlabel Aman.</small></span><input class="switch" type="checkbox" data-key="learn.includeFeedback" /></label>
         </div>
         <div class="group learn-add">
           <div class="field">
             <label for="learnLinks">Belajar dari link postingan</label>
             <textarea id="learnLinks" placeholder="Tempel link video TikTok, YouTube, IG, atau X. Boleh banyak sekaligus, langsung dari chat WhatsApp juga bisa."></textarea>
-            <p class="hint">HideMent membuka tiap link, memuat &amp; menganalisis semua komentarnya, lalu menyimpan yang hasilnya yakin (prioritas tinggi, dan aman menurut AI) sebagai contoh berlabel. Progresnya tampil di side panel. Label yang kamu buat sendiri tidak pernah ditimpa.</p>
+            <p class="hint">HideMent membuka tiap link, memuat &amp; menganalisis semua komentarnya, lalu menyimpan yang hasilnya yakin (prioritas tinggi, dan yang jelas aman) sebagai contoh berlabel. Progresnya tampil di side panel. Label yang kamu buat sendiri tidak pernah ditimpa.</p>
           </div>
           <div class="learn-add-row">
             <button id="learnLinksRun" class="btn" type="button" disabled><span data-icon="link" data-size="15"></span><span class="lbl">Pelajari komentar dari link</span></button>
@@ -329,7 +310,7 @@
           <div class="field">
             <label for="customKeywords">Kata kunci judi online <span class="count" id="customKeywordsCount"></span></label>
             <textarea id="customKeywords" placeholder="nama situs baru, satu per baris"></textarea>
-            <p class="hint">Dicek langsung oleh aturan lokal, tanpa AI.</p>
+            <p class="hint">Dicek langsung oleh aturan judol lokal.</p>
           </div>
         </div>
       </section>
@@ -338,8 +319,7 @@
         <div class="sec-head"><h2 id="h-data">Data</h2></div>
         <div class="group">
           <div class="item"><div class="item-main"><b>Catatan salah deteksi</b><small id="fbCount">—</small></div><button id="exportFeedback" class="btn ghost" type="button">Ekspor JSON</button></div>
-          <div class="item"><div class="item-main"><b>Cache hasil analisis</b><small>Hapus agar komentar dianalisis ulang.</small></div><button id="clearCache" class="btn ghost" type="button">Hapus cache</button></div>
-          <div class="item"><div class="item-main"><b>Reset semua pengaturan</b><small>Termasuk Base URL dan API key.</small></div><button id="resetAll" class="btn danger" type="button">Reset</button></div>
+          <div class="item"><div class="item-main"><b>Reset semua pengaturan</b><small>Contoh belajar dan catatan salah deteksi tidak ikut terhapus.</small></div><button id="resetAll" class="btn danger" type="button">Reset</button></div>
         </div>
         <p class="foot">HideMent <span id="ver"></span> · dikembangkan dari Tempest oleh MyKineID · ilustrasi Raphael digambar sendiri oleh pembuat proyek · MIT</p>
       </section>

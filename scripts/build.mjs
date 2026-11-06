@@ -1,5 +1,6 @@
 import { build, context } from "esbuild";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { makeSeed } from "./make-seed.mjs";
 
 const watch = process.argv.includes("--watch");
 const OUT = "dist";
@@ -52,6 +53,8 @@ const options = {
   plugins: [{ name: "static", setup: (b) => b.onEnd(() => copyStatic()) }],
 };
 
+/* Database contoh (data/seed) → contoh bawaan mesin lokal, selalu segar sebelum dibundel. */
+await makeSeed();
 await rm(OUT, { recursive: true, force: true });
 if (watch) {
   const ctx = await context(options);

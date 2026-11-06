@@ -1,13 +1,18 @@
 import { normalize } from "./normalize";
-import type { PromptExample } from "./prompt";
 import { CATEGORY_LABEL, type Category } from "./types";
 
 /*
- * Contoh belajar: komentar berlabel dari pengguna. Tidak ada training; setiap kali menganalisis,
- * contoh yang paling mirip dengan komentar yang sedang dinilai ikut dikirim ke AI sebagai acuan
- * (few-shot berbasis kemiripan). Kemiripan dihitung dari trigram teks yang sudah dinormalisasi,
- * jadi tetap cocok walau ditulis dengan huruf hias atau angka pengganti huruf.
+ * Contoh belajar: komentar berlabel dari pengguna. Mesin lokal (src/core/engine) memakainya dengan dua cara:
+ * - Naive Bayes dilatih ulang dari contoh ini (hanya menghitung kata, selesai dalam milidetik);
+ * - komentar yang hampir sama dengan sebuah contoh mengikuti label contoh tersebut.
+ * Kemiripan dihitung dari teks yang sudah dinormalisasi, jadi tetap cocok walau ditulis dengan huruf hias
+ * atau angka pengganti huruf.
  */
+
+export interface LabeledText {
+  text: string;
+  label: Category;
+}
 
 /**
  * "review" = dicek pengguna di Antrian (tombol Benar/Salah) dari komentar yang sudah dianalisis.
@@ -15,7 +20,7 @@ import { CATEGORY_LABEL, type Category } from "./types";
  */
 export type ExampleSource = "manual" | "import" | "feedback" | "review" | "link";
 
-export interface Example extends PromptExample {
+export interface Example extends LabeledText {
   at: number;
   source: ExampleSource;
 }
@@ -121,55 +126,21 @@ export function exampleKey(text: string): string {
   return normalize(text).compact;
 }
 
-function trigrams(text: string): Set<string> {
-  const s = ` ${normalize(text).deleet.replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
-  const out = new Set<string>();
-  for (let i = 0; i + 3 <= s.length; i++) out.add(s.slice(i, i + 3));
-  return out;
-}
-
-function jaccard(a: Set<string>, b: Set<string>): number {
-  if (!a.size || !b.size) return 0;
-  const [small, big] = a.size < b.size ? [a, b] : [b, a];
-  let inter = 0;
-  for (const g of small) if (big.has(g)) inter++;
-  return inter / (a.size + b.size - inter);
-}
-
-export interface PickOptions {
-  /** Kategori yang boleh dipakai sebagai contoh (mode aktif + "aman"). */
-  allowed: Set<Category>;
-  perItem?: number;
-  max?: number;
-  minScore?: number;
-}
-
-export class ExampleIndex {
-  private grams: Set<string>[];
-
-  constructor(readonly examples: PromptExample[]) {
-    this.grams = examples.map((e) => trigrams(e.text));
-  }
-
-  get size(): number {
-    return this.examples.length;
-  }
-
-  /** Untuk tiap komentar, ambil contoh paling mirip (tanpa duplikat antar komentar dalam satu batch). */
-  pick(texts: string[], { allowed, perItem = 2, max = 8, minScore = 0.2 }: PickOptions): PromptExample[] {
-    const chosen = new Set<number>();
-    for (const t of texts) {
-      const g = trigrams(t);
-      const scored: [number, number][] = [];
-      this.grams.forEach((eg, i) => {
-        if (chosen.has(i) || !allowed.has(this.examples[i].label)) return;
-        const score = jaccard(g, eg);
-        if (score >= minScore) scored.push([score, i]);
-      });
-      scored.sort((a, b) => b[0] - a[0]);
-      for (const [, i] of scored.slice(0, perItem)) chosen.add(i);
-      if (chosen.size >= max) break;
-    }
-    return [...chosen].slice(0, max).map((i) => this.examples[i]);
-  }
+/**
+ * Contoh yang dipelajari mesin lokal: contoh belajar (kalau "Pakai contoh saat analisis" aktif) ditambah
+ * catatan tombol "Bukan berbahaya" sebagai contoh aman (kalau diikutkan).
+ */
+export function learningExamples(
+  examples: Example[],
+  feedback: { text?: string; label?: string }[],
+  learn: { enabled: boolean; includeFeedback: boolean },
+): LabeledText[] {
+  if (!learn.enabled) return [];
+  const fromFeedback = learn.includeFeedback
+    ? feedback.flatMap((f) => {
+        const label = toLabel(f.label);
+        return f.text && label ? [{ text: f.text, label }] : [];
+      })
+    : [];
+  return [...examples.map(({ text, label }) => ({ text, label })), ...fromFeedback];
 }

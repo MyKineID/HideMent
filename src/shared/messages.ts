@@ -2,11 +2,10 @@ import type { CommentInput, Platform, QueueItem, ReportStatus, Verdict } from ".
 
 export type Msg =
   | { type: "analyze"; platform: Platform; url: string; comments: CommentInput[] }
-  | { type: "listModels"; baseUrl: string; apiKey: string }
-  | { type: "testConnection" }
+  /** Nilai satu kalimat dengan mesin lokal (fitur "Coba mesin" di Pengaturan). Balasan: Decision. */
+  | { type: "tryEngine"; text: string }
   | { type: "getQueue" }
   | { type: "clearQueue" }
-  | { type: "clearCache" }
   | { type: "getStatus"; tabId?: number }
   | { type: "focusComment"; tabId: number; commentId: string; text: string }
   | { type: "removeQueueItem"; key: string }
@@ -88,16 +87,9 @@ export interface ReportResult {
 }
 
 export interface StatusInfo {
-  configured: boolean;
-  model: string;
   tabCounts: { scanned: number; high: number; medium: number };
-  /** Komentar tab ini yang masih menunggu jawaban AI. */
-  pendingAi: number;
-  requests: number;
-  failures: number;
-  lastLatencyMs: number;
-  lastTtftMs: number;
-  lastError: string;
+  /** Mesin keputusan lokal: jumlah contoh yang dipelajari dan kecepatan rata-rata. */
+  engine: { examples: number; seed: number; analyzed: number; avgUs: number };
 }
 
 export async function send<T = unknown>(msg: Msg): Promise<T> {

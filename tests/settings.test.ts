@@ -8,9 +8,9 @@ describe("sanitasi pengaturan", () => {
   });
 
   it("angka di luar rentang dibatasi, nilai rusak kembali ke default", () => {
-    const s = resolveSettings({ api: { batchSize: 0, concurrency: 99, timeoutMs: "abc" }, scan: { max: 1e9 } });
-    expect(s.api).toMatchObject({ batchSize: 1, concurrency: 8, timeoutMs: DEFAULT_SETTINGS.api.timeoutMs });
+    const s = resolveSettings({ scan: { max: 1e9 }, thresholds: { high: "abc", medium: -5 } });
     expect(s.scan.max).toBe(2000);
+    expect(s.thresholds).toEqual({ high: DEFAULT_SETTINGS.thresholds.high, medium: 10 });
   });
 
   it("ambang sedang selalu di bawah ambang tinggi", () => {
@@ -58,11 +58,10 @@ describe("sanitasi pengaturan", () => {
     expect(filled.custom.definition).toHaveLength(400);
   });
 
-  it("base URL & API key di-trim", () => {
-    expect(resolveSettings({ api: { baseUrl: "  http://localhost:20128/v1 ", apiKey: " sk-x " } }).api).toMatchObject({
-      baseUrl: "http://localhost:20128/v1",
-      apiKey: "sk-x",
-    });
+  it("koneksi AI dari versi lama (Base URL, API key, model) dibuang", () => {
+    const s = resolveSettings({ api: { baseUrl: "http://localhost:20128/v1", apiKey: "sk-rahasia", model: "x" } }) as unknown as Record<string, unknown>;
+    expect(s.api).toBeUndefined();
+    expect(JSON.stringify(s)).not.toContain("sk-rahasia");
   });
 });
 

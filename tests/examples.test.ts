@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ExampleIndex, mergeExamples, parseExamples } from "../src/core/examples";
+import { learningExamples, mergeExamples, parseExamples } from "../src/core/examples";
 import type { Category } from "../src/core/types";
 
 describe("baca file contoh", () => {
@@ -31,30 +31,6 @@ describe("baca file contoh", () => {
   });
 });
 
-describe("pilih contoh paling mirip", () => {
-  const index = new ExampleIndex([
-    { text: "PULAU138 gacor maxwin pasti wd", label: "judol" },
-    { text: "editing videonya kurang rapi bang", label: "aman" },
-    { text: "dasar orang bodoh gak guna", label: "hinaan" },
-  ]);
-  const all = new Set<Category>(["judol", "aman", "hinaan"]);
-
-  it("tahan huruf hias & angka pengganti", () => {
-    expect(index.pick(["𝐏𝐔𝐋𝐀𝐔𝟏𝟑𝟖 g4c0r maxwin"], { allowed: all })[0]?.label).toBe("judol");
-  });
-
-  it("melewati kategori yang modenya mati & yang tidak mirip", () => {
-    expect(index.pick(["dasar bodoh gak guna"], { allowed: new Set<Category>(["aman"]) })).toEqual([]);
-    expect(index.pick(["resep rendang padang"], { allowed: all })).toEqual([]);
-  });
-
-  it("dibatasi jumlahnya dan tanpa duplikat", () => {
-    const picked = index.pick(["pulau138 gacor", "pulau138 maxwin"], { allowed: all, perItem: 2, max: 3 });
-    expect(new Set(picked).size).toBe(picked.length);
-    expect(picked.length).toBeLessThanOrEqual(3);
-  });
-});
-
 describe("contoh dari link postingan", () => {
   const at = 1;
   it("tidak menimpa label dari manusia, tapi boleh ditimpa manusia", () => {
@@ -71,5 +47,22 @@ describe("contoh dari link postingan", () => {
     expect(out).toHaveLength(2000);
     expect(out).toContainEqual(manual);
     expect(out.at(-1)?.text).toBe("komentar link baru");
+  });
+});
+
+describe("contoh yang dipelajari mesin", () => {
+  const ex = [{ text: "PULAU138 gacor", label: "judol" as Category, at: 1, source: "manual" as const }];
+  const fb = [{ text: "info slot parkir", label: "aman" }, { text: "", label: "aman" }, { text: "x", label: "ngawur" }];
+
+  it("contoh + catatan Bukan berbahaya sebagai contoh aman", () => {
+    expect(learningExamples(ex, fb, { enabled: true, includeFeedback: true })).toEqual([
+      { text: "PULAU138 gacor", label: "judol" },
+      { text: "info slot parkir", label: "aman" },
+    ]);
+  });
+
+  it("saklar belajar dihormati", () => {
+    expect(learningExamples(ex, fb, { enabled: true, includeFeedback: false })).toHaveLength(1);
+    expect(learningExamples(ex, fb, { enabled: false, includeFeedback: true })).toEqual([]);
   });
 });

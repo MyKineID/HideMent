@@ -1,100 +1,71 @@
 /**
- * Benchmark kecepatan & akurasi model di 9router untuk tugas klasifikasi komentar HideMent.
+ * Benchmark kecepatan mesin keputusan lokal HideMent (tanpa API, tanpa internet).
  *
- *   NINE_ROUTER_BASE_URL=... NINE_ROUTER_API_KEY=... npm run bench -- model-a model-b ...
+ *   npm run bench [-- path/dataset.jsonl ...]
  *
- * Tiap model menerima 20 komentar yang sama (prompt asli ekstensi, streaming).
- * Diukur: waktu ke hasil pertama, total waktu, akurasi berbahaya/aman, dan ketepatan kategori.
+ * Diukur: waktu membangun mesin (melatih Naive Bayes dari seed + contoh), waktu menilai satu komentar
+ * (median, p95, rata-rata setelah pemanasan), dan jumlah komentar per detik.
  */
 import { readFile } from "node:fs/promises";
-import { chatStream } from "../src/background/api";
-import { buildSystemPrompt, buildUserPrompt, parseAiResponse, parseJsonLines, parseVerdictRow } from "../src/core/prompt";
-import { DEFAULT_SETTINGS } from "../src/core/settings";
-import type { Category } from "../src/core/types";
+import { DecisionEngine } from "../src/core/engine";
 
-const models = process.argv.slice(2);
-if (!models.length) {
-  console.error("Pakai: npm run bench -- <model> [model ...]");
+const files = process.argv.slice(2);
+if (!files.length) files.push("research/dataset/sample.jsonl", "research/dataset/holdout.jsonl", "research/dataset/blind.jsonl");
+
+const texts: string[] = [];
+for (const f of files) {
+  const raw = await readFile(f, "utf8").catch(() => "");
+  for (const l of raw.split("\n")) if (l.trim()) texts.push(JSON.parse(l).text);
+}
+if (!texts.length) {
+  console.error("Tidak ada komentar untuk diuji.");
   process.exit(1);
 }
-const modes = { ...DEFAULT_SETTINGS.modes, kebencian: true, pelecehan: true, agama: true, sara: true };
-const LIMIT = Number(process.env.BENCH_N ?? 20);
-const rows = (await readFile("research/dataset/sample.jsonl", "utf8"))
-  .split("\n")
-  .filter(Boolean)
-  .map((l) => JSON.parse(l) as { text: string; label: Category });
 
-const picked: typeof rows = [];
-const seen = new Map<string, number>();
-for (const r of rows) {
-  const n = seen.get(r.label) ?? 0;
-  if (n < (r.label === "aman" ? 5 : 2) && picked.length < LIMIT) {
-    picked.push(r);
-    seen.set(r.label, n + 1);
-  }
-}
-const ids = picked.map((_, i) => String(i + 1));
-const system = buildSystemPrompt(modes);
-const user = buildUserPrompt(picked.map((r, i) => ({ input: { id: ids[i], text: r.text } })));
+const modes = { judol: true, kebencian: true, pelecehan: true, agama: true, sara: true, kustom: true };
+const custom = { name: "Spoiler", definition: "ending, mati di akhir, pelakunya ternyata" };
+const now = () => performance.now();
 
-interface Result {
-  model: string;
-  ok: boolean;
-  firstMs?: number;
-  totalMs?: number;
-  got?: number;
-  harmAcc?: number;
-  catAcc?: number;
-  error?: string;
-}
+let t = now();
+const engine = new DecisionEngine();
+const buildMs = now() - t;
 
-async function bench(model: string): Promise<Result> {
-  const api = { ...DEFAULT_SETTINGS.api, baseUrl: process.env.NINE_ROUTER_BASE_URL ?? "", apiKey: process.env.NINE_ROUTER_API_KEY ?? "", model, timeoutMs: 30000 };
-  const started = Date.now();
-  let firstMs = 0;
-  let buf = "";
-  try {
-    const res = await chatStream(api, system, user, (t) => {
-      buf += t;
-      if (!firstMs && parseJsonLines(buf.slice(0, buf.lastIndexOf("\n") + 1)).some((r) => parseVerdictRow(r, modes))) firstMs = Date.now() - started;
-    });
-    const v = new Map(parseAiResponse(res.content, ids, modes).map((x) => [x.id, x]));
-    let harm = 0;
-    let cat = 0;
-    picked.forEach((r, i) => {
-      const p = v.get(ids[i])?.category ?? "aman";
-      if ((p === "aman") === (r.label === "aman")) harm++;
-      if (p === r.label) cat++;
-    });
-    return { model, ok: true, firstMs: firstMs || res.latencyMs, totalMs: res.latencyMs, got: v.size, harmAcc: harm / picked.length, catAcc: cat / picked.length };
-  } catch (e) {
-    return { model, ok: false, error: (e as Error).message.slice(0, 60) };
-  }
-}
+/* Contoh pengguna sintetis untuk mengukur dampak 2000 contoh belajar (batas maksimal di ekstensi). */
+const userExamples = Array.from({ length: 2000 }, (_, i) => ({ text: `${texts[i % texts.length]} ${i}`, label: i % 3 ? ("aman" as const) : ("judol" as const) }));
+t = now();
+const big = new DecisionEngine({ examples: userExamples });
+const buildBigMs = now() - t;
 
-const results: Result[] = [];
-const queue = [...models];
-await Promise.all(
-  Array.from({ length: 4 }, async () => {
-    for (let m = queue.shift(); m; m = queue.shift()) {
-      const r = await bench(m);
-      results.push(r);
-      console.log(r.ok ? `✓ ${m}  ${r.firstMs} ms / ${r.totalMs} ms` : `✗ ${m}  ${r.error}`);
+function measure(e: DecisionEngine, rounds: number): number[] {
+  for (const text of texts) e.decide({ id: "w", text }, { modes, custom }); // pemanasan
+  const out: number[] = [];
+  for (let r = 0; r < rounds; r++) {
+    for (const text of texts) {
+      const s = now();
+      e.decide({ id: "x", text }, { modes, custom });
+      out.push((now() - s) * 1000);
     }
-  }),
-);
+  }
+  return out.sort((a, b) => a - b);
+}
 
-const ok = results.filter((r) => r.ok).sort((a, b) => a.totalMs! - b.totalMs!);
-console.log(`\n${picked.length} komentar per model · diurutkan dari total waktu tercepat\n`);
-console.table(
-  ok.map((r) => ({
-    model: r.model,
-    "hasil pertama": `${(r.firstMs! / 1000).toFixed(1)} dtk`,
-    total: `${(r.totalMs! / 1000).toFixed(1)} dtk`,
-    terjawab: `${r.got}/${picked.length}`,
-    "berbahaya vs aman": `${Math.round(r.harmAcc! * 100)}%`,
-    kategori: `${Math.round(r.catAcc! * 100)}%`,
-  })),
-);
-const failed = results.filter((r) => !r.ok);
-if (failed.length) console.log(`Gagal: ${failed.map((r) => `${r.model} (${r.error})`).join("; ")}`);
+function row(name: string, us: number[]) {
+  const avg = us.reduce((a, b) => a + b, 0) / us.length;
+  return {
+    mesin: name,
+    median: `${us[Math.floor(us.length / 2)].toFixed(0)} µs`,
+    p95: `${us[Math.floor(us.length * 0.95)].toFixed(0)} µs`,
+    "rata-rata": `${avg.toFixed(0)} µs`,
+    "komentar/detik": Math.round(1e6 / avg).toLocaleString("id-ID"),
+  };
+}
+
+const rounds = Math.max(3, Math.ceil(3000 / texts.length));
+console.log(`${texts.length} komentar × ${rounds} putaran, semua mode aktif (termasuk kustom)\n`);
+console.log(`Bangun mesin (seed bawaan):        ${buildMs.toFixed(0)} ms`);
+console.log(`Bangun mesin (+2000 contoh belajar): ${buildBigMs.toFixed(0)} ms\n`);
+console.table([row("seed bawaan", measure(engine, rounds)), row("+2000 contoh belajar", measure(big, rounds))]);
+const total = texts.length;
+t = now();
+for (const text of texts) engine.decide({ id: "x", text }, { modes, custom });
+console.log(`\n${total} komentar sekali jalan: ${(now() - t).toFixed(1)} ms total`);

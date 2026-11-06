@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeRules, prefilter, RULE_DIRECT_THRESHOLD } from "../src/core/judol-rules";
-
-const modes = { judol: true, kebencian: true, pelecehan: true, agama: true, sara: true, kustom: false };
+import { analyzeRules, RULE_DIRECT_THRESHOLD } from "../src/core/judol-rules";
 
 describe("aturan judol", () => {
   const spam = [
@@ -34,31 +32,5 @@ describe("aturan judol", () => {
 
   it("kata kunci kustom ikut dihitung", () => {
     expect(analyzeRules("main di situsbaru sekarang", ["situsbaru"]).judolScore).toBeGreaterThan(40);
-  });
-});
-
-describe("prefilter", () => {
-  it("komentar emoji/pendek dilewati tanpa AI", () => {
-    const r = prefilter({ id: "1", text: "🔥🔥👍" }, modes, []);
-    expect(r.needsAi).toBe(false);
-    expect(r.verdict?.category).toBe("aman");
-  });
-
-  it("judol kuat diputuskan lokal", () => {
-    const r = prefilter({ id: "2", text: "PULAU138 gacor maxwin pasti wd" }, modes, []);
-    expect(r.needsAi).toBe(false);
-    expect(r.verdict).toMatchObject({ mode: "judol", category: "judol", source: "rule" });
-  });
-
-  it("komentar biasa diteruskan ke AI", () => {
-    const r = prefilter({ id: "3", text: "Bodoh banget sih kamu, gak usah bikin video lagi" }, modes, []);
-    expect(r.needsAi).toBe(true);
-    expect(r.verdict).toBeUndefined();
-  });
-
-  it("mode judol mati → tidak ada putusan judol lokal", () => {
-    const r = prefilter({ id: "4", text: "PULAU138 gacor maxwin pasti wd" }, { ...modes, judol: false }, []);
-    expect(r.verdict).toBeUndefined();
-    expect(r.hint).toBeUndefined();
   });
 });

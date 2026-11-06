@@ -3,12 +3,12 @@ import { priorityOf, type Settings } from "./settings";
 import type { Category, QueueItem, Verdict } from "./types";
 
 /*
- * Dari hasil analisis ke data belajar AI, lewat dua jalur:
- * - Cek pengguna di Antrian: "Benar" = label AI dipakai, "Salah" = komentar itu sebenarnya aman.
+ * Dari hasil analisis ke contoh belajar mesin lokal, lewat dua jalur:
+ * - Cek pengguna di Antrian: "Benar" = label hasil analisis dipakai, "Salah" = komentar itu sebenarnya aman.
  *   Label ini selalu menang.
  * - "Analyze dari link" dengan "Pelajari komentarnya": hanya hasil yang yakin (learnFromComments),
  *   bersumber "link" supaya bisa dibedakan, dihapus massal, dan tidak pernah menimpa label manusia.
- * Contoh lalu ikut dikirim ke AI sebagai acuan untuk komentar yang mirip.
+ * Mesin lokal lalu mempelajari contoh ini (Naive Bayes + pencocokan komentar yang mirip).
  */
 
 /** Label hasil cek pengguna per teks komentar (kunci = exampleKey). */
@@ -38,7 +38,7 @@ export function autoReportCandidates(queue: QueueItem[], reviews: ReviewMap): Qu
 
 export interface DatasetRow {
   text: string;
-  /** Label akhir: hasil cek pengguna kalau ada, kalau belum = tebakan AI/aturan. */
+  /** Label akhir: hasil cek pengguna kalau ada, kalau belum = tebakan mesin/aturan. */
   label: Category;
   predicted: Category;
   score: number;
@@ -79,9 +79,9 @@ export interface LearnInput {
 }
 
 /**
- * Komentar postingan yang dianalisis lewat "Analyze dari link" → contoh belajar AI.
- * Hanya hasil yang yakin yang diambil: prioritas tinggi (label kategorinya) dan "aman" yang dinilai AI.
- * Yang sedang/ragu dan "aman" dari aturan lokal saja dilewati, lalu "aman" dibatasi supaya contoh tidak
+ * Komentar postingan yang dianalisis lewat "Analyze dari link" → contoh belajar mesin lokal.
+ * Hanya hasil yang yakin yang diambil: prioritas tinggi (label kategorinya) dan "aman" yang dinilai mesin.
+ * Yang sedang/ragu dan "aman" karena terlalu pendek/whitelist (sumber aturan) dilewati, lalu "aman" dibatasi supaya contoh tidak
  * dibanjiri komentar biasa. Label buatan manusia tetap menang (lihat mergeExamples).
  */
 export function learnFromComments(comments: LearnInput[], thresholds: Settings["thresholds"], now = Date.now(), maxSafe = 40): Example[] {

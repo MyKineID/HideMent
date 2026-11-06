@@ -1,31 +1,18 @@
-import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
-import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, type Category } from "../core/types";
+import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, priorityOf, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
+import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, verdictLabel, type Category } from "../core/types";
 import { EXAMPLES_KEY, mergeExamples, parseExamples, type Example } from "../core/examples";
 import { extractPostLinks } from "../core/links";
-import type { ModelList } from "../background/api";
-import { send } from "../shared/messages";
+import type { Decision } from "../core/engine";
+import { send, type StatusInfo } from "../shared/messages";
 import { $, bindToggles, download, refreshToggles } from "../shared/dom";
 import { hydrateIcons, icon } from "../shared/icons";
 import { say } from "../shared/raphael";
 import { presetOf, presetPatch, type Preset } from "../shared/presets";
-import { confirmDialog, createCombobox, enhanceAll, enhanceSelect } from "../shared/ui";
+import { confirmDialog, enhanceAll, enhanceSelect } from "../shared/ui";
 
 let settings: Settings = DEFAULT_SETTINGS;
-let allModels: string[] = [];
 
-const baseUrl = $<HTMLInputElement>("#baseUrl");
-const apiKey = $<HTMLInputElement>("#apiKey");
 const dlg = $("#dlg");
-const FAST_MODEL = /flash-lite|flash-low|lite-preview/i;
-
-const modelPicker = createCombobox($("#modelPicker"), {
-  label: "Model",
-  empty: "Belum ada model",
-  onSelect: async (m) => {
-    await save({ api: { model: m } }, `Model diganti ke ${m}.`);
-    renderConnTag();
-  },
-});
 
 const tell = (text: string, tone: "info" | "ok" | "err" = "ok") => say(dlg, text, tone, tone === "err" ? 9000 : 4200);
 
@@ -34,96 +21,66 @@ async function save(patch: DeepPartial<Settings>, note = "Pengaturan disimpan.")
   tell(note);
 }
 
-/* ── koneksi ─────────────────────────────── */
+/* ── mesin lokal ─────────────────────────── */
 
-function renderConnTag(state?: "ok" | "err"): void {
-  const tag = $("#connTag");
-  const text = tag.querySelector<HTMLElement>(".conn-text")!;
-  const configured = Boolean(settings.api.baseUrl && settings.api.model);
-  tag.dataset.state = state === "err" ? "err" : configured ? "ok" : "off";
-  text.textContent = state === "err" ? "Gagal terhubung ke AI" : configured ? "Terhubung ke AI" : "Belum terhubung ke AI";
-  $("#needsAi").hidden = configured;
-  document.body.classList.toggle("no-ai", !configured);
-  const ai = $("#heroAi");
-  ai.textContent = state === "err" ? "Gagal" : configured ? "Terhubung" : "Belum";
-  ai.className = configured && state !== "err" ? "ok" : "off";
+const fmtUs = (us: number) => (us < 1000 ? `${us} µs` : `${(us / 1000).toFixed(1)} ms`);
+
+async function renderEngine(): Promise<void> {
+  const st = await send<StatusInfo>({ type: "getStatus" }).catch(() => null);
+  if (!st) return;
+  const parts = [`database ${st.engine.seed.toLocaleString("id-ID")} contoh`, `contohmu ${st.engine.examples.toLocaleString("id-ID")}`];
+  if (st.engine.avgUs) parts.push(`rata-rata ${fmtUs(st.engine.avgUs)}/komentar`);
+  $("#engMeta").textContent = parts.join(" · ");
 }
 
-function renderModels(): void {
-  const source = allModels.length ? allModels : settings.api.model ? [settings.api.model] : [];
-  modelPicker.set(
-    source.map((m) => {
-      const slash = m.indexOf("/");
-      return { value: m, prefix: slash > 0 ? m.slice(0, slash + 1) : undefined, label: slash > 0 ? m.slice(slash + 1) : m, badge: FAST_MODEL.test(m) ? "Cepat" : undefined };
-    }),
-    settings.api.model,
-  );
-  const locked = source.length === 0;
-  modelPicker.setDisabled(locked, "Hubungkan dulu");
-  $("#modelStep").classList.toggle("step-locked", locked);
-  $("#modelCount").textContent = allModels.length
-    ? `${allModels.length} model di server ini. Yang bertanda Cepat paling responsif.`
-    : locked
-      ? "Hubungkan dulu untuk memuat daftar model."
-      : "Hubungkan ulang untuk memuat daftar terbaru.";
-}
+let tryTimer: ReturnType<typeof setTimeout> | undefined;
+let tryToken = 0;
 
-function originPattern(url: string): string | null {
-  try {
-    const u = new URL(url);
-    return /^https?:$/.test(u.protocol) ? `${u.protocol}//${u.hostname}/*` : null;
-  } catch {
-    return null;
+/** "Coba mesin": nilai kalimat yang diketik dan tampilkan keyakinan tiap kategori. */
+async function tryEngine(): Promise<void> {
+  const text = $<HTMLTextAreaElement>("#tryText").value.trim();
+  const out = $("#tryOut");
+  if (!text) return void (out.hidden = true);
+  const token = ++tryToken;
+  const d = await send<Decision>({ type: "tryEngine", text }).catch((e: Error) => (tell(e.message, "err"), null));
+  if (!d || token !== tryToken) return;
+  out.hidden = false;
+  const v = d.verdict;
+  const tag = $("#tryCat");
+  tag.className = `ex-tag ${v.category}`;
+  tag.textContent = v.category === "aman" ? "Aman" : verdictLabel(v);
+  $("#tryScore").textContent = v.category === "aman" ? `skor ${v.score}` : `skor ${v.score} · prioritas ${priorityOf(v.score, settings.thresholds)}`;
+  $("#tryTime").textContent = fmtUs(d.us);
+  $("#tryReason").textContent = v.reason || "—";
+  const bars = $("#tryBars");
+  bars.replaceChildren();
+  const rows = (Object.entries(d.probs) as [Category, number][]).sort((x, y) => y[1] - x[1]).slice(0, 6);
+  for (const [cat, p] of rows) {
+    const pct = Math.round(p * 100);
+    const li = document.createElement("li");
+    li.className = pct >= settings.thresholds.high ? "high" : pct >= settings.thresholds.medium ? "mid" : "";
+    const name = Object.assign(document.createElement("span"), { className: "try-name", textContent: catLabel(cat) });
+    const meter = Object.assign(document.createElement("span"), { className: "try-meter" });
+    const fill = document.createElement("i");
+    fill.style.width = `${Math.max(1, pct)}%`;
+    meter.append(fill);
+    const num = Object.assign(document.createElement("b"), { className: "mono", textContent: String(pct) });
+    li.append(name, meter, num);
+    bars.append(li);
   }
-}
-
-async function connect(): Promise<void> {
-  const url = baseUrl.value.trim();
-  const origin = originPattern(url);
-  if (!origin) return tell("Base URL belum valid. Harus diawali http:// atau https://", "err");
-  const btn = $<HTMLButtonElement>("#connect");
-  btn.disabled = true;
-  say(dlg, "Menghubungkan ke server…", "info");
-  try {
-    if (!(await chrome.permissions.request({ origins: [origin] }))) throw new Error("Izin akses ke server ditolak.");
-    const res = await send<ModelList>({ type: "listModels", baseUrl: url, apiKey: apiKey.value.trim() });
-    allModels = res.models;
-    if (res.baseUrl !== url) baseUrl.value = res.baseUrl;
-    const model = allModels.includes(settings.api.model) ? settings.api.model : (allModels[0] ?? "");
-    settings = await saveSettings({ api: { baseUrl: res.baseUrl, apiKey: apiKey.value.trim(), model } });
-    await chrome.storage.local.set({ modelCache: allModels });
-    renderModels();
-    renderConnTag();
-    tell(`Terhubung. ${allModels.length} model ditemukan, "${model}" dipilih. Silakan ganti kalau perlu.`);
-  } catch (e) {
-    renderConnTag("err");
-    tell((e as Error).message, "err");
-  } finally {
-    btn.disabled = false;
+  /* Bukti: contoh berlabel paling mirip dari database / contoh belajarmu. */
+  const sim = $("#trySim");
+  sim.replaceChildren();
+  for (const x of d.similar) {
+    const li = document.createElement("li");
+    const tag = Object.assign(document.createElement("span"), { className: `ex-tag ${x.label}`, textContent: x.label === "aman" ? "Aman" : catLabel(x.label) });
+    const text = Object.assign(document.createElement("span"), { className: "try-sim-text", textContent: x.text, title: x.text });
+    const pct = Object.assign(document.createElement("b"), { className: "mono", textContent: `${Math.round(x.sim * 100)}%`, title: x.from === "contohmu" ? "dari contoh belajarmu" : "dari database bawaan" });
+    li.append(tag, text, pct);
+    sim.append(li);
   }
-}
-
-async function testApi(): Promise<void> {
-  const btn = $<HTMLButtonElement>("#testApi");
-  const out = $("#testResult");
-  if (!settings.api.model) return tell("Hubungkan server dan pilih model dulu.", "err");
-  btn.disabled = true;
-  let waited = 0;
-  out.textContent = "Menguji…";
-  const ticker = setInterval(() => (out.textContent = `Menunggu jawaban model… ${++waited} dtk`), 1000);
-  try {
-    const r = await send<{ latencyMs: number }>({ type: "testConnection" });
-    out.textContent = `Berhasil · ${settings.api.model} · ${r.latencyMs} ms`;
-    renderConnTag();
-    tell(`Model merespons dalam ${r.latencyMs} ms. Siap menganalisis komentar.`);
-  } catch (e) {
-    out.textContent = "Gagal";
-    renderConnTag("err");
-    tell((e as Error).message, "err");
-  } finally {
-    clearInterval(ticker);
-    btn.disabled = false;
-  }
+  $("#trySimWrap").hidden = d.similar.length === 0;
+  void renderEngine();
 }
 
 function clampNum(input: HTMLInputElement, min: number, max: number, fallback: number): number {
@@ -213,10 +170,10 @@ function renderCustom(): void {
   const { name, definition } = settings.custom;
   $("#customPanel").hidden = !settings.modes.kustom;
   $("#customTitle").textContent = name || "Kustom";
-  $("#customDesc").textContent = definition || "Tulis sendiri jenis komentar yang mau ditandai, misalnya spoiler.";
+  $("#customDesc").textContent = definition ? `Kata kunci: ${definition}` : "Tulis sendiri kata kunci komentar yang mau ditandai, misalnya spoiler.";
   const foot = $("#customFoot");
   const missing = settings.modes.kustom && !definition;
-  foot.textContent = missing ? "Isi definisi dulu" : "Butuh AI";
+  foot.textContent = missing ? "Isi kata kunci dulu" : "Lokal";
   foot.classList.toggle("warn", missing);
   $("#customDefCount").textContent = definition ? `${definition.length}/400` : "";
 }
@@ -356,11 +313,6 @@ function renderPower(): void {
 }
 
 function fillForm(): void {
-  baseUrl.value = settings.api.baseUrl;
-  apiKey.value = settings.api.apiKey;
-  $<HTMLInputElement>("#timeout").value = String(Math.round(settings.api.timeoutMs / 1000));
-  $<HTMLInputElement>("#batchSize").value = String(settings.api.batchSize);
-  $<HTMLInputElement>("#concurrency").value = String(settings.api.concurrency);
   $<HTMLInputElement>("#scanMax").value = String(settings.scan.max);
   $<HTMLInputElement>("#high").value = String(settings.thresholds.high);
   $<HTMLInputElement>("#medium").value = String(settings.thresholds.medium);
@@ -368,8 +320,6 @@ function fillForm(): void {
   $<HTMLTextAreaElement>("#whitelist").value = settings.whitelist.join("\n");
   $<HTMLTextAreaElement>("#customKeywords").value = settings.customKeywords.join("\n");
   refreshToggles(document, settings);
-  renderModels();
-  renderConnTag();
   renderPresets();
   renderCategoryActions();
   renderCounts();
@@ -418,8 +368,8 @@ async function init(): Promise<void> {
   enhanceAll();
   $("#ver").textContent = chrome.runtime.getManifest?.().version ?? "";
   settings = await loadSettings();
-  allModels = ((await chrome.storage.local.get("modelCache")).modelCache ?? []) as string[];
   fillForm();
+  void renderEngine();
   setupScrollSpy();
   void refreshFeedbackCount();
 
@@ -448,25 +398,13 @@ async function init(): Promise<void> {
   });
   $("#modesNone").addEventListener("click", () => setAllModes(false));
 
-  $("#connect").addEventListener("click", connect);
-  $("#testApi").addEventListener("click", testApi);
-  baseUrl.addEventListener("keydown", (e) => e.key === "Enter" && void connect());
-  apiKey.addEventListener("keydown", (e) => e.key === "Enter" && void connect());
-  apiKey.addEventListener("change", () => save({ api: { apiKey: apiKey.value.trim() } }, "API key disimpan."));
-  const toggleKey = $<HTMLButtonElement>("#toggleKey");
-  toggleKey.addEventListener("click", () => {
-    const show = apiKey.type === "password";
-    apiKey.type = show ? "text" : "password";
-    toggleKey.setAttribute("aria-pressed", String(show));
-    toggleKey.setAttribute("aria-label", show ? "Sembunyikan API key" : "Tampilkan API key");
-    toggleKey.innerHTML = icon(show ? "eyeOff" : "eye", 16);
+  $("#tryText").addEventListener("input", () => {
+    clearTimeout(tryTimer);
+    tryTimer = setTimeout(() => void tryEngine(), 120);
   });
 
   const d = DEFAULT_SETTINGS;
   const advanced: [string, number, number, number, (v: number) => DeepPartial<Settings>][] = [
-    ["#timeout", LIMITS.timeoutMs[0] / 1000, LIMITS.timeoutMs[1] / 1000, d.api.timeoutMs / 1000, (v) => ({ api: { timeoutMs: v * 1000 } })],
-    ["#batchSize", ...LIMITS.batchSize, d.api.batchSize, (v) => ({ api: { batchSize: v } })],
-    ["#concurrency", ...LIMITS.concurrency, d.api.concurrency, (v) => ({ api: { concurrency: v } })],
     ["#scanMax", ...LIMITS.scanMax, d.scan.max, (v) => ({ scan: { max: v } })],
   ];
   for (const [sel, min, max, fb, patch] of advanced) {
@@ -527,21 +465,16 @@ async function init(): Promise<void> {
     download(`hidement-feedback-${Date.now()}.json`, JSON.stringify(fb, null, 2), "application/json");
     tell(`${fb.length} feedback diekspor.`);
   });
-  $("#clearCache").addEventListener("click", async () => {
-    await send({ type: "clearCache" });
-    tell("Cache dihapus. Komentar akan dianalisis ulang.");
-  });
   $("#resetAll").addEventListener("click", async () => {
     const ok = await confirmDialog({
       title: "Konfirmasi",
-      message: "Reset semua pengaturan ke awal? Base URL, API key, dan pilihan model juga ikut terhapus.",
+      message: "Reset semua pengaturan ke awal? Contoh belajar dan catatan salah deteksi tetap disimpan.",
       confirmText: "Reset",
       danger: true,
     });
     if (!ok) return;
-    await chrome.storage.local.set({ settings: DEFAULT_SETTINGS, modelCache: [] });
+    await chrome.storage.local.set({ settings: DEFAULT_SETTINGS });
     settings = DEFAULT_SETTINGS;
-    allModels = [];
     fillForm();
     tell("Semua pengaturan dikembalikan ke awal.", "info");
   });
@@ -555,7 +488,7 @@ async function init(): Promise<void> {
     renderPower();
   });
 
-  if (!settings.api.baseUrl) say(dlg, "Halo, saya Raphael. Mulai dengan menghubungkan endpoint AI kamu di bagian Koneksi.", "info", 8000);
+  say(dlg, "Halo, saya Raphael. Semua penilaian berjalan di perangkatmu tanpa AI dan tanpa API key. Pilih mode deteksi, lalu coba mesinnya di bagian Mesin lokal.", "info", 8000);
 }
 
 void init();

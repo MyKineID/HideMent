@@ -1,57 +1,57 @@
-import { prefilter } from "../core/judol-rules";
-import { activeModes, DEFAULT_SETTINGS, isApiConfigured, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
-import { EXAMPLES_KEY, ExampleIndex, toLabel, type Example } from "../core/examples";
+import { DecisionEngine } from "../core/engine";
+import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
+import { EXAMPLES_KEY, learningExamples, type Example } from "../core/examples";
 import type { CommentInput, Platform, QueueItem, Verdict } from "../core/types";
 import { hashText } from "../core/normalize";
 import { postIdOf } from "../core/links";
 import type { Msg, ReportResult, StatusInfo, TabMsg } from "../shared/messages";
-import { ApiError, chat, listModels } from "./api";
-import { Batcher } from "./batcher";
-import { cacheKey, clearCache, getCached, setCached } from "./cache";
 
 let settings: Settings = DEFAULT_SETTINGS;
 const ready = loadSettings().then((s) => (settings = s));
 onSettingsChanged((s) => {
   const turnedOn = s.report.autoQueue && !settings.report.autoQueue;
+  const learnChanged = s.learn.enabled !== settings.learn.enabled || s.learn.includeFeedback !== settings.learn.includeFeedback;
   settings = s;
+  if (learnChanged) engineDirty = true;
   if (turnedOn) {
     for (const q of queue) if (q.priority === "tinggi" && !q.report) q.report = "pending";
     flushQueue();
   }
 });
 
+/* ── mesin keputusan lokal ─────────────────────────────────────────────
+ * Dibangun ulang (melatih Naive Bayes dari seed + contoh belajar, puluhan milidetik) hanya saat contoh,
+ * catatan "Bukan berbahaya", atau saklar belajar berubah; bukan per komentar. */
 let examples: Example[] = [];
 let feedback: { text?: string; label?: string }[] = [];
-let exampleIndex: ExampleIndex | null = null;
-
-/** Index dibangun ulang hanya kalau daftar contoh/feedback berubah, bukan per batch. */
-function rebuildIndex(): void {
-  const fromFeedback = settings.learn.includeFeedback
-    ? feedback.flatMap((f) => {
-        const label = toLabel(f.label);
-        return f.text && label ? [{ text: f.text, label }] : [];
-      })
-    : [];
-  exampleIndex = new ExampleIndex([...examples, ...fromFeedback]);
-}
+let engine: DecisionEngine | null = null;
+let engineDirty = true;
+const engineStats = { analyzed: 0, totalUs: 0 };
 
 const examplesReady = chrome.storage.local.get([EXAMPLES_KEY, "feedback"]).then((r) => {
   examples = (r[EXAMPLES_KEY] ?? []) as Example[];
   feedback = (r.feedback ?? []) as typeof feedback;
 });
-void Promise.all([ready, examplesReady]).then(rebuildIndex);
+
+/** Beberapa komentar pemanasan supaya penilaian pertama tidak menanggung waktu kompilasi JIT (tidak dihitung di statistik). */
+const WARMUP = ["Dasar goblok lu, muka kayak monyet", "Videonya bagus banget kak", "cek bio aku ya, wd 2jt", "Orang [suku X] licik semua", "Open BO kak? 🤤"];
+const ALL_MODES = { judol: true, kebencian: true, pelecehan: true, agama: true, sara: true, kustom: false };
+
+function getEngine(): DecisionEngine {
+  if (!engine || engineDirty) {
+    engine = new DecisionEngine({ examples: learningExamples(examples, feedback, settings.learn) });
+    for (const text of WARMUP) engine.decide({ id: "warmup", text }, { modes: ALL_MODES });
+    engineDirty = false;
+  }
+  return engine;
+}
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (changes[EXAMPLES_KEY]) {
-    examples = (changes[EXAMPLES_KEY].newValue ?? []) as Example[];
-    void clearCache();
-  }
+  if (changes[EXAMPLES_KEY]) examples = (changes[EXAMPLES_KEY].newValue ?? []) as Example[];
   if (changes.feedback) feedback = (changes.feedback.newValue ?? []) as typeof feedback;
-  if (changes[EXAMPLES_KEY] || changes.feedback || changes.settings) rebuildIndex();
+  if (changes[EXAMPLES_KEY] || changes.feedback) engineDirty = true;
 });
-
-const batcher = new Batcher(() => settings, () => exampleIndex);
 
 const QUEUE_KEY = "queue";
 const QUEUE_MAX = 500;
@@ -60,12 +60,6 @@ const queueReady = chrome.storage.session.get(QUEUE_KEY).then((r) => (queue = (r
 let queueTimer: ReturnType<typeof setTimeout> | undefined;
 
 const tabCounts = new Map<number, { scanned: number; high: number; medium: number }>();
-/** Komentar per tab yang sudah dikirim ke AI tapi belum dijawab; Antrian menunggu angka ini 0 sebelum lapor otomatis. */
-const pendingAi = new Map<number, number>();
-
-function bumpPending(tabId: number, d: number): void {
-  pendingAi.set(tabId, Math.max(0, (pendingAi.get(tabId) ?? 0) + d));
-}
 
 function countsFor(tabId: number) {
   let c = tabCounts.get(tabId);
@@ -109,9 +103,6 @@ function record(tabId: number, platform: Platform, url: string, c: CommentInput,
   flushQueue();
 }
 
-function sendToTab(tabId: number, msg: TabMsg): void {
-  chrome.tabs.sendMessage(tabId, msg).catch(() => undefined);
-}
 
 function isWhitelisted(author?: string): boolean {
   if (!author) return false;
@@ -120,48 +111,25 @@ function isWhitelisted(author?: string): boolean {
 }
 
 async function analyze(tabId: number, platform: Platform, url: string, comments: CommentInput[]): Promise<Verdict[]> {
-  await Promise.all([ready, queueReady]);
-  const immediate: Verdict[] = [];
-  const aiOk = isApiConfigured(settings);
-
+  await Promise.all([ready, queueReady, examplesReady]);
+  const modes = activeModes(settings);
+  /* Tidak ada mode yang dinyalakan: tidak ada yang perlu dinilai (sama seperti sebelumnya, komentar tidak diberi label). */
+  if (!Object.values(modes).some(Boolean)) return [];
+  const e = getEngine();
+  const ctx = { modes, custom: settings.custom, customKeywords: settings.customKeywords };
+  const out: Verdict[] = [];
   for (const c of comments) {
     if (isWhitelisted(c.author)) {
-      immediate.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "akun di whitelist", source: "rule" });
+      out.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "akun di whitelist", source: "rule" });
       continue;
     }
-    const modes = activeModes(settings);
-    const pf = prefilter(c, modes, settings.customKeywords);
-    if (pf.verdict) {
-      immediate.push(pf.verdict);
-      record(tabId, platform, url, c, pf.verdict);
-      continue;
-    }
-    if (!pf.needsAi) continue;
-
-    const key = cacheKey(c.text, modes, settings.api.model, modes.kustom ? settings.custom.definition : "");
-    const hit = await getCached(key);
-    if (hit) {
-      const v: Verdict = { ...hit, id: c.id, source: "cache" };
-      immediate.push(v);
-      record(tabId, platform, url, c, v);
-      continue;
-    }
-    if (!aiOk) {
-      /* Tanpa AI hanya aturan lokal yang bisa menilai; tetap beri label supaya setiap komentar terlihat statusnya. */
-      immediate.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "lolos aturan lokal (AI belum terhubung)", source: "rule" });
-      continue;
-    }
-
-    bumpPending(tabId, 1);
-    void batcher.classify({ input: c, hint: pf.hint }).then((v) => {
-      bumpPending(tabId, -1);
-      if (!v) return;
-      void setCached(key, v);
-      record(tabId, platform, url, c, v);
-      sendToTab(tabId, { type: "verdicts", verdicts: [v] });
-    });
+    const d = e.decide(c, ctx);
+    engineStats.analyzed++;
+    engineStats.totalUs += d.us;
+    out.push(d.verdict);
+    record(tabId, platform, url, c, d.verdict);
   }
-  return immediate;
+  return out;
 }
 
 async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<unknown> {
@@ -171,22 +139,6 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       const tabId = sender.tab?.id;
       if (tabId === undefined) return [];
       return analyze(tabId, msg.platform, msg.url, msg.comments);
-    }
-    case "listModels":
-      return listModels(msg.baseUrl, msg.apiKey);
-    case "testConnection": {
-      const api = { ...settings.api, timeoutMs: Math.min(settings.api.timeoutMs, 15000) };
-      try {
-        const res = await chat(api, 'Balas hanya JSON: {"ok":true}', "tes");
-        return { ok: true, latencyMs: res.latencyMs, reply: res.content.slice(0, 120) };
-      } catch (e) {
-        if (e instanceof ApiError && e.timeout) {
-          throw new Error(
-            `Model "${api.model}" tidak merespons dalam ${api.timeoutMs / 1000} detik. Server-nya terhubung, tapi model ini kemungkinan sedang bermasalah di penyedia AI. Coba pilih model lain.`,
-          );
-        }
-        throw e;
-      }
     }
     case "getQueue":
       await queueReady;
@@ -246,9 +198,16 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       if (!res) throw new Error("Halaman belum siap. Refresh tab lalu coba lagi.");
       return res;
     }
-    case "clearCache":
-      await clearCache();
-      return true;
+    case "tryEngine": {
+      /* "Coba mesin" di Pengaturan: nilai satu kalimat dengan mesin & contoh belajar yang sama, semua mode aktif ditampilkan. */
+      await examplesReady;
+      const modes = activeModes(settings);
+      const anyOn = Object.values(modes).some(Boolean);
+      return getEngine().decide(
+        { id: "uji", text: msg.text },
+        { modes: anyOn ? modes : { ...modes, judol: true }, custom: settings.custom, customKeywords: settings.customKeywords },
+      );
+    }
     case "focusComment": {
       const tab = await chrome.tabs.update(msg.tabId, { active: true });
       if (!(await ensureContent(msg.tabId))) return false;
@@ -260,12 +219,16 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
     }
     case "getStatus": {
       const tabId = msg.tabId ?? sender.tab?.id;
+      await examplesReady;
+      const e = getEngine();
       const info: StatusInfo = {
-        configured: isApiConfigured(settings),
-        model: settings.api.model,
         tabCounts: tabId !== undefined ? { ...countsFor(tabId) } : { scanned: 0, high: 0, medium: 0 },
-        pendingAi: tabId !== undefined ? (pendingAi.get(tabId) ?? 0) : 0,
-        ...batcher.stats,
+        engine: {
+          examples: e.stats.examples,
+          seed: e.stats.seed,
+          analyzed: engineStats.analyzed,
+          avgUs: engineStats.analyzed ? Math.round(engineStats.totalUs / engineStats.analyzed) : 0,
+        },
       };
       return info;
     }
@@ -282,7 +245,6 @@ chrome.runtime.onMessage.addListener((msg: Msg, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabCounts.delete(tabId);
-  pendingAi.delete(tabId);
 });
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.url) {

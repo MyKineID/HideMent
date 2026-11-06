@@ -8,7 +8,8 @@ export type Category = JudolCategory | KebencianCategory | "pelecehan" | "penist
 
 export type Priority = "tinggi" | "sedang" | "rendah";
 
-export type VerdictSource = "rule" | "ai" | "cache";
+/** "rule" = aturan judol/phising langsung; "model" = mesin keputusan lokal (kamus berbobot + Naive Bayes + contoh belajar). */
+export type VerdictSource = "rule" | "model";
 
 export interface CommentInput {
   id: string;

@@ -4,18 +4,10 @@ export type ActionKind = "highlight" | "blur" | "hide";
 
 export interface Settings {
   enabled: boolean;
-  api: {
-    baseUrl: string;
-    apiKey: string;
-    model: string;
-    timeoutMs: number;
-    batchSize: number;
-    concurrency: number;
-  };
   modes: Record<Mode, boolean>;
-  /** Mode buatan pengguna: nama tampilan + definisi yang dikirim ke AI. */
+  /** Mode buatan pengguna: nama tampilan + kata kunci/frasa (dipisah koma) yang dinilai mesin lokal. */
   custom: { name: string; definition: string };
-  /** Contoh komentar berlabel yang dipakai AI sebagai acuan. */
+  /** Contoh komentar berlabel yang dipelajari mesin lokal. */
   learn: { enabled: boolean; includeFeedback: boolean };
   platforms: Record<Platform, boolean>;
   display: {
@@ -37,6 +29,11 @@ export interface Settings {
     max: number;
     /** Ikut buka balasan ("Tampilkan balasan"). */
     replies: boolean;
+    /**
+     * Gulir otomatis untuk memuat komentar lain saat Analyze. Bawaan mati: Analyze langsung menilai komentar yang
+     * sudah dimuat, dan komentar baru dinilai seketika saat pengguna scroll sendiri.
+     */
+    autoLoad: boolean;
   };
   report: {
     /** Tombol "Bantu laporkan" di popover komentar. */
@@ -51,14 +48,6 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
-  api: {
-    baseUrl: "",
-    apiKey: "",
-    model: "",
-    timeoutMs: 30000,
-    batchSize: 8,
-    concurrency: 4,
-  },
   modes: { judol: true, kebencian: false, pelecehan: false, agama: false, sara: false, kustom: false },
   custom: { name: "", definition: "" },
   learn: { enabled: true, includeFeedback: true },
@@ -72,7 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showSafeBadge: true,
   },
   categoryAction: { spam: "highlight" },
-  scan: { method: "manual", max: 300, replies: true },
+  scan: { method: "manual", max: 300, replies: true, autoLoad: false },
   report: { assist: true, autoQueue: false },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
@@ -80,7 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "settings";
-const SCHEMA = 6;
+const SCHEMA = 7;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -99,9 +88,6 @@ function merge<T>(base: T, patch: unknown): T {
 
 /** Batas nilai numerik; sama dengan batas input di halaman Pengaturan. */
 export const LIMITS = {
-  timeoutMs: [5000, 180000],
-  batchSize: [1, 50],
-  concurrency: [1, 8],
   scanMax: [50, 2000],
   customName: 40,
   customDefinition: 400,
@@ -136,8 +122,8 @@ function boolRecord<K extends string>(v: unknown, base: Record<K, boolean>): Rec
 }
 
 /**
- * Pastikan setiap field punya tipe & rentang yang benar. Storage bisa berisi data lama,
- * hasil edit manual, atau nilai yang rusak; tanpa ini batcher bisa macet (mis. concurrency 0).
+ * Pastikan setiap field punya tipe & rentang yang benar. Storage bisa berisi data lama
+ * (termasuk field koneksi AI dari versi sebelumnya, yang dibuang di sini), hasil edit manual, atau nilai rusak.
  */
 export function sanitizeSettings(s: Settings): Settings {
   const d = DEFAULT_SETTINGS;
@@ -149,14 +135,6 @@ export function sanitizeSettings(s: Settings): Settings {
   }
   return {
     enabled: bool(s.enabled, d.enabled),
-    api: {
-      baseUrl: str(s.api?.baseUrl, d.api.baseUrl),
-      apiKey: str(s.api?.apiKey, d.api.apiKey),
-      model: str(s.api?.model, d.api.model),
-      timeoutMs: clampInt(s.api?.timeoutMs, LIMITS.timeoutMs, d.api.timeoutMs),
-      batchSize: clampInt(s.api?.batchSize, LIMITS.batchSize, d.api.batchSize),
-      concurrency: clampInt(s.api?.concurrency, LIMITS.concurrency, d.api.concurrency),
-    },
     modes: boolRecord(s.modes, d.modes),
     custom: {
       name: str(s.custom?.name, "").slice(0, LIMITS.customName),
@@ -170,6 +148,7 @@ export function sanitizeSettings(s: Settings): Settings {
       method: s.scan?.method === "fast" || s.scan?.method === "scroll" ? s.scan.method : "manual",
       max: clampInt(s.scan?.max, LIMITS.scanMax, d.scan.max),
       replies: bool(s.scan?.replies, d.scan.replies),
+      autoLoad: bool(s.scan?.autoLoad, d.scan.autoLoad),
     },
     report: boolRecord(s.report, d.report),
     thresholds: { high, medium },
@@ -199,15 +178,15 @@ export async function loadSettings(): Promise<Settings> {
   const stored = (raw[KEY] ?? {}) as Partial<Settings>;
   if (raw[KEY] && raw.schema !== SCHEMA) {
     if (!raw.schema || Number(raw.schema) < 2) stored.categoryAction = { ...DEFAULT_SETTINGS.categoryAction };
-    if (stored.api && stored.api.batchSize === 20 && stored.api.concurrency === 2) {
-      stored.api = { ...stored.api, batchSize: DEFAULT_SETTINGS.api.batchSize, concurrency: DEFAULT_SETTINGS.api.concurrency };
-    }
     if (stored.modes) stored.modes = migrateModes(stored.modes);
     /* Schema 5: setiap komentar yang dianalisis diberi label, termasuk "Aman". */
     if (Number(raw.schema) < 5 && stored.display) stored.display = { ...stored.display, showSafeBadge: true };
     /* Schema 6: bawaan lama "scroll" menganalisis sebelum pengguna meminta; sekarang menunggu tombol Analyze. */
     if (Number(raw.schema) < 6 && stored.scan?.method === "scroll") stored.scan = { ...stored.scan, method: "manual" };
+    /* Schema 7: koneksi AI (Base URL, API key, model) dihapus; semua mode dinilai mesin lokal. Jangan simpan API key lama. */
+    delete (stored as { api?: unknown }).api;
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
+    if (Number(raw.schema) < 7) await chrome.storage.local.remove(["modelCache", "verdictCache"]);
   }
   return resolveSettings(stored);
 }
@@ -228,10 +207,6 @@ export function priorityOf(score: number, t: Settings["thresholds"]): Priority {
   if (score >= t.high) return "tinggi";
   if (score >= t.medium) return "sedang";
   return "rendah";
-}
-
-export function isApiConfigured(s: Settings): boolean {
-  return Boolean(s.api.baseUrl && s.api.model);
 }
 
 export type DeepPartial<T> = {

@@ -43,7 +43,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow-x: hidden;
 .link-list .plat-ico { grid-row: span 2; align-self: center; }
 .lk-url { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-family: var(--mono); }
 .lk-stat { color: var(--text-2); }
-.link-list li[data-state="open"], .link-list li[data-state="scan"], .link-list li[data-state="ai"], .link-list li[data-state="report"] { border-left-color: var(--accent); }
+.link-list li[data-state="open"], .link-list li[data-state="scan"], .link-list li[data-state="sum"], .link-list li[data-state="report"] { border-left-color: var(--accent); }
 .link-list li[data-state="done"] { border-left-color: var(--ok); }
 .link-list li[data-state="done"] .lk-stat { color: var(--ok); }
 .link-list li[data-state="error"] { border-left-color: var(--danger-text); }

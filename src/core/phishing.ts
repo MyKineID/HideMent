@@ -64,6 +64,12 @@ const URL_RE =
 const OBFUSCATED_RE =
   /\b([a-z0-9-]{2,63})\s*(?:\(\s*\.\s*\)|\[\s*\.\s*\]|\{\s*\.\s*\}|\s+dot\s+|\s+titik\s+|\s*\(dot\)\s*|\s*\[dot\]\s*|\s+\.\s+|\s*,\s*(?=(?:com|net|org|xyz|id|co|me|vip|site|online|top)\b))\s*((?:co\.)?[a-z]{2,10})\b/gi;
 const PHONE_RE = /(?:\+?62|\b0)8[1-9][\d\s.-]{6,13}\d/g;
+
+/** Kata umum yang sering muncul sebelum "titik com" tapi bukan nama domain. */
+const NOT_A_DOMAIN = new Set([
+  "atau", "dan", "di", "ke", "itu", "ini", "yang", "yg", "pakai", "pake", "pakainya", "web", "website", "websitenya", "webnya", "situs",
+  "situsnya", "link", "linknya", "alamat", "alamatnya", "domain", "domainnya", "akhiran", "akhirannya", "pakai", "cuma", "bukan",
+]);
 const IP_RE = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 const KNOWN_TLDS = new Set([
@@ -136,6 +142,8 @@ export function extractLinks(n: NormalizedText): LinkFinding[] {
     const host = `${m[1]}.${m[2]}`.toLowerCase();
     const tld = m[2].split(".").pop() ?? "";
     if (!KNOWN_TLDS.has(tld)) continue;
+    /* "websitenya titik com atau titik id?" adalah pertanyaan, bukan link: kata umum bukan nama domain. */
+    if (NOT_A_DOMAIN.has(m[1].toLowerCase())) continue;
     const existing = found.get(host);
     if (existing) existing.obfuscated = true;
     else found.set(host, { raw: m[0], domain: host, obfuscated: true, reasons: [] });

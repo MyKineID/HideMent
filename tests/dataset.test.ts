@@ -6,13 +6,13 @@ import type { QueueItem, Verdict } from "../src/core/types";
 function item(text: string, score: number, extra: Partial<QueueItem> = {}): QueueItem {
   return {
     key: text, tabId: 1, platform: "tiktok", url: "https://www.tiktok.com/@a/video/1", commentId: text, author: "a", text,
-    verdict: { id: text, mode: "judol", category: "judol", score, reason: "promo situs", source: "ai" },
+    verdict: { id: text, mode: "judol", category: "judol", score, reason: "promo situs", source: "model" },
     priority: score >= 80 ? "tinggi" : "sedang", at: score, ...extra,
   };
 }
 
 describe("data belajar dari Antrian", () => {
-  it("Benar memakai label AI, Salah menjadi aman", () => {
+  it("Benar memakai label hasil analisis, Salah menjadi aman", () => {
     const it1 = item("PULAU138 gacor", 95);
     expect(reviewExample(it1, true, 5)).toEqual({ text: "PULAU138 gacor", label: "judol", at: 5, source: "review" });
     expect(reviewExample(it1, false, 5).label).toBe("aman");
@@ -53,7 +53,7 @@ it("JSONL satu objek per baris", () => {
 
 describe("belajar dari komentar link", () => {
   const t = { high: 80, medium: 50 };
-  const v = (category: Verdict["category"], score: number, source: Verdict["source"] = "ai"): Verdict => ({ id: "1", mode: "judol", category, score, reason: "", source });
+  const v = (category: Verdict["category"], score: number, source: Verdict["source"] = "model"): Verdict => ({ id: "1", mode: "judol", category, score, reason: "", source });
   it("ambil yang yakin saja", () => {
     const out = learnFromComments(
       [

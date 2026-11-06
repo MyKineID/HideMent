@@ -1,7 +1,7 @@
 import { hashText } from "../core/normalize";
 import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
 import { MODES, type CommentInput, type Verdict } from "../core/types";
-import { send, type CollectedComment, type FastScanReply, type PostInfo, type TabMsg } from "../shared/messages";
+import { send, type CollectedComment, type FastScanReply, type PostInfo, type ScanProgress, type TabMsg } from "../shared/messages";
 import { detectAdapter } from "./adapters";
 import { applyVerdict, clearMarks, focusElement } from "./overlay";
 import { postIdOf } from "../core/links";
@@ -48,6 +48,11 @@ let scanTimer: ReturnType<typeof setTimeout> | undefined;
 let observer: MutationObserver | undefined;
 /** Saat Pindai Cepat berjalan, komentar langsung dianalisis tanpa menunggu terlihat di layar. */
 let eager = false;
+/**
+ * Postingan yang sedang dianalisis instan (setelah Analyze, atau otomatis di mode Pindai cepat): semua komentar yang
+ * ada di DOM dinilai sekarang, dan komentar yang dimuat platform saat pengguna scroll dinilai begitu muncul.
+ */
+let livePost: string | null = null;
 /** Komentar unik (per fingerprint teks) yang sudah terlihat di postingan yang sedang dibuka; direset saat pindah halaman. */
 const pageComments = new Map<string, { text: string; author: string }>();
 /**
@@ -60,6 +65,10 @@ let lastUrl = location.href;
 /** Postingan tempat pengguna sudah menekan Analyze (mode "manual"); di postingan lain tidak ada yang dianalisis. */
 let armedPost: string | null = null;
 const postKey = () => postIdOf(location.href) ?? location.href;
+
+function instant(): boolean {
+  return eager || livePost === postKey();
+}
 
 function analyzeAllowed(): boolean {
   return settings.scan.method !== "manual" || armedPost === postKey();
@@ -178,9 +187,9 @@ function scan(): void {
       elements.set(id, el);
       const known = verdictByFp.get(fingerprint);
       if (known) applyOne({ ...known, id });
-      else if (eager) queueForAnalysis(el);
+      else if (instant()) queueForAnalysis(el);
       else visibility.observe(el);
-    } else if (eager && !verdicts.has(id) && !outbox.has(id)) {
+    } else if (instant() && !verdicts.has(id) && !outbox.has(id)) {
       queueForAnalysis(el);
     }
   }
@@ -210,10 +219,27 @@ const scanner = adapter
     })
   : null;
 
+/**
+ * Analyze instan: tidak ada scroll otomatis. Semua komentar yang sudah dimuat langsung dikirim ke mesin lokal
+ * (±0,2 ms per komentar), dan selama postingan ini masih terbuka komentar baru ikut dinilai saat muncul.
+ */
+function analyzeNow(): number {
+  if (!adapter) return 0;
+  armedPost = livePost = postKey();
+  scan();
+  void flush();
+  const total = adapter.getCommentCount(document, new URL(location.href));
+  const loaded = pageComments.size;
+  const msg: ScanProgress = { type: "scanProgress", state: "done", loaded, max: Math.max(loaded, total ?? 0, 1), total, note: "komentar baru dinilai otomatis saat kamu scroll" };
+  chrome.runtime.sendMessage(msg).catch(() => undefined);
+  return loaded;
+}
+
 function scheduleAutoScan(): void {
   clearTimeout(autoScanTimer);
   if (!adapter || !active() || settings.scan.method !== "fast" || !adapter.isPostPage(new URL(location.href))) return;
-  autoScanTimer = setTimeout(() => void scanner?.run(), 1800);
+  /* Tunggu sebentar sampai platform menggambar komentar pertama, lalu nilai instan (atau muat semua kalau diminta). */
+  autoScanTimer = setTimeout(() => (settings.scan.autoLoad ? void scanner?.run() : void analyzeNow()), 1200);
 }
 
 /**
@@ -355,10 +381,13 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
     if (!adapter.isPostPage(new URL(location.href))) {
       return reply({ ok: false, note: "Masuk ke postingannya dulu (buka satu video/postingan), lalu klik Analyze lagi." });
     }
-    armedPost = postKey();
-    void scanner?.run();
-    reply({ ok: true, total: adapter.getCommentCount(document, new URL(location.href)) });
-    return;
+    const total = adapter.getCommentCount(document, new URL(location.href));
+    if (msg.load || settings.scan.autoLoad) {
+      armedPost = livePost = postKey();
+      void scanner?.run();
+      return reply({ ok: true, total });
+    }
+    return reply({ ok: true, total, analyzed: analyzeNow(), instant: true });
   }
   if (msg.type === "stopScan") scanner?.stop();
   if (msg.type === "verdicts") msg.verdicts.forEach(applyOne);
@@ -393,7 +422,8 @@ if (adapter) {
     start();
     const [was, now] = [activeModes(prev), activeModes(s)];
     const modesChanged = MODES.some((m) => was[m] !== now[m]) || (now.kustom && prev.custom.definition !== s.custom.definition);
-    if (modesChanged || prev.api.model !== s.api.model) {
+    const keywordsChanged = prev.customKeywords.join("\n") !== s.customKeywords.join("\n");
+    if (modesChanged || keywordsChanged) {
       verdicts.clear();
       verdictByFp.clear();
       for (const el of elements.values()) {

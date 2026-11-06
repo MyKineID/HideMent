@@ -3,7 +3,7 @@
   "name": "HideMent — Hide Harmful Comments",
   "short_name": "HideMent",
   "version": "0.3.0",
-  "description": "Deteksi & sembunyikan komentar judol, ujaran kebencian, pelecehan seksual, penistaan agama, dan SARA berbahasa Indonesia di YouTube, Instagram, TikTok, X, dan Reddit.",
+  "description": "Sembunyikan komentar judol, phising, kebencian, pelecehan, penistaan agama & SARA. Berjalan lokal: gratis, tanpa AI & API key.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "assets/icon-16.png",
@@ -41,10 +41,6 @@
     "https://www.reddit.com/*",
     "https://old.reddit.com/*",
     "https://sh.reddit.com/*"
-  ],
-  "optional_host_permissions": [
-    "https://*/*",
-    "http://*/*"
   ],
   "content_scripts": [
     {

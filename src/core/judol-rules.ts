@@ -1,6 +1,6 @@
 import { normalize, letterCount, type NormalizedText } from "./normalize";
 import { analyzePhishing } from "./phishing";
-import type { Category, CommentInput, Mode, Verdict } from "./types";
+import type { Category } from "./types";
 
 interface Term {
   t: string;
@@ -86,8 +86,9 @@ function findTerms(n: NormalizedText, spaced: string, minCompact: number, terms:
   return terms.filter(({ re, needle, single }) => re.test(spaced) || (single && needle.length >= minCompact && n.compact.includes(needle)));
 }
 
-export function analyzeRules(text: string, customKeywords: string[] = []): RuleResult {
-  const n = normalize(text);
+/** `pre` = teks yang sudah dinormalisasi (mesin lokal menormalisasi sekali, lalu dipakai bersama). */
+export function analyzeRules(text: string, customKeywords: string[] = [], pre?: NormalizedText): RuleResult {
+  const n = pre ?? normalize(text);
   const reasons: string[] = [];
   const trivial = letterCount(n.folded) < 3;
 
@@ -138,29 +139,5 @@ export function analyzeRules(text: string, customKeywords: string[] = []): RuleR
   return { judolScore: Math.round(Math.min(100, score)), judolCategory: category, reasons, trivial };
 }
 
+/** Skor aturan judol yang langsung diputuskan tanpa perlu menimbang kategori lain. */
 export const RULE_DIRECT_THRESHOLD = 70;
-export const RULE_HINT_THRESHOLD = 25;
-
-export interface PrefilterResult {
-  verdict?: Verdict;
-  hint?: string;
-  needsAi: boolean;
-}
-
-export function prefilter(c: CommentInput, modes: Record<Mode, boolean>, customKeywords: string[]): PrefilterResult {
-  const r = analyzeRules(c.text, customKeywords);
-  if (r.trivial) {
-    return { verdict: { id: c.id, mode: "judol", category: "aman", score: 0, reason: "terlalu pendek", source: "rule" }, needsAi: false };
-  }
-  if (modes.judol && r.judolScore >= RULE_DIRECT_THRESHOLD) {
-    return {
-      verdict: { id: c.id, mode: "judol", category: r.judolCategory, score: r.judolScore, reason: r.reasons.join("; "), source: "rule" },
-      needsAi: false,
-    };
-  }
-  const anyAiMode = Object.values(modes).some(Boolean);
-  return {
-    needsAi: anyAiMode,
-    hint: modes.judol && r.judolScore >= RULE_HINT_THRESHOLD ? `indikasi aturan lokal (${r.judolScore}): ${r.reasons.join("; ")}` : undefined,
-  };
-}

@@ -2,11 +2,10 @@ import type { CommentInput, Platform, QueueItem, ReportStatus, Verdict } from ".
 
 export type Msg =
   | { type: "analyze"; platform: Platform; url: string; comments: CommentInput[] }
-  | { type: "listModels"; baseUrl: string; apiKey: string }
-  | { type: "testConnection" }
+  /** Nilai satu kalimat dengan mesin lokal (fitur "Coba mesin" di Pengaturan). Balasan: Decision. */
+  | { type: "tryEngine"; text: string }
   | { type: "getQueue" }
   | { type: "clearQueue" }
-  | { type: "clearCache" }
   | { type: "getStatus"; tabId?: number }
   | { type: "focusComment"; tabId: number; commentId: string; text: string }
   | { type: "removeQueueItem"; key: string }
@@ -28,7 +27,12 @@ export type TabMsg =
       /** "dom" = hanya cari di halaman yang sedang tampil (tanpa scroll); "scroll" = boleh menggulir wadah komentar. */
       find?: "dom" | "scroll";
     }
-  | { type: "fastScan" }
+  /**
+   * Analyze komentar postingan ini. Bawaan: instan, semua komentar yang sudah dimuat langsung dinilai dan komentar
+   * yang muncul saat pengguna scroll ikut dinilai, tanpa menggulir halaman. `load` = gulir otomatis untuk memuat komentar
+   * lain (dipakai "Analyze dari link" di tab latar, atau kalau pengguna menyalakan "Muat semua komentar otomatis").
+   */
+  | { type: "fastScan"; load?: boolean }
   | { type: "ping" }
   | { type: "stopScan" }
   | { type: "rescan" }
@@ -61,6 +65,10 @@ export interface FastScanReply {
   ok: boolean;
   note?: string;
   total?: number | null;
+  /** Mode instan: berapa komentar yang langsung dinilai. */
+  analyzed?: number;
+  /** true = dinilai instan tanpa scroll; false/undefined = sedang memuat dengan scroll otomatis. */
+  instant?: boolean;
 }
 
 export interface ScanProgress {
@@ -88,16 +96,9 @@ export interface ReportResult {
 }
 
 export interface StatusInfo {
-  configured: boolean;
-  model: string;
   tabCounts: { scanned: number; high: number; medium: number };
-  /** Komentar tab ini yang masih menunggu jawaban AI. */
-  pendingAi: number;
-  requests: number;
-  failures: number;
-  lastLatencyMs: number;
-  lastTtftMs: number;
-  lastError: string;
+  /** Mesin keputusan lokal: jumlah contoh yang dipelajari dan kecepatan rata-rata. */
+  engine: { examples: number; seed: number; analyzed: number; avgUs: number };
 }
 
 export async function send<T = unknown>(msg: Msg): Promise<T> {

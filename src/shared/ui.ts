@@ -214,7 +214,7 @@ export interface Combobox {
 }
 
 /**
- * Tombol pemilih yang membuka panel berisi kolom cari + daftar. Cocok untuk daftar panjang (model AI).
+ * Tombol pemilih yang membuka panel berisi kolom cari + daftar. Cocok untuk daftar panjang.
  * Ketik untuk menyaring, panah untuk berpindah, Enter memilih, Esc menutup.
  */
 export function createCombobox(host: HTMLElement, opts: { label: string; empty: string; onSelect(value: string): void }): Combobox {

@@ -105,11 +105,11 @@ async function init(): Promise<void> {
     }
 
     let line: [string, "ok" | "err" | "info"];
+    const speed = st.engine.avgUs ? ` Rata-rata ${st.engine.avgUs < 1000 ? `${st.engine.avgUs} µs` : `${(st.engine.avgUs / 1000).toFixed(1)} ms`} per komentar.` : "";
     if (!settings.enabled) line = ["HideMent sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
-    else if (!st.configured) line = ["Belum terhubung ke AI. Baru deteksi judol lokal yang jalan; hubungkan lewat tombol pengaturan di bawah.", "err"];
-    else if (st.lastError) line = [st.lastError, "err"];
-    else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.`, "ok"];
-    else line = ["Siap. Terhubung ke AI.", "ok"];
+    else if (!Object.values(settings.modes).some(Boolean)) line = ["Semua mode deteksi mati. Pilih minimal satu mode di bawah.", "info"];
+    else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.${speed}`, "ok"];
+    else line = [`Siap. Mesin lokal aktif: gratis, tanpa API key, tanpa internet.${speed}`, "ok"];
     const key = line.join("|");
     if (key !== lastLine) {
       lastLine = key;
@@ -134,7 +134,10 @@ async function init(): Promise<void> {
     }
     const r = (await chrome.tabs.sendMessage(tab.id, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
     if (!r?.ok) say(dlg, r?.note ?? "Halaman belum siap. Refresh tab lalu coba lagi.", "err");
-    else if (r.total) say(dlg, `Postingan ini punya ${r.total.toLocaleString("id-ID")} komentar. Menganalisis…`);
+    else if (r.instant) {
+      const of = r.total ? ` dari ${r.total.toLocaleString("id-ID")}` : "";
+      say(dlg, r.analyzed ? `${r.analyzed.toLocaleString("id-ID")}${of} komentar langsung dinilai. Komentar lain dinilai otomatis saat kamu scroll.` : "Belum ada komentar yang dimuat. Buka kolom komentar atau scroll sedikit; komentar langsung dinilai saat muncul.", "ok");
+    } else if (r.total) say(dlg, `Postingan ini punya ${r.total.toLocaleString("id-ID")} komentar. Memuat & menganalisis…`);
   });
   stopBtn.addEventListener("click", () => {
     if (tab?.id !== undefined) chrome.tabs.sendMessage(tab.id, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
@@ -153,7 +156,7 @@ async function init(): Promise<void> {
     else {
       const of = msg.total ? ` dari ${msg.total.toLocaleString("id-ID")}` : "";
       text.innerHTML = `<b>${msg.loaded.toLocaleString("id-ID")}</b>`;
-      text.append(`${of} ${running ? "komentar dianalisis" : msg.state === "stopped" ? "komentar dianalisis · dihentikan" : "komentar dianalisis"}`);
+      text.append(`${of} ${running ? "komentar dianalisis" : msg.state === "stopped" ? "komentar dianalisis · dihentikan" : "komentar dianalisis"}${msg.note && !running ? ` · ${msg.note}` : ""}`);
     }
     $("#scanFill").style.width = `${Math.min(100, (msg.loaded / Math.max(1, msg.max)) * 100)}%`;
   });

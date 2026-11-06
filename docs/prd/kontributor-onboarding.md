@@ -10,6 +10,7 @@ Dibaca **dua-duanya** sebelum mulai. Isinya cara setup, cara kirim kerja, dan at
 | **Orang kedua** | [PRD 2: Data & Akurasi AI](data-akurasi-ai.md) | Kumpulkan komentar asli dari 9 link TikTok, cek labelnya, ukur & naikkan akurasi AI |
 | **Berdua** | [PRD 3: Melengkapi HideMent](melengkapi-hidement.md) | Orang pertama: CI, test tampilan platform, lapor otomatis per platform. Orang kedua: tema terang, ekspor/impor pengaturan, Ollama, rilis Chrome Web Store |
 | **Berdua** | [PRD 4: Pengecekan 3 platform](pengecekan-3-platform.md) | Orang pertama cek YouTube & Instagram, orang kedua cek TikTok, pakai checklist C1–C18 |
+| **Ditunjuk MyKineID** | [PRD 5: Sistem Limit Komentar](limit-komentar.md) | Satu batas komentar per postingan di semua cara pindai, tombol "Baca N lagi", ringan di thread X yang panjang |
 
 Reviewer & yang merge: **MyKineID**. Durasi: 4 minggu. Repo: https://github.com/MyKineID/HideMent
 
@@ -21,7 +22,7 @@ Kalian tidak saling menunggu: orang pertama bekerja di `src/content/adapters/` d
 
 - Git, Node.js ≥ 18, Chrome / Edge ≥ 116.
 - Akun GitHub (diundang sebagai *collaborator* oleh pemilik repo, lihat bagian 7).
-- Opsional: endpoint AI kompatibel OpenAI (mis. 9router) untuk mode selain Judol. Minta ke pemilik proyek; **jangan pernah commit API key**.
+- Tidak perlu endpoint AI atau API key: semua mode dinilai mesin lokal di `src/core/engine/`.
 
 ### 2.2 Langkah
 
@@ -44,8 +45,10 @@ npm run dev        # build + watch selama ngoding
 | `src/content/adapters/` | Selektor DOM per platform | A |
 | `src/content/fast-scan.ts` | Memuat semua komentar (Analyze komentar postingan ini) | A |
 | `src/content/report-helper.ts` | Alur lapor (bantu & otomatis) | A |
-| `src/core/judol-rules.ts`, `phishing.ts`, `normalize.ts` | Aturan lokal tanpa AI | B |
-| `src/core/prompt.ts`, `examples.ts`, `dataset.ts` | Prompt AI, contoh belajar, data dari Antrian | B |
+| `src/core/judol-rules.ts`, `phishing.ts`, `normalize.ts` | Aturan judol & phising | B |
+| `src/core/engine/` | Mesin keputusan lokal: kamus, Naive Bayes, pencarian contoh mirip | B |
+| `data/seed/*.jsonl` | Database contoh berlabel (tambah contoh di sini, lalu `npm run seed`) | B |
+| `src/core/examples.ts`, `dataset.ts` | Contoh belajar pengguna, data dari Antrian | B |
 | `src/sidepanel/` | Antrian, Analyze dari link, lapor otomatis, Benar/Salah | A & B |
 | `research/` | Dataset, `label.ts`, `eval.ts`, `bench.ts`, panduan label | B |
 | `tests/` | Unit test (Vitest) | A & B |
@@ -82,7 +85,7 @@ Aturan penting:
 - Warna & komponen pakai token di `src/styles/theme.css`. Gaya visual: modern/bersih, sentuhan Rimuru Tempest halus, Raphael sebagai suara sistem. Jangan menambah gaya pixel/8-bit.
 - Dependency baru (npm) didiskusikan dulu di issue. Ekstensi harus tetap kecil.
 - Logika murni (tanpa DOM/`chrome.*`) ditaruh di `src/core/` dan **wajib** punya test di `tests/`.
-- Privasi: tidak ada request ke server selain endpoint AI pengguna. Tidak ada analytics.
+- Privasi: tidak ada request ke server mana pun. Komentar dinilai di perangkat. Tidak ada analytics.
 
 ## 5. Definisi selesai (berlaku untuk setiap PR)
 
@@ -106,7 +109,7 @@ Aturan penting:
 - [ ] Aktifkan *branch protection* untuk `main`: wajib PR, minimal 1 approval, wajib status check bila CI sudah ada.
 - [ ] Buat label `reddit`, `data`, `bug`, `docs`.
 - [ ] Buat satu issue per tugas di PRD 1 dan PRD 2, susun di GitHub Projects (kolom: Todo, Dikerjakan, Review, Selesai).
-- [ ] Bagikan endpoint AI uji (tanpa key produksi) lewat jalur privat.
+- [ ] Pastikan kontributor tahu cara menambah contoh ke `data/seed/` dan menjalankan `npm run eval`.
 - [ ] Jadwalkan sinkronisasi mingguan 30 menit.
 
 ## 8. Komunikasi

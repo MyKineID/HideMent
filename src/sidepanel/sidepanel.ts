@@ -7,7 +7,6 @@ import {
   type PostInfo,
   type ReportResult,
   type ScanProgress,
-  type StatusInfo,
   type TabMsg,
 } from "../shared/messages";
 import { DEFAULT_SETTINGS, loadSettings, onSettingsChanged, type Settings } from "../core/settings";
@@ -215,7 +214,7 @@ $("#rStop").addEventListener("click", () => {
   render();
 });
 
-/* ── data belajar AI ───────────────────────────────────── */
+/* ── contoh belajar mesin lokal ────────────────────────── */
 
 async function addExamples(incoming: Example[]): Promise<void> {
   if (!incoming.length) return;
@@ -275,7 +274,7 @@ function fillNode(node: HTMLElement, it: QueueItem): void {
   setText(node.querySelector(".author"), it.author ? `@${it.author}` : "anonim");
   setText(node.querySelector(".time"), ago(it.at));
   setText(node.querySelector(".text"), it.text);
-  setText(node.querySelector(".reason"), `${it.verdict.reason || "—"} (${it.verdict.source === "rule" ? "aturan lokal" : "AI"})`);
+  setText(node.querySelector(".reason"), `${it.verdict.reason || "—"} (${it.verdict.source === "rule" ? "aturan judol" : "mesin lokal"})`);
   const rtag = node.querySelector<HTMLElement>(".rtag")!;
   rtag.hidden = !it.report;
   if (it.report) {
@@ -285,7 +284,7 @@ function fillNode(node: HTMLElement, it: QueueItem): void {
   const ltag = node.querySelector<HTMLElement>(".ltag")!;
   ltag.hidden = !learned;
   ltag.className = `ltag${learned === "aman" ? " wrong" : ""}`;
-  setText(ltag, learned === "aman" ? "Data AI: aman" : "Data AI: benar");
+  setText(ltag, learned === "aman" ? "Contoh: aman" : "Contoh: benar");
   node.querySelector('[data-a="right"]')!.setAttribute("aria-pressed", String(Boolean(learned) && learned !== "aman"));
   node.querySelector('[data-a="wrong"]')!.setAttribute("aria-pressed", String(learned === "aman"));
   node.querySelector<HTMLElement>('[data-a="report"]')!.hidden = !settings.report.assist && !settings.report.autoQueue;
@@ -400,7 +399,7 @@ list.addEventListener("click", async (e) => {
     case "right":
     case "wrong":
       await review(it, btn.dataset.a === "right");
-      flash(btn, "Disimpan ke data AI");
+      flash(btn, "Disimpan jadi contoh belajar");
       break;
   }
 });
@@ -495,12 +494,13 @@ async function refreshPostInfo(): Promise<void> {
 }
 
 /** Sambungkan ke tab lalu minta content script menganalisis semua komentar postingan yang sedang dibuka. */
-async function analyzeTab(tabId: number): Promise<FastScanReply> {
+/** `load` = gulir otomatis untuk memuat semua komentar (Analyze dari link); tanpa itu Analyze menilai instan tanpa scroll. */
+async function analyzeTab(tabId: number, load = false): Promise<FastScanReply> {
   if (!(await send<boolean>({ type: "ensureContent", tabId }).catch(() => false))) {
     return { ok: false, note: "HideMent belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi." };
   }
   scanTab = tabId;
-  const r = (await chrome.tabs.sendMessage(tabId, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
+  const r = (await chrome.tabs.sendMessage(tabId, { type: "fastScan", load } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
   return r ?? { ok: false, note: "Halaman belum siap. Refresh tab lalu coba lagi." };
 }
 
@@ -512,7 +512,8 @@ scanBtn.addEventListener("click", async () => {
   showScanNote("Menyambungkan ke postingan…");
   const r = await analyzeTab(tab.id);
   if (!r.ok) return showScanNote(r.note ?? "Gagal menganalisis.");
-  if (r.total) showScanNote(`Postingan ini punya ${fmt(r.total)} komentar. Menganalisis…`);
+  if (r.instant) showScanNote(r.analyzed ? `${fmt(r.analyzed)}${r.total ? ` dari ${fmt(r.total)}` : ""} komentar langsung dinilai. Komentar lain dinilai otomatis saat kamu scroll.` : "Belum ada komentar yang dimuat. Scroll sedikit; komentar langsung dinilai saat muncul.");
+  else if (r.total) showScanNote(`Postingan ini punya ${fmt(r.total)} komentar. Memuat & menganalisis…`);
 });
 stopBtn.addEventListener("click", () => {
   if (scanTab !== undefined) chrome.tabs.sendMessage(scanTab, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
@@ -539,7 +540,7 @@ function renderScan(msg: ScanProgress): void {
 
 /* ── Analyze dari link ─────────────────────────────────── */
 
-type JobState = "wait" | "open" | "scan" | "ai" | "report" | "done" | "error";
+type JobState = "wait" | "open" | "scan" | "sum" | "report" | "done" | "error";
 
 interface Job extends PostLink {
   state: JobState;
@@ -572,8 +573,8 @@ function jobStatus(j: Job): string {
       return "Membuka postingan…";
     case "scan":
       return `Menganalisis ${fmt(j.loaded)}${of} komentar`;
-    case "ai":
-      return `${fmt(j.loaded)}${of} komentar · menunggu hasil AI…`;
+    case "sum":
+      return `${fmt(j.loaded)}${of} komentar · merangkum hasil…`;
     case "report":
       return `${j.found} berbahaya · melapor ${j.sent + j.failed}/${Math.min(j.found, AUTO_REPORT_MAX)}…`;
     case "done":
@@ -582,7 +583,7 @@ function jobStatus(j: Job): string {
         `${j.found} berbahaya`,
         j.sent ? `${j.sent} dilapor ✓` : "",
         j.failed ? `${j.failed} gagal` : "",
-        j.learned ? `${j.learned} dipelajari AI` : "",
+        j.learned ? `${j.learned} jadi contoh belajar` : "",
         j.note,
       ]
         .filter(Boolean)
@@ -666,17 +667,6 @@ function waitScanEnd(tabId: number, timeoutMs: number): Promise<ScanProgress | n
   });
 }
 
-/** Tunggu sampai semua komentar tab ini selesai dinilai AI (dua kali berturut-turut tidak ada yang tertunda). */
-async function waitAi(tabId: number, maxMs = 120000): Promise<void> {
-  const end = Date.now() + maxMs;
-  let idle = 0;
-  while (Date.now() < end && !linkAbort && idle < 2) {
-    const s = await send<StatusInfo>({ type: "getStatus", tabId }).catch(() => null);
-    idle = !s || s.pendingAi === 0 ? idle + 1 : 0;
-    await sleep(1000);
-  }
-}
-
 async function runJob(job: Job, autoReport: boolean, learn: boolean): Promise<void> {
   const fail = (note: string) => {
     job.state = "error";
@@ -692,7 +682,7 @@ async function runJob(job: Job, autoReport: boolean, learn: boolean): Promise<vo
 
   const startedAt = Date.now();
   const ended = waitScanEnd(tabId, 6 * 60_000);
-  const r = await analyzeTab(tabId);
+  const r = await analyzeTab(tabId, true);
   if (!r.ok) {
     scanWaiters.get(tabId)?.(null);
     return fail(r.note ?? "Gagal menganalisis.");
@@ -705,9 +695,9 @@ async function runJob(job: Job, autoReport: boolean, learn: boolean): Promise<vo
   if (end) job.loaded = end.loaded;
   if (end?.note) job.note = end.note;
 
-  job.state = "ai";
+  /* Mesin lokal menilai saat komentar dimuat, jadi hasilnya sudah ada: cukup tunggu antrian tersimpan. */
+  job.state = "sum";
   render();
-  await waitAi(tabId);
   await sleep(500);
   queue = await send<QueueItem[]>({ type: "getQueue" }).catch(() => queue);
   const found = queue.filter((q) => q.tabId === tabId && q.at >= startedAt);
@@ -778,7 +768,7 @@ async function runLinks(): Promise<void> {
       `${fmt(sum("loaded"))} komentar`,
       `${sum("found")} berbahaya`,
       autoReport ? `${sum("sent")} dilapor` : "",
-      learn ? `${sum("learned")} dipelajari AI` : "",
+      learn ? `${sum("learned")} jadi contoh belajar` : "",
     ]
       .filter(Boolean)
       .join(" · ");

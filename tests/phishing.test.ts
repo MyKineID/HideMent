@@ -59,4 +59,9 @@ describe("analisis phising", () => {
     const r = analyzePhishing(normalize("login di xn--bc-7ba.com"));
     expect(r.reasons.join(" ")).toMatch(/punycode/);
   });
+
+  it("pertanyaan 'websitenya titik com atau titik id' bukan link samaran", () => {
+    expect(analyzePhishing(normalize("websitenya titik com atau titik id kak?")).links).toEqual([]);
+    expect(analyzePhishing(normalize("klaim di dana-kaget titik online")).links.map((l) => l.domain)).toEqual(["dana-kaget.online"]);
+  });
 });

@@ -29,6 +29,11 @@ export interface Settings {
     max: number;
     /** Ikut buka balasan ("Tampilkan balasan"). */
     replies: boolean;
+    /**
+     * Gulir otomatis untuk memuat komentar lain saat Analyze. Bawaan mati: Analyze langsung menilai komentar yang
+     * sudah dimuat, dan komentar baru dinilai seketika saat pengguna scroll sendiri.
+     */
+    autoLoad: boolean;
   };
   report: {
     /** Tombol "Bantu laporkan" di popover komentar. */
@@ -56,7 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showSafeBadge: true,
   },
   categoryAction: { spam: "highlight" },
-  scan: { method: "manual", max: 300, replies: true },
+  scan: { method: "manual", max: 300, replies: true, autoLoad: false },
   report: { assist: true, autoQueue: false },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
@@ -143,6 +148,7 @@ export function sanitizeSettings(s: Settings): Settings {
       method: s.scan?.method === "fast" || s.scan?.method === "scroll" ? s.scan.method : "manual",
       max: clampInt(s.scan?.max, LIMITS.scanMax, d.scan.max),
       replies: bool(s.scan?.replies, d.scan.replies),
+      autoLoad: bool(s.scan?.autoLoad, d.scan.autoLoad),
     },
     report: boolRecord(s.report, d.report),
     thresholds: { high, medium },

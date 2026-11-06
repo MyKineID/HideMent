@@ -494,12 +494,13 @@ async function refreshPostInfo(): Promise<void> {
 }
 
 /** Sambungkan ke tab lalu minta content script menganalisis semua komentar postingan yang sedang dibuka. */
-async function analyzeTab(tabId: number): Promise<FastScanReply> {
+/** `load` = gulir otomatis untuk memuat semua komentar (Analyze dari link); tanpa itu Analyze menilai instan tanpa scroll. */
+async function analyzeTab(tabId: number, load = false): Promise<FastScanReply> {
   if (!(await send<boolean>({ type: "ensureContent", tabId }).catch(() => false))) {
     return { ok: false, note: "HideMent belum tersambung ke tab ini. Refresh halamannya (F5), lalu coba lagi." };
   }
   scanTab = tabId;
-  const r = (await chrome.tabs.sendMessage(tabId, { type: "fastScan" } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
+  const r = (await chrome.tabs.sendMessage(tabId, { type: "fastScan", load } satisfies TabMsg).catch(() => null)) as FastScanReply | null;
   return r ?? { ok: false, note: "Halaman belum siap. Refresh tab lalu coba lagi." };
 }
 
@@ -511,7 +512,8 @@ scanBtn.addEventListener("click", async () => {
   showScanNote("Menyambungkan ke postingan…");
   const r = await analyzeTab(tab.id);
   if (!r.ok) return showScanNote(r.note ?? "Gagal menganalisis.");
-  if (r.total) showScanNote(`Postingan ini punya ${fmt(r.total)} komentar. Menganalisis…`);
+  if (r.instant) showScanNote(r.analyzed ? `${fmt(r.analyzed)}${r.total ? ` dari ${fmt(r.total)}` : ""} komentar langsung dinilai. Komentar lain dinilai otomatis saat kamu scroll.` : "Belum ada komentar yang dimuat. Scroll sedikit; komentar langsung dinilai saat muncul.");
+  else if (r.total) showScanNote(`Postingan ini punya ${fmt(r.total)} komentar. Memuat & menganalisis…`);
 });
 stopBtn.addEventListener("click", () => {
   if (scanTab !== undefined) chrome.tabs.sendMessage(scanTab, { type: "stopScan" } satisfies TabMsg).catch(() => undefined);
@@ -680,7 +682,7 @@ async function runJob(job: Job, autoReport: boolean, learn: boolean): Promise<vo
 
   const startedAt = Date.now();
   const ended = waitScanEnd(tabId, 6 * 60_000);
-  const r = await analyzeTab(tabId);
+  const r = await analyzeTab(tabId, true);
   if (!r.ok) {
     scanWaiters.get(tabId)?.(null);
     return fail(r.note ?? "Gagal menganalisis.");

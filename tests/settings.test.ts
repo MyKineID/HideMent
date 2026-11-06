@@ -66,6 +66,12 @@ describe("sanitasi pengaturan", () => {
 });
 
 describe("cara memindai", () => {
+  it("Analyze bawaan instan: tidak menggulir halaman sendiri", () => {
+    expect(resolveSettings({}).scan.autoLoad).toBe(false);
+    expect(resolveSettings({ scan: { autoLoad: true } }).scan.autoLoad).toBe(true);
+    expect(resolveSettings({ scan: { autoLoad: "ya" } }).scan.autoLoad).toBe(false);
+  });
+
   it("bawaan menunggu tombol Analyze, pilihan lama tetap dihormati", () => {
     expect(resolveSettings({}).scan.method).toBe("manual");
     expect(resolveSettings({ scan: { method: "scroll" } }).scan.method).toBe("scroll");

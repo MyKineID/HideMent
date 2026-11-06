@@ -112,7 +112,7 @@ Semua mode dinilai lokal di browser, tanpa koneksi AI.
 **Fitur lainnya:**
 
 - **Jumlah komentar langsung terlihat**: begitu postingan dibuka, popup dan side panel menampilkan total komentar menurut platform (mis. 347 di X) beserta berapa yang sudah aman / sedang / tinggi.
-- **Analyze komentar postingan ini**: klik sekali, HideMent membuka panel komentar (TikTok), memuat & menganalisis semuanya termasuk balasan tanpa kamu scroll ("123 dari 2.709 komentar"). **Setiap komentar diberi label** Aman / Sedang / Tinggi di samping nama akunnya (tidak menambah baris), dan label tetap menempel saat kamu scroll manual (termasuk di X yang membuang & menggambar ulang komentar saat digulir). Sebelum tombol ini ditekan, HideMent tidak mendeteksi apa pun; ubah di Pengaturan → Pemindaian kalau mau otomatis.
+- **Analyze komentar postingan ini**: klik sekali, semua komentar yang sudah dimuat **langsung dinilai saat itu juga**, tanpa halaman digulir otomatis. Komentar yang dimuat platform saat kamu scroll sendiri (mis. balasan X) ikut dinilai begitu muncul. Mau HideMent menggulir sendiri untuk memuat semuanya? Nyalakan Pengaturan → Pemindaian → *Muat semua komentar otomatis* ("Analyze dari link" selalu memuat otomatis). **Setiap komentar diberi label** Aman / Sedang / Tinggi di samping nama akunnya (tidak menambah baris), dan label tetap menempel saat kamu scroll manual (termasuk di X yang membuang & menggambar ulang komentar saat digulir). Sebelum tombol ini ditekan, HideMent tidak mendeteksi apa pun; ubah di Pengaturan → Pemindaian kalau mau otomatis.
 - **Analyze dari link**: tempel satu atau banyak link postingan (boleh langsung dari chat WhatsApp). HideMent membukanya satu per satu di satu tab, menganalisis semua komentarnya, dan menampilkan ringkasan per link.
 - **Badge + skor risiko** (Tinggi / Sedang) di samping komentar, lengkap dengan alasannya.
 - **Tandai, blur, atau sembunyikan**, bisa diatur per kategori. Komentar yang diblur bisa dibuka dengan klik.
@@ -171,7 +171,8 @@ Pengaturan lanjutan:
 
 | Opsi | Default | Rentang |
 |---|---|---|
-| Batas Pindai Cepat | 300 komentar | 50–2000 |
+| Muat semua komentar otomatis | mati | nyala / mati |
+| Batas muat otomatis | 300 komentar | 50–2000 |
 | Ambang Sedang / Tinggi | 50 / 80 | 10–100 |
 
 Nilai di luar rentang otomatis dikoreksi saat dimuat. Pengaturan koneksi AI dari versi lama (Base URL, API key, model) otomatis dihapus saat pembaruan.

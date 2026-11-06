@@ -64,6 +64,9 @@ export const PRAISE: Term[] = t(
 
 /** Makian kuat. Tetap kuat walau target tidak disebut. */
 export const INSULT_STRONG: Term[] = [
+  /* Tuduhan/makian khas thread "bongkar akun" & gosip: pedo, predator, bejat, psikopat. */
+  ...t(2.8, "pedo", "pedofil", "predator", "predator anak", "groomer", "bejat", "psikopat", "psycho", "sakit jiwa", "gangguan jiwa", "hidung belang", "buaya darat", "fakboy", "fuckboy", "penjahat kelamin", "om om mesum", "manusia sampah", "gak ada akhlak", "ga ada akhlak", "tidak berakhlak", "kriminal"),
+  ...t(1.6, "creepy", "red flag", "toxic", "penjarain", "penjarakan", "masukin penjara", "pantes dipenjara", "ilfeel", "ilfil"),
   /* Dehumanisasi: memperlakukan orang seperti hewan/makhluk lain. */
   ...t(3.4, "sekandang berapa", "satu kandang", "lepas dari kebun binatang", "kebun binatang mana", "manusia apa bukan", "manusia bukan sih", "evolusi gagal", "evolusi lu gagal", "setengah monyet", "nenek moyang lu", "keturunan monyet", "turunan monyet", "muka minta ditabok", "muka minta ditampol", "muka minta digampar", "muka kriminal", "tampang maling", "muka maling", "muka babu", "muka tembok", "aib keluarga", "anak pungut", "anak haram", "misqueen", "tua bangka", "bau tanah", "janda gatel", "pelakor", "pebinor", "cabe cabean", "bau kencur", "bocah ingusan", "isinya upil", "kurang gizi", "kayak orang mabok", "gak ada harganya"),
   ...t(3.0, "sekandang"),

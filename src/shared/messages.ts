@@ -27,7 +27,12 @@ export type TabMsg =
       /** "dom" = hanya cari di halaman yang sedang tampil (tanpa scroll); "scroll" = boleh menggulir wadah komentar. */
       find?: "dom" | "scroll";
     }
-  | { type: "fastScan" }
+  /**
+   * Analyze komentar postingan ini. Bawaan: instan, semua komentar yang sudah dimuat langsung dinilai dan komentar
+   * yang muncul saat pengguna scroll ikut dinilai, tanpa menggulir halaman. `load` = gulir otomatis untuk memuat komentar
+   * lain (dipakai "Analyze dari link" di tab latar, atau kalau pengguna menyalakan "Muat semua komentar otomatis").
+   */
+  | { type: "fastScan"; load?: boolean }
   | { type: "ping" }
   | { type: "stopScan" }
   | { type: "rescan" }
@@ -60,6 +65,10 @@ export interface FastScanReply {
   ok: boolean;
   note?: string;
   total?: number | null;
+  /** Mode instan: berapa komentar yang langsung dinilai. */
+  analyzed?: number;
+  /** true = dinilai instan tanpa scroll; false/undefined = sedang memuat dengan scroll otomatis. */
+  instant?: boolean;
 }
 
 export interface ScanProgress {

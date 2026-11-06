@@ -158,7 +158,7 @@
         <div class="sec-head"><h2 id="h-pindai">Pemindaian</h2></div>
         <div class="group">
           <div class="item">
-            <div class="item-main"><b id="scanLabel">Kapan mendeteksi</b><small>Tekan Analyze: tidak ada yang dianalisis sebelum kamu menekan tombol Analyze di postingan itu. Saat scroll: komentar yang terlihat langsung dianalisis. Pindai cepat: tiap postingan dibuka, semua komentar langsung dimuat & dianalisis.</small></div>
+            <div class="item-main"><b id="scanLabel">Kapan mendeteksi</b><small>Tekan Analyze: komentar postingan itu langsung dinilai saat kamu menekan Analyze. Saat scroll: komentar dinilai begitu terlihat. Pindai cepat: tiap postingan dibuka, komentarnya langsung dinilai tanpa perlu menekan apa pun.</small></div>
             <div class="seg" role="radiogroup" aria-labelledby="scanLabel">
               <button type="button" role="radio" data-scan="manual" aria-checked="false">Tekan Analyze</button>
               <button type="button" role="radio" data-scan="scroll" aria-checked="false">Saat scroll</button>
@@ -166,11 +166,15 @@
             </div>
           </div>
           <label class="item">
+            <span class="item-main"><b>Muat semua komentar otomatis</b><small>HideMent menggulir halaman sendiri untuk memuat komentar lain. Bisa berat di thread X yang panjang. Mati: hanya komentar yang sudah dimuat, plus yang muncul saat kamu scroll.</small></span>
+            <input class="switch" type="checkbox" data-key="scan.autoLoad" />
+          </label>
+          <label class="item">
             <span class="item-main"><b>Ikut buka balasan</b><small>Judi online sering bersembunyi di balasan.</small></span>
             <input class="switch" type="checkbox" data-key="scan.replies" />
           </label>
           <div class="item">
-            <label class="item-main" for="scanMax"><b>Batas per pindai</b><small>Berhenti setelah jumlah ini atau saat komentar habis.</small></label>
+            <label class="item-main" for="scanMax"><b>Batas muat otomatis</b><small>Berlaku saat memuat otomatis: berhenti setelah jumlah ini atau saat komentar habis.</small></label>
             <div class="num-field"><input id="scanMax" type="number" min="50" max="2000" step="50" /></div>
           </div>
         </div>

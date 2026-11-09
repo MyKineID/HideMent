@@ -1,3 +1,4 @@
+import type { CommentBudget } from "../core/limits";
 import type { ScanProgress } from "../shared/messages";
 import type { Adapter } from "./adapters/types";
 
@@ -25,7 +26,12 @@ export interface FastScanDeps {
   /** Pindai DOM sekarang; kembalikan jumlah komentar unik yang sudah dikirim untuk dianalisis. */
   scanNow(): number;
   setEager(on: boolean): void;
-  max(): number;
+  /** Kuota komentar per postingan yang berlaku sekarang (satu instansi per postingan). */
+  budget(): CommentBudget;
+  /** Tambah kuota postingan ini saja (tombol "Baca N lagi"); tidak mengubah pengaturan. */
+  extend(n: number): void;
+  /** Lanjutkan analisis setelah kuota ditambah: amati lagi (mode scroll) atau gulir lagi (Pindai Cepat). */
+  resume(): void;
   replies(): boolean;
   /** Jumlah komentar menurut platform (dibaca ulang tiap putaran karena angkanya kadang baru muncul belakangan). */
   total(): number | null;
@@ -57,40 +63,65 @@ export class FastScanner {
     this.abort = true;
   }
 
-  private emit(state: ScanProgress["state"], loaded: number, note?: string): void {
+  private emit(state: ScanProgress["state"], loaded: number, note?: string, reason?: ScanProgress["reason"]): void {
     const total = this.deps.total();
-    const max = total ? Math.min(this.deps.max(), total) : this.deps.max();
-    const msg: ScanProgress = { type: "scanProgress", state, loaded, max, total, note };
+    const limit = this.deps.budget().limit;
+    const max = total ? Math.min(limit, total) : limit;
+    const msg: ScanProgress = { type: "scanProgress", state, loaded, max, total, note, limit };
+    if (reason) msg.reason = reason;
     chrome.runtime.sendMessage(msg).catch(() => undefined);
     this.renderBar(msg);
   }
 
+  /** Tuas tombol di bar pindai: Stop saat berjalan, "Baca N lagi" saat berhenti karena batas. */
   private renderBar(p: ScanProgress): void {
     if (!this.bar) {
       this.bar = document.createElement("div");
       this.bar.className = "rg-scanbar";
       this.bar.setAttribute("role", "status");
-      this.bar.innerHTML = `<span class="rg-sb-name">HideMent</span><span class="rg-sb-text"></span><span class="rg-sb-meter"><i></i></span><button type="button" class="rg-btn">Stop</button>`;
-      this.bar.querySelector("button")!.addEventListener("click", () => this.stop());
+      this.bar.innerHTML = `<span class="rg-sb-name">HideMent</span><span class="rg-sb-text"></span><span class="rg-sb-meter"><i></i></span><button type="button" class="rg-btn" data-stop>Stop</button><button type="button" class="rg-btn" data-more hidden>Baca N lagi</button>`;
+      this.bar.querySelector("[data-stop]")!.addEventListener("click", () => this.stop());
+      this.bar.querySelector("[data-more]")!.addEventListener("click", () => {
+        const n = this.deps.budget().limit;
+        this.deps.extend(n);
+        this.deps.resume();
+      });
       document.body.append(this.bar);
     }
     const done = p.state !== "running";
+    /* Berhenti karena kuota: bar tetap tampil (bawa tombol "Baca N lagi"), selainnya hilang sendiri. */
+    const limitStop = done && p.state !== "error" && p.reason === "limit";
     this.bar.dataset.state = p.state;
     const text = this.bar.querySelector<HTMLElement>(".rg-sb-text")!;
     if (p.state === "error") text.textContent = p.note ?? "Komentar tidak ditemukan";
     else {
-      text.textContent = p.state === "running" ? "Menganalisis " : p.state === "stopped" ? "Dihentikan · " : "Selesai · ";
+      text.textContent = p.state === "running" ? "Menganalisis " : limitStop ? "" : p.state === "stopped" ? "Dihentikan · " : "Selesai · ";
       const b = document.createElement("b");
       b.textContent = fmt(p.loaded);
-      text.append(b, p.total ? ` dari ${fmt(p.total)} komentar` : " komentar", p.note ? ` · ${p.note}` : "");
+      const dibaca = limitStop ? " dibaca" : "";
+      text.append(b, p.total ? ` dari ${fmt(p.total)} komentar${dibaca}` : ` komentar${dibaca}`, p.note ? ` · ${p.note}` : limitStop ? " · batas tercapai" : "");
     }
     this.bar.querySelector<HTMLElement>(".rg-sb-meter i")!.style.width = `${Math.min(100, (p.loaded / p.max) * 100)}%`;
-    this.bar.querySelector("button")!.hidden = done;
-    if (done) {
+    this.bar.querySelector<HTMLElement>("[data-stop]")!.hidden = done;
+    const more = this.bar.querySelector<HTMLElement>("[data-more]")!;
+    more.hidden = !limitStop;
+    if (limitStop) more.textContent = `Baca ${fmt(this.deps.budget().limit)} lagi`;
+    if (done && !limitStop) {
       const bar = this.bar;
       this.bar = null;
       setTimeout(() => bar.remove(), 4000);
     }
+  }
+
+  /** Tampilkan bar "batas tercapai" tanpa menjalankan pindai (mode Saat scroll: kuota habis saat pengguna menggulir). */
+  limitReached(budget: CommentBudget): void {
+    this.renderBar({ type: "scanProgress", state: "done", loaded: budget.used, max: budget.limit, total: this.deps.total(), limit: budget.limit, reason: "limit" });
+  }
+
+  /** Buang bar pindai (dipanggil saat postingan berganti supaya info lama tidak menggantung). */
+  dismiss(): void {
+    this.bar?.remove();
+    this.bar = null;
   }
 
   private expandReplies(root: ParentNode, limit: number): number {
@@ -150,7 +181,8 @@ export class FastScanner {
       while (!this.abort && stagnant < 4) {
         const loaded = this.deps.scanNow();
         const total = this.deps.total();
-        if (loaded >= this.deps.max() || (total && loaded >= total)) break;
+        /* Kuota postingan habis → berhenti menggulir; jangan memuat komentar yang tidak akan dianalisis. */
+        if (this.deps.budget().exhausted || (total && loaded >= total)) break;
         const comments = adapter.findComments(document);
         const root = comments[0]?.closest("main, [role='dialog']") ?? document;
         const expanded = this.expandReplies(root, 6);
@@ -170,11 +202,13 @@ export class FastScanner {
         last = now;
         this.emit("running", now);
       }
-      const loaded = this.deps.scanNow();
+      const budget = this.deps.budget();
+      const reason: ScanProgress["reason"] = this.abort ? "stopped" : budget.exhausted ? "limit" : "end";
+      const loaded = reason === "limit" ? budget.used : this.deps.scanNow();
       const total = this.deps.total();
       /* Jauh di bawah jumlah resmi tapi tidak bertambah lagi: biasanya platform membatasi tamu (TikTok tanpa login hanya memberi 20). */
-      const cut = !this.abort && total && this.deps.replies() && loaded < this.deps.max() && loaded < total * 0.5;
-      this.emit(this.abort ? "stopped" : "done", loaded, cut ? "Platform berhenti memuat komentar. Pastikan sudah login, lalu coba lagi." : undefined);
+      const cut = reason === "end" && total && this.deps.replies() && loaded < total * 0.5;
+      this.emit(this.abort ? "stopped" : "done", loaded, cut ? "Platform berhenti memuat komentar. Pastikan sudah login, lalu coba lagi." : undefined, reason);
     } finally {
       if (scroller) scroller.scrollTop = scrollerStart;
       window.scrollTo({ top: startY });

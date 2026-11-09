@@ -156,7 +156,8 @@ async function init(): Promise<void> {
     else {
       const of = msg.total ? ` dari ${msg.total.toLocaleString("id-ID")}` : "";
       text.innerHTML = `<b>${msg.loaded.toLocaleString("id-ID")}</b>`;
-      text.append(`${of} ${running ? "komentar dianalisis" : msg.state === "stopped" ? "komentar dianalisis · dihentikan" : "komentar dianalisis"}${msg.note && !running ? ` · ${msg.note}` : ""}`);
+      const batas = !running && msg.reason === "limit" && msg.limit ? ` · batas ${msg.limit.toLocaleString("id-ID")}` : "";
+      text.append(`${of} ${running ? "komentar dianalisis" : msg.state === "stopped" ? "komentar dianalisis · dihentikan" : "komentar dianalisis"}${batas}${msg.note && !running ? ` · ${msg.note}` : ""}`);
     }
     $("#scanFill").style.width = `${Math.min(100, (msg.loaded / Math.max(1, msg.max)) * 100)}%`;
   });

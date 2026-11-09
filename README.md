@@ -172,10 +172,12 @@ Pengaturan lanjutan:
 | Opsi | Default | Rentang |
 |---|---|---|
 | Muat semua komentar otomatis | mati | nyala / mati |
-| Batas muat otomatis | 300 komentar | 50–2000 |
+| Batas komentar per postingan | 300 komentar | 50–5.000 |
+| Batas komentar per putaran (Analyze dari link) | 3.000 komentar | 100–20.000 |
+| Batas khusus platform | kosong (memakai batas per postingan) | 50–5.000 |
 | Ambang Sedang / Tinggi | 50 / 80 | 10–100 |
 
-Nilai di luar rentang otomatis dikoreksi saat dimuat. Pengaturan koneksi AI dari versi lama (Base URL, API key, model) otomatis dihapus saat pembaruan.
+Batas komentar per postingan berlaku di semua cara pindai (Analyze, Saat scroll, Pindai cepat, dan Analyze dari link). Saat batas tercapai, bar pindai menampilkan "300 dari 2.709 komentar dibaca · batas tercapai" beserta tombol **Baca 300 lagi** untuk melanjutkan tanpa membuka Pengaturan. Nilai di luar rentang otomatis dikoreksi saat dimuat. Pengaturan koneksi AI dari versi lama (Base URL, API key, model) otomatis dihapus saat pembaruan.
 
 ### Akurasi & kecepatan
 

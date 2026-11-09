@@ -25,8 +25,15 @@ export interface Settings {
      * "scroll" = analisis komentar yang terlihat saat di-scroll; "fast" = otomatis memuat & menganalisis semua komentar postingan.
      */
     method: "manual" | "scroll" | "fast";
-    /** Batas jumlah komentar yang dimuat Pindai Cepat. */
-    max: number;
+    /** Batas komentar per postingan, berlaku di semua cara pindai. */
+    limit: {
+      /** Batas komentar yang dianalisis per postingan (semua cara pindai). */
+      perPost: number;
+      /** Batas total komentar untuk satu putaran Analyze dari link (banyak link sekaligus). */
+      perRun: number;
+      /** Override batas per platform; kosong berarti memakai perPost. */
+      perPlatform: Partial<Record<Platform, number>>;
+    };
     /** Ikut buka balasan ("Tampilkan balasan"). */
     replies: boolean;
     /**
@@ -61,7 +68,12 @@ export const DEFAULT_SETTINGS: Settings = {
     showSafeBadge: true,
   },
   categoryAction: { spam: "highlight" },
-  scan: { method: "manual", max: 300, replies: true, autoLoad: false },
+  scan: {
+    method: "manual",
+    limit: { perPost: 300, perRun: 3000, perPlatform: {} },
+    replies: true,
+    autoLoad: false,
+  },
   report: { assist: true, autoQueue: false },
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
@@ -69,7 +81,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "settings";
-const SCHEMA = 7;
+const SCHEMA = 8;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -88,7 +100,10 @@ function merge<T>(base: T, patch: unknown): T {
 
 /** Batas nilai numerik; sama dengan batas input di halaman Pengaturan. */
 export const LIMITS = {
-  scanMax: [50, 2000],
+  /** Batas komentar yang dianalisis per postingan. */
+  limitPerPost: [50, 5000],
+  /** Batas total komentar satu putaran Analyze dari link. */
+  limitPerRun: [100, 20000],
   customName: 40,
   customDefinition: 400,
   threshold: [10, 100],
@@ -121,6 +136,28 @@ function boolRecord<K extends string>(v: unknown, base: Record<K, boolean>): Rec
   return out;
 }
 
+/** Pastikan batas komentar punya tipe & rentang yang benar; override platform yang tidak dikenal dibuang. */
+function sanitizeScan(v: Settings["scan"] | undefined): Settings["scan"] {
+  const d = DEFAULT_SETTINGS.scan;
+  const perPlatform: Settings["scan"]["limit"]["perPlatform"] = {};
+  const overrides = (v?.limit?.perPlatform ?? {}) as Record<string, unknown>;
+  for (const platform of ["youtube", "instagram", "tiktok", "x", "reddit"] as const) {
+    const n = Number(overrides[platform]);
+    if (!Number.isFinite(n)) continue;
+    perPlatform[platform] = clampInt(n, LIMITS.limitPerPost, d.limit.perPost);
+  }
+  return {
+    method: v?.method === "fast" || v?.method === "scroll" ? v.method : "manual",
+    limit: {
+      perPost: clampInt(v?.limit?.perPost, LIMITS.limitPerPost, d.limit.perPost),
+      perRun: clampInt(v?.limit?.perRun, LIMITS.limitPerRun, d.limit.perRun),
+      perPlatform,
+    },
+    replies: bool(v?.replies, d.replies),
+    autoLoad: bool(v?.autoLoad, d.autoLoad),
+  };
+}
+
 /**
  * Pastikan setiap field punya tipe & rentang yang benar. Storage bisa berisi data lama
  * (termasuk field koneksi AI dari versi sebelumnya, yang dibuang di sini), hasil edit manual, atau nilai rusak.
@@ -144,12 +181,7 @@ export function sanitizeSettings(s: Settings): Settings {
     platforms: boolRecord(s.platforms, d.platforms),
     display: boolRecord(s.display, d.display),
     categoryAction,
-    scan: {
-      method: s.scan?.method === "fast" || s.scan?.method === "scroll" ? s.scan.method : "manual",
-      max: clampInt(s.scan?.max, LIMITS.scanMax, d.scan.max),
-      replies: bool(s.scan?.replies, d.scan.replies),
-      autoLoad: bool(s.scan?.autoLoad, d.scan.autoLoad),
-    },
+    scan: sanitizeScan(s.scan),
     report: boolRecord(s.report, d.report),
     thresholds: { high, medium },
     whitelist: stringList(s.whitelist),
@@ -185,6 +217,13 @@ export async function loadSettings(): Promise<Settings> {
     if (Number(raw.schema) < 6 && stored.scan?.method === "scroll") stored.scan = { ...stored.scan, method: "manual" };
     /* Schema 7: koneksi AI (Base URL, API key, model) dihapus; semua mode dinilai mesin lokal. Jangan simpan API key lama. */
     delete (stored as { api?: unknown }).api;
+    /* Schema 8: scan.max dipindah ke scan.limit.perPost; batas kini berlaku di semua cara pindai, dan scan.max dibuang. */
+    if (Number(raw.schema) < 8 && stored.scan) {
+      const scanOld = stored.scan as Settings["scan"] & { max?: unknown };
+      const max = typeof scanOld.max === "number" && Number.isFinite(scanOld.max) ? scanOld.max : undefined;
+      stored.scan = { ...scanOld, limit: { perPost: max ?? DEFAULT_SETTINGS.scan.limit.perPost } as Settings["scan"]["limit"] };
+      delete (stored.scan as { max?: unknown }).max;
+    }
     await chrome.storage.local.set({ [KEY]: stored, schema: SCHEMA });
     if (Number(raw.schema) < 7) await chrome.storage.local.remove(["modelCache", "verdictCache"]);
   }

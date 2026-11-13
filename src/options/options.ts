@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, priorityOf, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
-import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, verdictLabel, type Category } from "../core/types";
+import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, verdictLabel, type Category, type Platform } from "../core/types";
 import { EXAMPLES_KEY, mergeExamples, parseExamples, type Example } from "../core/examples";
 import { extractPostLinks } from "../core/links";
 import type { Decision } from "../core/engine";
@@ -313,7 +313,12 @@ function renderPower(): void {
 }
 
 function fillForm(): void {
-  $<HTMLInputElement>("#scanMax").value = String(settings.scan.max);
+  $<HTMLInputElement>("#limitPerPost").value = String(settings.scan.limit.perPost);
+  $<HTMLInputElement>("#limitPerRun").value = String(settings.scan.limit.perRun);
+  for (const platform of ["youtube", "instagram", "tiktok", "x", "reddit"] as const) {
+    const override = settings.scan.limit.perPlatform[platform];
+    $<HTMLInputElement>(`#limitPlat-${platform}`).value = override == null ? "" : String(override);
+  }
   $<HTMLInputElement>("#high").value = String(settings.thresholds.high);
   $<HTMLInputElement>("#medium").value = String(settings.thresholds.medium);
   renderMeter(settings.thresholds.high, settings.thresholds.medium);
@@ -405,10 +410,26 @@ async function init(): Promise<void> {
 
   const d = DEFAULT_SETTINGS;
   const advanced: [string, number, number, number, (v: number) => DeepPartial<Settings>][] = [
-    ["#scanMax", ...LIMITS.scanMax, d.scan.max, (v) => ({ scan: { max: v } })],
+    ["#limitPerPost", ...LIMITS.limitPerPost, d.scan.limit.perPost, (v) => ({ scan: { limit: { perPost: v } } })],
+    ["#limitPerRun", ...LIMITS.limitPerRun, d.scan.limit.perRun, (v) => ({ scan: { limit: { perRun: v } } })],
   ];
   for (const [sel, min, max, fb, patch] of advanced) {
     $<HTMLInputElement>(sel).addEventListener("change", (e) => save(patch(clampNum(e.target as HTMLInputElement, min, max, fb))));
+  }
+
+  /* Override batas per platform: kosong berarti hapus override (kembali memakai batas per postingan). */
+  const platforms: Platform[] = ["youtube", "instagram", "tiktok", "x", "reddit"];
+  for (const platform of platforms) {
+    const input = $<HTMLInputElement>(`#limitPlat-${platform}`);
+    input.addEventListener("change", () => {
+      if (!input.value.trim()) {
+        input.value = "";
+        void save({ scan: { limit: { perPlatform: { [platform]: undefined } } } }, `Batas khusus ${platform} dihapus; memakai batas per postingan.`);
+        return;
+      }
+      const v = clampNum(input, ...LIMITS.limitPerPost, settings.scan.limit.perPost);
+      void save({ scan: { limit: { perPlatform: { [platform]: v } } } }, "Pengaturan disimpan.");
+    });
   }
 
   document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) =>

@@ -749,13 +749,21 @@ async function runLinks(): Promise<void> {
   linkSummary = "";
   result = null;
   render();
+  /* Batas total satu putaran (FR-12): tiap link tetap punya batas per postingan, tapi seluruh putaran berhenti di perRun. */
+  const perRun = settings.scan.limit.perRun;
+  let readTotal = 0;
   try {
     for (const job of jobs) {
       if (linkAbort) break;
+      if (readTotal >= perRun) {
+        Object.assign(job, { state: "error", note: "Dilewati: batas putaran tercapai" });
+        continue;
+      }
       await runJob(job, autoReport, learn).catch((e: Error) => {
         job.state = "error";
         job.note = e.message;
       });
+      readTotal += job.loaded;
       render();
     }
   } finally {
@@ -765,7 +773,7 @@ async function runLinks(): Promise<void> {
     const finished = jobs.filter((j) => j.state === "done").length;
     linkSummary = [
       `Selesai ${finished}/${jobs.length} postingan`,
-      `${fmt(sum("loaded"))} komentar`,
+      `${fmt(sum("loaded"))} / ${fmt(perRun)} komentar`,
       `${sum("found")} berbahaya`,
       autoReport ? `${sum("sent")} dilapor` : "",
       learn ? `${sum("learned")} jadi contoh belajar` : "",

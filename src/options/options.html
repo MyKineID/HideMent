@@ -174,9 +174,26 @@
             <input class="switch" type="checkbox" data-key="scan.replies" />
           </label>
           <div class="item">
-            <label class="item-main" for="scanMax"><b>Batas muat otomatis</b><small>Berlaku saat memuat otomatis: berhenti setelah jumlah ini atau saat komentar habis.</small></label>
-            <div class="num-field"><input id="scanMax" type="number" min="50" max="2000" step="50" /></div>
+            <label class="item-main" for="limitPerPost"><b>Batas komentar per postingan</b><small>Berlaku di semua cara pindai (Analyze, Saat scroll, Pindai cepat, Analyze dari link). Saat batas tercapai, tombol "Baca N lagi" muncul di bar pindai.</small></label>
+            <div class="num-field"><input id="limitPerPost" type="number" min="50" max="5000" step="50" /></div>
           </div>
+          <details class="adv">
+            <summary>Pengaturan lanjutan</summary>
+            <div class="group">
+              <div class="item">
+                <label class="item-main" for="limitPerRun"><b>Batas komentar per putaran</b><small>Total komentar untuk satu klik "Analyze N link" di side panel, dihitung dari semua link.</small></label>
+                <div class="num-field"><input id="limitPerRun" type="number" min="100" max="20000" step="100" /></div>
+              </div>
+              <div class="item">
+                <label class="item-main" for="limitPlat-x"><b>Batas khusus platform</b><small>Kosong = memakai batas per postingan. Isi untuk mengubah batas di satu platform saja.</small></label>
+              </div>
+              <div class="item"><label class="item-main" for="limitPlat-youtube">YouTube</label><div class="num-field"><input id="limitPlat-youtube" type="number" min="50" max="5000" step="50" placeholder="bawaan" /></div></div>
+              <div class="item"><label class="item-main" for="limitPlat-instagram">Instagram</label><div class="num-field"><input id="limitPlat-instagram" type="number" min="50" max="5000" step="50" placeholder="bawaan" /></div></div>
+              <div class="item"><label class="item-main" for="limitPlat-tiktok">TikTok</label><div class="num-field"><input id="limitPlat-tiktok" type="number" min="50" max="5000" step="50" placeholder="bawaan" /></div></div>
+              <div class="item"><label class="item-main" for="limitPlat-x">X (Twitter)</label><div class="num-field"><input id="limitPlat-x" type="number" min="50" max="5000" step="50" placeholder="bawaan" /></div></div>
+              <div class="item"><label class="item-main" for="limitPlat-reddit">Reddit</label><div class="num-field"><input id="limitPlat-reddit" type="number" min="50" max="5000" step="50" placeholder="bawaan" /></div></div>
+            </div>
+          </details>
         </div>
       </section>
 

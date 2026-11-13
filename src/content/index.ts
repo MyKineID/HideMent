@@ -1,4 +1,5 @@
 import { hashText } from "../core/normalize";
+import { CommentBudget, limitFor } from "../core/limits";
 import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
 import { MODES, type CommentInput, type Verdict } from "../core/types";
 import { send, type CollectedComment, type FastScanReply, type PostInfo, type ScanProgress, type TabMsg } from "../shared/messages";
@@ -65,6 +66,17 @@ let lastUrl = location.href;
 /** Postingan tempat pengguna sudah menekan Analyze (mode "manual"); di postingan lain tidak ada yang dianalisis. */
 let armedPost: string | null = null;
 const postKey = () => postIdOf(location.href) ?? location.href;
+/**
+ * Kuota komentar postingan yang sedang dibuka: komentar baru butuh slot, komentar yang digambar ulang (fingerprint
+ * sama) tidak dihitung dua kali. Direset saat pindah postingan (postKey), bukan saat DOM berubah.
+ */
+let budget = new CommentBudget(DEFAULT_SETTINGS.scan.limit.perPost);
+/** Postingan yang terakhir diberi tahu "batas tercapai" di bar pindai, supaya pemberitahuan tidak berulang. */
+let limitNotified: string | null = null;
+
+function newBudget(): CommentBudget {
+  return new CommentBudget(adapter ? limitFor(settings, adapter.platform) : settings.scan.limit.perPost);
+}
 
 function instant(): boolean {
   return eager || livePost === postKey();
@@ -93,11 +105,30 @@ const visibility = new IntersectionObserver(
 function queueForAnalysis(el: HTMLElement): void {
   const id = el.dataset.rgId;
   if (!id || verdicts.has(id) || !adapter) return;
+  const fp = el.dataset.rgFp ?? "";
   const text = adapter.getText(el).slice(0, MAX_TEXT);
   if (!text) return;
+  /* Komentar yang sudah pernah dinilai (fingerprint sama, mis. digambar ulang di X) dipasang lagi labelnya tanpa memakan kuota. */
+  const known = verdictByFp.get(fp);
+  if (known) {
+    applyOne({ ...known, id });
+    return;
+  }
+  /* Kuota per postingan: hanya komentar baru yang masih punya slot yang masuk antrean analisis. */
+  if (!budget.allow(fp)) {
+    notifyLimit();
+    return;
+  }
   outbox.set(id, { id, text, author: adapter.getAuthor(el), url: adapter.getPermalink(el) ?? undefined });
   clearTimeout(sendTimer);
   sendTimer = setTimeout(flush, outbox.size >= MAX_PER_MESSAGE ? 0 : SEND_DELAY_MS);
+}
+
+/** Kuota habis di luar Pindai Cepat (mode Saat scroll): beri tahu lewat bar pindai, cukup sekali per postingan. */
+function notifyLimit(): void {
+  if (!budget.exhausted || !scanner || scanner.isRunning || limitNotified === postKey()) return;
+  limitNotified = postKey();
+  scanner.limitReached(budget);
 }
 
 async function flush(): Promise<void> {
@@ -165,6 +196,10 @@ function scan(): void {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
     pageComments.clear();
+    /* Postingan berganti: kuota dimulai dari nol, bar pindai lama dibuang. */
+    budget = newBudget();
+    limitNotified = null;
+    scanner?.dismiss();
     scheduleAutoScan();
   }
   if (!analyzeAllowed()) return;
@@ -186,7 +221,9 @@ function scan(): void {
       el.dataset.rgFp = fingerprint;
       elements.set(id, el);
       const known = verdictByFp.get(fingerprint);
+      /* Kuota habis: jangan amati/jangkiri komentar baru lagi (FR-11), tapi label lama tetap dipasang ulang di sini (FR-19). */
       if (known) applyOne({ ...known, id });
+      else if (budget.exhausted) continue;
       else if (instant()) queueForAnalysis(el);
       else visibility.observe(el);
     } else if (instant() && !verdicts.has(id) && !outbox.has(id)) {
@@ -213,7 +250,18 @@ const scanner = adapter
         eager = on;
         if (!on) void flush();
       },
-      max: () => settings.scan.max,
+      budget: () => budget,
+      extend: (n) => {
+        /* "Baca N lagi": tambah kuota postingan ini saja, tidak mengubah pengaturan. */
+        budget.extend(n);
+        limitNotified = null;
+      },
+      resume: () => {
+        scan();
+        void flush();
+        /* Di Pindai Cepat, lanjut menggulir sampai kuota baru habis; di mode lain cukup amati lagi. */
+        if (settings.scan.method === "fast") void scanner?.run();
+      },
       replies: () => settings.scan.replies,
       total: () => adapter.getCommentCount(document, new URL(location.href)),
     })
@@ -229,9 +277,21 @@ function analyzeNow(): number {
   scan();
   void flush();
   const total = adapter.getCommentCount(document, new URL(location.href));
-  const loaded = pageComments.size;
-  const msg: ScanProgress = { type: "scanProgress", state: "done", loaded, max: Math.max(loaded, total ?? 0, 1), total, note: "komentar baru dinilai otomatis saat kamu scroll" };
+  /* Kalau kuota habis, yang "dibaca" adalah yang benar-benar dianalisis, bukan yang hanya terlihat. */
+  const limitStop = budget.exhausted;
+  const loaded = limitStop ? budget.used : pageComments.size;
+  const msg: ScanProgress = {
+    type: "scanProgress",
+    state: "done",
+    loaded,
+    max: Math.max(loaded, limitStop ? budget.limit : total ?? 0, 1),
+    total,
+    note: limitStop ? undefined : "komentar baru dinilai otomatis saat kamu scroll",
+    reason: limitStop ? "limit" : "end",
+    limit: budget.limit,
+  };
   chrome.runtime.sendMessage(msg).catch(() => undefined);
+  notifyLimit();
   return loaded;
 }
 
@@ -401,6 +461,9 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
   if (msg.type === "rescan") {
     verdicts.clear();
     verdictByFp.clear();
+    /* Pindai ulang adalah permintaan eksplisit pengguna: kuota postingan ini mulai lagi dari awal. */
+    budget = newBudget();
+    limitNotified = null;
     for (const el of elements.values()) {
       if (adapter) clearMarks(el, adapter);
       delete el.dataset.rgId;
@@ -413,11 +476,15 @@ chrome.runtime.onMessage.addListener((msg: TabMsg, _sender, sendResponse) => {
 if (adapter) {
   void loadSettings().then((s) => {
     settings = s;
+    budget = newBudget();
     start();
   });
   onSettingsChanged((s) => {
     const prev = settings;
     settings = s;
+    /* Batas bisa berubah (per postingan / per platform): kuota postingan mengikuti nilai terbaru. */
+    budget = newBudget();
+    limitNotified = null;
     if (!active()) return stop();
     start();
     const [was, now] = [activeModes(prev), activeModes(s)];

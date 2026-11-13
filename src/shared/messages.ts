@@ -79,6 +79,10 @@ export interface ScanProgress {
   /** Jumlah komentar yang ditampilkan platform untuk postingan ini (null kalau tidak terbaca). */
   total?: number | null;
   note?: string;
+  /** Alasan berhenti: "limit" = kuota komentar per postingan tercapai; "end" = komentarnya habis; sisanya sama dengan state. */
+  reason?: "limit" | "end" | "stopped" | "error";
+  /** Batas komentar per postingan yang berlaku saat ini (untuk "· batas 300" di popup dan tombol Baca N lagi). */
+  limit?: number;
 }
 
 /**

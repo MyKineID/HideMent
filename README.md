@@ -231,8 +231,11 @@ npm test           # unit test (Vitest)
 npm run typecheck  # TypeScript strict
 npm run build      # build produksi ke dist/
 npm run check      # typecheck + test + build sekaligus
+npm run release    # build + zip dev-TAHUN-BULAN-TANGGAL-JAM-MENIT ke releases/
 npm run icons      # buat ulang ikon PNG dari geometri logo
 ```
+
+Rilis dev: jalankan `npm run release`, lalu buat GitHub Release dengan tag yang dicetak (mis. `dev-2026-11-14-07-52`) dan upload zip dari `releases/` sebagai asetnya. Zip berisi hasil build `dist/` saja, siap Load unpacked.
 
 Struktur:
 

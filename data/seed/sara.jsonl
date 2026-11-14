@@ -1,37 +1,61 @@
-{"text":"Dasar orang [suku X], semuanya pelit dan licik","label":"sara"}
-{"text":"Orang cina semua penipu, jangan percaya","label":"sara"}
-{"text":"Pribumi emang malas dari sananya","label":"sara"}
-{"text":"Kaum mereka itu harus diusir dari kampung kita","label":"sara"}
-{"text":"Orang papua kayak monyet, gak usah dikasih kerjaan","label":"sara"}
-{"text":"Pendatang itu benalu, pulang aja ke daerah asal","label":"sara"}
-{"text":"Umat agama X itu teroris semua","label":"sara"}
-{"text":"Kafir semua harus dibasmi dari negeri ini","label":"sara"}
-{"text":"Perempuan gak pantes jadi pemimpin, tempatnya di dapur","label":"sara"}
-{"text":"Orang madura emang kasar semua, dari sananya","label":"sara"}
-{"text":"Golongan mereka itu penyakit masyarakat","label":"sara"}
-{"text":"LGBT itu sampah, harus dimusnahkan","label":"sara"}
-{"text":"Orang batak emang kasar dan kampungan","label":"sara"}
-{"text":"Etnis [kelompok Y] itu perusak bangsa","label":"sara"}
-{"text":"Cewek emang bodoh soal politik, gak usah ikut ikutan","label":"sara"}
-{"text":"Aseng aseng itu penjajah, usir aja","label":"sara"}
-{"text":"Orang arab itu barbar semua","label":"sara"}
-{"text":"Pengikut aliran itu sesat semua, bantai aja","label":"sara"}
-{"text":"Janda itu emang gatel semua, perusak rumah tangga","label":"sara"}
-{"text":"Orang disabilitas cuma jadi beban negara","label":"sara"}
-{"text":"Suku [Z] itu bodoh bodoh, makanya terbelakang","label":"sara"}
-{"text":"Mereka kaum pendatang harus balik ke negaranya","label":"sara"}
-{"text":"orang item semua kayak gitu, susah diatur","label":"sara"}
-{"text":"pantes kampungnya kumuh, isinya orang [suku X] semua","label":"sara"}
-{"text":"sekandang orang [suku X] mending dipulangin semua","label":"sara"}
-{"text":"pendatang dari timur kerjaannya mabok sama bikin ribut","label":"sara"}
-{"text":"orang kulit gelap jangan dikasih kerja di depan, bikin pelanggan kabur","label":"sara"}
-{"text":"cina mata sipit pelit semua","label":"sara"}
-{"text":"kaum [agama X] itu munafik dari sananya","label":"sara"}
-{"text":"bencong bencong gitu harusnya dirukiyah semua","label":"sara"}
-{"text":"orang kampung emang gak bisa diajak maju","label":"sara"}
-{"text":"perempuan kalau nyetir pasti bikin celaka","label":"sara"}
-{"text":"yang [ras X] mending balik ke hutan aja","label":"sara"}
-{"text":"difabel cuma bikin ribet antrean","label":"sara"}
-{"text":"emak emak semua sama aja, sein kiri belok kanan, gak ada otak","label":"sara"}
-{"text":"orang [suku X] kalau rame rame pasti rusuh","label":"sara"}
-{"text":"gerombolan monyet dari kampung sebelah bikin onar lagi","label":"sara"}
+{"text": "Dasar orang [suku X], semuanya pelit dan licik", "label": "sara"}
+{"text": "Orang cina semua penipu, jangan percaya", "label": "sara"}
+{"text": "Pribumi emang malas dari sananya", "label": "sara"}
+{"text": "Kaum mereka itu harus diusir dari kampung kita", "label": "sara"}
+{"text": "Orang papua kayak monyet, gak usah dikasih kerjaan", "label": "sara"}
+{"text": "Pendatang itu benalu, pulang aja ke daerah asal", "label": "sara"}
+{"text": "Umat agama X itu teroris semua", "label": "sara"}
+{"text": "Kafir semua harus dibasmi dari negeri ini", "label": "sara"}
+{"text": "Perempuan gak pantes jadi pemimpin, tempatnya di dapur", "label": "sara"}
+{"text": "Orang madura emang kasar semua, dari sananya", "label": "sara"}
+{"text": "Golongan mereka itu penyakit masyarakat", "label": "sara"}
+{"text": "LGBT itu sampah, harus dimusnahkan", "label": "sara"}
+{"text": "Orang batak emang kasar dan kampungan", "label": "sara"}
+{"text": "Etnis [kelompok Y] itu perusak bangsa", "label": "sara"}
+{"text": "Cewek emang bodoh soal politik, gak usah ikut ikutan", "label": "sara"}
+{"text": "Aseng aseng itu penjajah, usir aja", "label": "sara"}
+{"text": "Orang arab itu barbar semua", "label": "sara"}
+{"text": "Pengikut aliran itu sesat semua, bantai aja", "label": "sara"}
+{"text": "Janda itu emang gatel semua, perusak rumah tangga", "label": "sara"}
+{"text": "Orang disabilitas cuma jadi beban negara", "label": "sara"}
+{"text": "Suku [Z] itu bodoh bodoh, makanya terbelakang", "label": "sara"}
+{"text": "Mereka kaum pendatang harus balik ke negaranya", "label": "sara"}
+{"text": "orang item semua kayak gitu, susah diatur", "label": "sara"}
+{"text": "pantes kampungnya kumuh, isinya orang [suku X] semua", "label": "sara"}
+{"text": "sekandang orang [suku X] mending dipulangin semua", "label": "sara"}
+{"text": "pendatang dari timur kerjaannya mabok sama bikin ribut", "label": "sara"}
+{"text": "orang kulit gelap jangan dikasih kerja di depan, bikin pelanggan kabur", "label": "sara"}
+{"text": "cina mata sipit pelit semua", "label": "sara"}
+{"text": "kaum [agama X] itu munafik dari sananya", "label": "sara"}
+{"text": "bencong bencong gitu harusnya dirukiyah semua", "label": "sara"}
+{"text": "orang kampung emang gak bisa diajak maju", "label": "sara"}
+{"text": "perempuan kalau nyetir pasti bikin celaka", "label": "sara"}
+{"text": "yang [ras X] mending balik ke hutan aja", "label": "sara"}
+{"text": "difabel cuma bikin ribet antrean", "label": "sara"}
+{"text": "emak emak semua sama aja, sein kiri belok kanan, gak ada otak", "label": "sara"}
+{"text": "orang [suku X] kalau rame rame pasti rusuh", "label": "sara"}
+{"text": "gerombolan monyet dari kampung sebelah bikin onar lagi", "label": "sara"}
+{"text": "Kalau orang [suku X] udah berkumpul, pasti ujungnya ribut, itu udah tabiat mereka", "label": "sara"}
+{"text": "Bukan bermaksud rasis, tapi semua orang [suku X] itu memang pelit, udah kebukti berkali-kali", "label": "sara"}
+{"text": "Wanita itu memang nggak pantas mimpin, keputusannya pasti dikuasai emosi melulu", "label": "sara"}
+{"text": "Orang cacat itu sebaiknya nggak usah unjuk diri di depan orang banyak, ganggu pemandangan aja", "label": "sara"}
+{"text": "Golongan [agama X] itu dari lahir emang tukang bikin keributan, jangan dikasih ruang gerak", "label": "sara"}
+{"text": "Orang desa itu memang susah diajak berkembang, cara mikirnya masih zaman dulu banget", "label": "sara"}
+{"text": "Semua pendatang [suku X] di daerah ini wajib pulang ke daerah asalnya masing-masing", "label": "sara"}
+{"text": "Cowok [suku X] itu temperamen semua, pantas istrinya sering kena marah", "label": "sara"}
+{"text": "Bocah-bocah [suku X] itu sejak kecil udah dibiasain bohong, makanya pas gede jadi tukang tipu semua", "label": "sara"}
+{"text": "Perempuan itu memang nggak cocok urusan mesin, otaknya nggak sampai ke sana, mending masak aja", "label": "sara"}
+{"text": "Orang [suku X] datang ke kota cuma bikin masalah, berita kriminal isinya mereka terus", "label": "sara"}
+{"text": "Orang cacat kok dikasih mic, ganggu aja, harusnya mereka nggak usah tampil", "label": "sara"}
+{"text": "Bukan rasis, tapi penghuni kos [suku X] di mana-mana selalu bikin gaduh", "label": "sara"}
+{"text": "Orang kulit gelap jangan dikasih kerja di depan, bikin pelanggan kabur semua", "label": "sara"}
+{"text": "Cina mata sipit pelit semua, jangan mau kerja sama sama mereka", "label": "sara"}
+{"text": "Kaum [agama X] itu munafik dari sananya, nggak bisa dipercaya", "label": "sara"}
+{"text": "Bencong-bencong gitu harusnya dirukiyah semua, biar sembuh", "label": "sara"}
+{"text": "Orang kampung emang nggak bisa diajak maju, diajarin apa aja nggak nyambung", "label": "sara"}
+{"text": "Perempuan kalau nyetir pasti bikin celaka, udah hukum alam itu", "label": "sara"}
+{"text": "Yang [ras X] mending balik ke hutan aja, nggak cocok tinggal di kota", "label": "sara"}
+{"text": "Difabel cuma bikin ribet antrean, mending dilayani belakangan aja", "label": "sara"}
+{"text": "Emak-emak semua sama aja, sein kiri belok kanan, nggak ada otak", "label": "sara"}
+{"text": "Orang [suku X] kalau rame-rame pasti rusuh, jangan kasih izin kumpul", "label": "sara"}
+{"text": "Gerombolan monyet dari kampung sebelah bikin onar lagi semalam", "label": "sara"}

@@ -82,8 +82,12 @@ function customTerms(keywords: string[]): CompiledTerm[] {
   return customCompiled;
 }
 
-function findTerms(n: NormalizedText, spaced: string, minCompact: number, terms: CompiledTerm[]): Term[] {
-  return terms.filter(({ re, needle, single }) => re.test(spaced) || (single && needle.length >= minCompact && n.compact.includes(needle)));
+function findTerms(n: NormalizedText, spaced: string, minCompact: number, terms: CompiledTerm[], allowCompact = true): Term[] {
+  /*
+   * Pencocokan compact (huruf digabung) hanya untuk teks yang memang ditulis berspasi atau berhias.
+   * Di teks biasa "verifikasi nomor" mengandung "kasino" kalau hurufnya digabung, jadi compact dimatikan di sana.
+   */
+  return terms.filter(({ re, needle, single }) => re.test(spaced) || (allowCompact && single && needle.length >= minCompact && n.compact.includes(needle)));
 }
 
 /** `pre` = teks yang sudah dinormalisasi (mesin lokal menormalisasi sekali, lalu dipakai bersama). */
@@ -95,11 +99,13 @@ export function analyzeRules(text: string, customKeywords: string[] = [], pre?: 
   const spaced = ` ${n.deleet.replace(/[^\p{L}\p{N}]+/gu, " ")} `;
   const spacedLetters = SPACED_LETTERS_RE.test(n.folded);
   const minCompact = spacedLetters ? 4 : 6;
+  /* Huruf berspasi ("s l o t") atau huruf hias ("𝐒𝐋𝐎𝐓") memang perlu pencocokan compact; teks biasa tidak. */
+  const allowCompact = spacedLetters || n.hasFancyUnicode;
   const judolHits = [
-    ...findTerms(n, spaced, minCompact, JUDOL_COMPILED),
-    ...findTerms(n, spaced, minCompact, customTerms(customKeywords)),
+    ...findTerms(n, spaced, minCompact, JUDOL_COMPILED, allowCompact),
+    ...findTerms(n, spaced, minCompact, customTerms(customKeywords), allowCompact),
   ];
-  const ctaHits = findTerms(n, spaced, minCompact, CTA_COMPILED);
+  const ctaHits = findTerms(n, spaced, minCompact, CTA_COMPILED, allowCompact);
   let score = judolHits.reduce((a, h) => a + h.w, 0);
   if (judolHits.length) reasons.push(`istilah judol: ${judolHits.slice(0, 4).map((h) => h.t).join(", ")}`);
 

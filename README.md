@@ -128,9 +128,9 @@ Semua mode dinilai lokal di browser, tanpa koneksi AI.
 
 | Popup | Dashboard Antrian | Overlay di halaman |
 |---|---|---|
-| ![Popup HideMent](docs/screenshots/popup.jpg) | ![Dashboard Antrian](docs/screenshots/antrian.jpg) | ![Badge, popover, dan bar Pindai Cepat](docs/screenshots/overlay.jpg) |
+| ![Popup HideMent](docs/screenshots/popup.jpg?v=20261114) | ![Dashboard Antrian](docs/screenshots/antrian.jpg?v=20261114) | ![Badge, popover, dan bar Pindai Cepat](docs/screenshots/overlay.jpg?v=20261114) |
 
-![Halaman Pengaturan](docs/screenshots/pengaturan.jpg)
+![Halaman Pengaturan](docs/screenshots/pengaturan.jpg?v=20261114)
 
 > Tangkapan layar memakai data contoh sintetis.
 

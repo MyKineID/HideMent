@@ -57,6 +57,7 @@ const BAIT_TERMS = [
   "biaya admin", "kode otp", "otp", "login di", "akun anda", "akun kamu diblokir", "saldo gratis",
   "dana kaget", "pinjol", "pinjaman cepat", "cair cepat", "investasi pasti", "profit harian",
   "chat admin", "hubungi admin", "wa admin", "dm admin", "ambil hadiah", "selamat anda",
+  "tarif transfer", "isi formulir", "nasabah",
 ];
 
 const URL_RE =

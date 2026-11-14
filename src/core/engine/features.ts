@@ -88,10 +88,10 @@ const PHONE_RE = /(?:\+?62|\b0)8[\dx][\dx\s.-]{6,13}/i;
 const MONEY_PER_DAY_RE = /\d+\s?(?:rb|ribu|k|jt|juta)\b.{0,12}\b(?:per ?hari|sehari|tiap hari|\/ ?hari|hari)\b/i;
 const FIQH_RE = / (?:haram|halal|hukum|hukumnya|dalil|wudhu|wudu|fiqih|fikih|mazhab|makruh|wajib|sunah|sunnah|boleh|najis mughalazah) /u;
 /** Nama situs ditulis kapital penuh (ALEXIS17, JPMANIA, 𝐇𝐎𝐊𝐈𝟗𝟗 setelah NFKC) atau mengandung akar kata judol. */
-const BRAND_TOKEN_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z][A-Z0-9]{4,}\b/g;
+const BRAND_TOKEN_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z][A-Z0-9]{3,}\b/g;
 const JUDOL_STEM_RE = /(?:slot|gacor|hoki|jp|toto|togel|maxwin|zeus|mania|bet|win|cuan|poker|sultan|4d|88|77|99|138|168|303|777)/i;
-/** "cek bio", "intip aja bio aku", "kunjungi profil": ajakan ke profil tempat link judol disimpan. */
-const BIO_CTA_RE = / (?:cek|intip|lihat|liat|klik|mampir|kunjungi|buka|cari|tengok|meluncur) (?:\p{L}+ ){0,3}(?:bio|profil|profile|pp|beranda) /u;
+/** "cek bio", "intip aja bio aku", "kunjungi profil": ajakan ke profil tempat link judol disimpan. "lihat profil kamu" bukan: itu pola phising "cek siapa yang stalking kamu". */
+const BIO_CTA_RE = / (?:cek|intip|lihat|liat|klik|mampir|kunjungi|buka|cari|tengok|meluncur) (?:\p{L}+ ){0,3}(?:bio|profil|profile|pp|beranda)(?! (?:kamu|anda|kalian|mu\b)) /u;
 const WD_AMOUNT_RE = /\b(?:wd|withdraw|jp|jepe|cair)\s?\d+\s?(?:jt|juta|rb|ribu|k)\b/i;
 const TESTIMONY_RE = / (?:dulu|dulunya|awalnya|tadinya|kemarin) .*(?:sekarang|skrg|eh|langsung|jadi) /u;
 /** "ketik aja di google", "cari di mbah google": ajakan mencari nama situs. */
@@ -107,7 +107,7 @@ const MONEY_GROWTH_RE = /modal\s?\d+\s?(?:rb|ribu|k|jt|juta)?\s?(?:jadi|jd|menja
  * Komentar yang MEMPERINGATKAN soal judol/penipuan ("hati2, yang komen cek bio itu judol", "aku kena tipu modus
  * transfer dulu") memuat kata yang sama dengan promosinya, tapi niatnya kebalikan.
  */
-const WARNING_RE = / (?:hati hati|waspada|awas penipuan|jangan diklik|jangan klik|jangan percaya|jangan tergiur|jangan mau|itu judol|itu judi|itu penipuan|itu phising|itu phishing|itu scam|modus|kena tipu|ketipu|tertipu|korban penipuan|jadi korban|report aja|laporin aja|tolong report|tolong hapus|jangan sampai|semoga gak ada|jauhi|abaikan|abaikan aja|gak pernah minta|tidak pernah meminta|jangan kasih|jangan pernah|jangan dikasih|ngaku ngaku|ngaku dari) /u;
+const WARNING_RE = / (?:hati hati|waspada|awas penipuan|jangan diklik|jangan klik|jangan percaya|jangan tergiur|jangan mau|itu judol|itu judi|itu penipuan|itu phising|itu phishing|itu scam|itu bohong|pasti bohong|bodong|dokumenter|modus|kena tipu|ketipu|tertipu|korban penipuan|jadi korban|report aja|laporin aja|tolong report|tolong hapus|jangan sampai|semoga gak ada|jauhi|abaikan|abaikan aja|gak pernah minta|tidak pernah meminta|jangan kasih|jangan pernah|jangan dikasih|ngaku ngaku|ngaku dari) /u;
 
 /** Huruf yang ditulis berspasi digabung lagi: "R A J A W I N 5 5" → "rajawin55". */
 function spacedRuns(doc: Doc): string[] {
@@ -130,6 +130,8 @@ const META_RE = / (?:komen|komennya|komentar|komentarnya|yang bilang|yang nyuruh
  * itu stereotip basi"): kata-katanya sama dengan ujaran kebencian, tapi niatnya menolak.
  */
 export function isCondemnation(doc: Doc): boolean {
+  /* "bukan rasis ya, cuma fakta": sanggahan di awal, bukan kecaman. */
+  if (/bukan (?:mau |bermaksud )?rasis/u.test(doc.spaced)) return false;
   return META_RE.test(doc.spaced) && (QUOTE_RE.test(doc.raw) || WARNING_RE.test(doc.spaced) || / (?:stereotip|stereotipe|pola pikir|rasis|miris|basi) /u.test(doc.spaced));
 }
 
@@ -166,7 +168,8 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
   const content = H.content.length > 0;
   /* "aku goblok banget": kata kasar ke diri sendiri. */
   const selfOnly = H.self.length > 0 && !other;
-  const praise = H.praise;
+  /* "sok pintar" bukan pujian: "pintar" di situ bagian dari makian, bukan pujian yang dibatalkan. */
+  const praise = /sok (?:pintar|pinter)/.test(doc.spaced) ? H.praise.filter((h) => h.t !== "pintar" && h.t !== "pinter") : H.praise;
 
   /* ── Ujaran kebencian ── */
   if (want("hinaan") || want("perundungan") || want("sarkasme")) {
@@ -206,6 +209,8 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
 
     if (want("perundungan")) {
       const b = affirmed(doc, H.bully);
+      /* "k i l l y o u r s e l f" ditulis berspasi: kamus tidak bisa mencocokkan huruf satu-satu, jadi dicek dari teks yang digabung. */
+      if (doc.spacedLetters && doc.compact.includes("killyourself")) b.push({ t: "kill yourself", w: 4.2 });
       let s = decayedSum(b);
       if (b.length) s += target * 0.8 + (strong.length || mild.length ? 0.5 : 0);
       put("perundungan", BIAS + s, b.length ? [`ajakan/ucapan merundung ${names(b)}`] : []);
@@ -219,7 +224,8 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
       const fail = praise.length ? H.mockNeg : [];
       const sincereSuccess = SUCCESS_RE.test(doc.spaced) && !MOCK_EMOJI_RE.test(doc.raw) && !mock.some((h) => h.w >= 2);
       const incongruent = praise.length > 0 && (fail.length > 0 || strong.length > 0) && !sincereSuccess;
-      const conditional = praise.length > 0 && (emo > 0 || fail.length > 0) && L.CONDITIONAL_PRAISE_RE.test(doc.spaced);
+      /* "Selamat ya bang, setelah 3x gagal akhirnya lolos" itu pujian tulus, bukan pujian bersyarat yang mengejek. */
+      const conditional = praise.length > 0 && (emo > 0 || fail.length > 0) && !sincereSuccess && L.CONDITIONAL_PRAISE_RE.test(doc.spaced);
       const contrast = incongruent && L.CONTRAST_RE.test(doc.spaced);
       const strongCue = mock.some((h) => h.w >= 2) || incongruent || conditional;
       const cues = mock.length + (emo > 0 ? 1 : 0) + (incongruent ? 1 : 0) + (conditional ? 1 : 0);
@@ -301,6 +307,8 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
       s = 1.5 * grp[0].w + decayedSum(neg) + (gen.length ? 1 : 0) + (close ? 0.5 : -0.5);
       /* "orang X kayak monyet": menyamakan satu kelompok dengan binatang = dehumanisasi. */
       if (L.COMPARE_RE.test(doc.spaced)) s += 1.5;
+      /* "Bahasa [suku X] punya tingkatan halus-kasar": bahas bahasa, bukan menyerang orangnya. */
+      if (positions(doc, grp).some((i) => doc.tokens.slice(Math.max(0, i - 2), i).includes("bahasa"))) s -= 2.5;
       why.push(`stereotip/kebencian ke kelompok ${names(grp, 2)}: ${names(neg, 2)}`);
       if (gen.length) why.push(`digeneralisasi ("${gen[0].t}")`);
     }
@@ -314,7 +322,7 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
   /* Peringatan ("hati2, itu judol", "aku kena tipu modus transfer dulu") menurunkan judol/phising/penipuan. */
   const WARN = warning ? 2.5 : 0;
   const soft = H.judolSoft;
-  const bioCta = BIO_CTA_RE.test(doc.spaced) || (doc.spacedLetters && /(?:cek|intip|lihat|klik|situs)(?:di)?(?:bio|profil)/.test(doc.compact));
+  const bioCta = BIO_CTA_RE.test(doc.spaced) || (doc.spacedLetters && /(?:cek|intip|lihat|klik|situs)(?:di)?(?:bio|profil)(?!kamu|anda)/.test(doc.compact));
   const googleCta = GOOGLE_CTA_RE.test(doc.spaced);
   const wdAmount = WD_AMOUNT_RE.test(doc.n.deleet) || /(?:wd|jp)\d+(?:jt|rb|k)/.test(doc.compact);
   const judolLure = soft.length > 0 || bioCta || googleCta || wdAmount;
@@ -341,10 +349,11 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
   }
   if (want("phishing")) {
     const otp = OTP_RE.test(doc.spaced);
-    const ask = otp && !warning && ASK_RE.test(doc.spaced);
+    /* "jangan dibagikan ke siapa pun, kecuali ke admin kami": mintanya terselubung, tapi tetap minta kode. */
+    const ask = otp && !warning && (ASK_RE.test(doc.spaced) || /kecuali (?:ke )?admin/.test(doc.spaced));
     let s = judolCategory === "phishing" ? ruleZ : BIAS;
     /* Minta kode OTP dikirim/disebutkan = modus pengambilalihan akun, walau tanpa link. */
-    if (ask) s = Math.max(s, BIAS) + 4.2 + (H.address.length || you.length ? 0.5 : 0);
+    if (ask) s = Math.max(s, BIAS) + 4.8 + (H.address.length || you.length ? 0.5 : 0);
     const why = judolCategory === "phishing" ? [...reasons] : [];
     if (ask) why.push("meminta kode OTP/verifikasi");
     put("phishing", s - WARN, why);
@@ -385,7 +394,7 @@ export function ruleEvidence(doc: Doc, ctx: Context): Map<Category, Evidence> {
   if (isCondemnation(doc)) {
     for (const c of ["hinaan", "perundungan", "ancaman", "sarkasme", "pelecehan", "penistaan", "sara"] as Category[]) {
       const e = out.get(c);
-      if (e) e.z -= 3;
+      if (e) e.z -= 5;
     }
   }
   return out;

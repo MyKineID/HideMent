@@ -5,6 +5,9 @@
  *   data/seed/<label>.jsonl         database contoh yang ditulis tangan (satu file per kategori)
  *   research/dataset/sample.jsonl   dataset riset (baris "perlu_review" dilewati)
  *
+ * Jangan tambahkan set uji (blind.jsonl, blind2.jsonl, blind3.jsonl, blind4.jsonl,
+ * blind4-camouflage.jsonl, holdout.jsonl) ke sumber seed: set itu harus tetap buta.
+ *
  * Dijalankan otomatis oleh `npm run build`; jalankan manual dengan `npm run seed` setelah menambah contoh,
  * supaya `npm test`/`npm run eval` memakai data terbaru. Baris rusak, label tak dikenal, dan teks ganda ditolak
  * dengan pesan yang jelas.

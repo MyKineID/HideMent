@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { limitFor } from "../src/core/limits";
-import { activeModes, DEFAULT_SETTINGS, loadSettings, migrateModes, resolveSettings } from "../src/core/settings";
+import { activeModes, DEFAULT_SETTINGS, exportableSettings, loadSettings, migrateModes, resolveSettings } from "../src/core/settings";
 
 describe("sanitasi pengaturan", () => {
   it("storage kosong → default", () => {
@@ -82,6 +82,28 @@ describe("sanitasi pengaturan", () => {
     expect(s.api).toBeUndefined();
     expect(JSON.stringify(s)).not.toContain("sk-rahasia");
   });
+
+  it("bawaan model keputusan: lokal, tanpa API key, model gemini-2.5-flash", () => {
+    expect(DEFAULT_SETTINGS.model).toEqual({ provider: "local", geminiApiKey: "", geminiModel: "gemini-2.5-flash", geminiFull: false });
+    expect(resolveSettings({}).model.provider).toBe("local");
+  });
+
+  it("pilihan Gemini disimpan; provider dan nama model yang rusak kembali ke bawaan", () => {
+    const s = resolveSettings({ model: { provider: "gemini", geminiApiKey: " AQ.tes ", geminiModel: "gemini-2.5-flash", geminiFull: true } });
+    expect(s.model).toEqual({ provider: "gemini", geminiApiKey: "AQ.tes", geminiModel: "gemini-2.5-flash", geminiFull: true });
+    expect(resolveSettings({ model: { provider: "openai" } }).model.provider).toBe("local");
+    expect(resolveSettings({ model: { geminiModel: "" } }).model.geminiModel).toBe("gemini-2.5-flash");
+    expect(resolveSettings({ model: { geminiModel: "model/aneh banget" } }).model.geminiModel).toBe("modelanehbanget");
+  });
+
+  it("ekspor pengaturan tidak pernah membawa API key Gemini", () => {
+    const s = resolveSettings({ model: { provider: "gemini", geminiApiKey: "AQ.rahasia", geminiModel: "gemini-2.5-flash" } });
+    const exported = exportableSettings(s);
+    expect(exported.model.geminiApiKey).toBe("");
+    expect(exported.model.provider).toBe("gemini");
+    expect(JSON.stringify(exported)).not.toContain("AQ.rahasia");
+    expect(s.model.geminiApiKey).toBe("AQ.rahasia");
+  });
 });
 
 describe("cara memindai", () => {
@@ -137,5 +159,12 @@ describe("migrasi batas komentar (schema < 8)", () => {
     stubStorage({ settings: { scan: { method: "manual" } }, schema: 5 });
     const s = await loadSettings();
     expect(s.scan.limit).toEqual({ perPost: 300, perRun: 3000, perPlatform: {} });
+  });
+
+  it("schema 8 tanpa field model dimigrasi ke schema 9 dengan model lokal bawaan", async () => {
+    const { saved } = stubStorage({ settings: { enabled: true }, schema: 8 });
+    const s = await loadSettings();
+    expect(s.model).toEqual({ provider: "local", geminiApiKey: "", geminiModel: "gemini-2.5-flash", geminiFull: false });
+    expect((saved() as { schema?: number }).schema).toBe(9);
   });
 });

@@ -105,10 +105,18 @@ async function init(): Promise<void> {
     }
 
     let line: [string, "ok" | "err" | "info"];
-    const speed = st.engine.avgUs ? ` Rata-rata ${st.engine.avgUs < 1000 ? `${st.engine.avgUs} µs` : `${(st.engine.avgUs / 1000).toFixed(1)} ms`} per komentar.` : "";
+    const gemini = settings.model.provider === "gemini";
+    const speed = gemini
+      ? st.engine.geminiAvgMs
+        ? ` Rata-rata ${st.engine.geminiAvgMs} ms per komentar.`
+        : ""
+      : st.engine.avgUs
+        ? ` Rata-rata ${st.engine.avgUs < 1000 ? `${st.engine.avgUs} µs` : `${(st.engine.avgUs / 1000).toFixed(1)} ms`} per komentar.`
+        : "";
     if (!settings.enabled) line = ["HideMent sedang nonaktif. Nyalakan saklar di kanan atas.", "info"];
     else if (!Object.values(settings.modes).some(Boolean)) line = ["Semua mode deteksi mati. Pilih minimal satu mode di bawah.", "info"];
     else if (st.tabCounts.high) line = [`${st.tabCounts.high} komentar berbahaya ditemukan di halaman ini.${speed}`, "ok"];
+    else if (gemini) line = [`Siap. Gemini aktif: komentar dikirim ke Google untuk dinilai.${speed}`, "ok"];
     else line = [`Siap. Mesin lokal aktif: gratis, tanpa API key, tanpa internet.${speed}`, "ok"];
     const key = line.join("|");
     if (key !== lastLine) {

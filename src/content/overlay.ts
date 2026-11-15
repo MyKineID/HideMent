@@ -5,7 +5,11 @@ import { runReportFlow } from "./report-helper";
 import { icon } from "../shared/icons";
 
 const MARK_CLASSES = ["rg-hl-tinggi", "rg-hl-sedang", "rg-hl-aman", "rg-hidden-host"];
-const SOURCE_LABEL: Record<Verdict["source"], string> = { rule: "Aturan judol lokal", model: "Mesin lokal Raphael (tanpa AI)" };
+const SOURCE_LABEL: Record<Verdict["source"], string> = {
+  rule: "Aturan judol lokal",
+  model: "Mesin lokal Raphael (tanpa AI)",
+  gemini: "Gemini (API)",
+};
 
 export interface OverlayCallbacks {
   onDismiss(el: HTMLElement, v: Verdict): void;

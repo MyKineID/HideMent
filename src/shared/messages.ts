@@ -1,9 +1,12 @@
+import type { ProviderId } from "../core/providers";
 import type { CommentInput, Platform, QueueItem, ReportStatus, Verdict } from "../core/types";
 
 export type Msg =
   | { type: "analyze"; platform: Platform; url: string; comments: CommentInput[] }
   /** Nilai satu kalimat dengan mesin lokal (fitur "Coba mesin" di Pengaturan). Balasan: Decision. */
   | { type: "tryEngine"; text: string }
+  /** Uji koneksi Gemini dengan satu kalimat contoh. Balasan: { ok, latencyMs } atau error. */
+  | { type: "testGemini" }
   | { type: "getQueue" }
   | { type: "clearQueue" }
   | { type: "getStatus"; tabId?: number }
@@ -101,8 +104,22 @@ export interface ReportResult {
 
 export interface StatusInfo {
   tabCounts: { scanned: number; high: number; medium: number };
-  /** Mesin keputusan lokal: jumlah contoh yang dipelajari dan kecepatan rata-rata. */
-  engine: { examples: number; seed: number; analyzed: number; avgUs: number };
+  /** Mesin keputusan: jumlah contoh yang dipelajari dan kecepatan rata-rata. */
+  engine: {
+    examples: number;
+    seed: number;
+    analyzed: number;
+    avgUs: number;
+    /** Model keputusan yang sedang dipakai (bawaan: lokal). */
+    provider: ProviderId;
+    model?: string;
+    /** Rata-rata latensi Gemini per komentar (ms), kalau pernah dipakai. */
+    geminiAvgMs?: number;
+    /** Berapa kali Gemini gagal dan memakai fallback lokal. */
+    geminiFailures?: number;
+    /** Berapa kali verdict diambil dari cache (tidak dinilai ulang, tidak ditagih lagi). */
+    cacheHits?: number;
+  };
 }
 
 export async function send<T = unknown>(msg: Msg): Promise<T> {

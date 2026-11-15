@@ -20,6 +20,7 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm test && npm run build",
     "eval": "tsx research/eval.ts",
+    "camouflage": "tsx research/camouflage.ts",
     "label": "tsx research/label.ts",
     "bench": "tsx research/bench.ts",
     "seed": "node scripts/make-seed.mjs",

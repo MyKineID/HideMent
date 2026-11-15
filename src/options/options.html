@@ -19,7 +19,7 @@
       </div>
       <div class="conn" id="connTag" data-state="ok" role="status">
         <span class="conn-dot" aria-hidden="true"></span>
-        <span class="conn-text">Mesin lokal aktif</span>
+        <span class="conn-text" id="connText">Mesin lokal aktif</span>
       </div>
       <label class="power">
         <span id="powerState">Aktif</span>
@@ -31,7 +31,7 @@
   <div class="layout">
     <nav class="nav" aria-label="Bagian pengaturan">
       <a href="#deteksi"><span data-icon="shield"></span>Deteksi</a>
-      <a href="#mesin"><span data-icon="bolt"></span>Mesin lokal</a>
+      <a href="#mesin"><span data-icon="bolt"></span>Model keputusan</a>
       <a href="#pindai"><span data-icon="search"></span>Pemindaian</a>
       <a href="#tampilan"><span data-icon="eye"></span>Tampilan</a>
       <a href="#platform"><span data-icon="grid"></span>Platform</a>
@@ -50,7 +50,7 @@
           <p>Pilih jenis komentar yang mau dideteksi. Saya yang membaca, menilai, lalu menandai, memburamkan, atau menyembunyikannya untukmu.</p>
           <div class="hero-stats">
             <a class="hs" href="#deteksi"><b class="mono" id="heroModes">0/5</b><span>mode aktif</span></a>
-            <a class="hs" href="#mesin"><b id="heroAi" class="ok">Lokal</b><span>tanpa AI &amp; API</span></a>
+            <a class="hs" href="#mesin"><b id="heroAi" class="ok">Lokal</b><span id="heroAiSub">tanpa AI &amp; API</span></a>
             <a class="hs" href="#platform"><b class="mono" id="heroPlat">0/4</b><span>platform</span></a>
           </div>
         </div>
@@ -131,9 +131,42 @@
 
       <section id="mesin" class="sec" aria-labelledby="h-mesin">
         <div class="sec-head">
-          <h2 id="h-mesin">Mesin deteksi lokal</h2>
-          <p>Semua mode dinilai di browser tanpa AI: kamus berbobot, model Naive Bayes, dan pencarian contoh paling mirip dari database berlabel. Gratis, tanpa API key, tanpa internet.</p>
+          <h2 id="h-mesin">Model keputusan</h2>
+          <p>Bawaan, semua mode dinilai di browser tanpa AI: kamus berbobot, model Naive Bayes, dan pencarian contoh paling mirip dari database berlabel. Gratis, tanpa API key, tanpa internet. Pilih Gemini kalau mau model bahasa yang menilai komentar; teks komentar dikirim ke Google hanya saat Gemini dipilih.</p>
           <p class="eng-meta mono" id="engMeta"></p>
+        </div>
+        <div class="group">
+          <label class="item">
+            <span class="item-main"><b>Lokal Raphael (bawaan)</b><small>Mesin keputusan di browser. Gratis, tanpa API key, tanpa internet.</small></span>
+            <input type="radio" name="modelProvider" value="local" id="modelLocal" />
+          </label>
+          <label class="item">
+            <span class="item-main"><b>Gemini (API)</b><small>Penilaian lewat Gemini API. Teks komentar dikirim ke Google hanya saat pilihan ini aktif.</small></span>
+            <input type="radio" name="modelProvider" value="gemini" id="modelGemini" />
+          </label>
+        </div>
+        <div class="group" id="geminiPanel" hidden>
+          <div class="fields">
+            <div class="field">
+              <label for="geminiApiKey">API key Gemini</label>
+              <input id="geminiApiKey" type="password" placeholder="API key dari Google AI Studio" autocomplete="off" />
+              <p class="hint">Disimpan di perangkatmu saja, tidak pernah ikut ekspor pengaturan.</p>
+            </div>
+            <div class="field">
+              <label for="geminiModel">Model Gemini</label>
+              <input id="geminiModel" type="text" placeholder="gemini-2.5-flash" autocomplete="off" />
+              <p class="hint">Nama model di endpoint OpenAI-compatible Google.</p>
+            </div>
+          </div>
+          <label class="item">
+            <span class="item-main"><b>Gemini penuh</b><small>Gemini menilai semua komentar. Mati: judol yang jelas tetap diputuskan aturan lokal dulu (gratis, paling cepat).</small></span>
+            <input class="switch" type="checkbox" id="geminiFull" />
+          </label>
+          <div class="item">
+            <div class="item-main"><b>Uji koneksi</b><small>Kirim satu kalimat contoh ke Gemini dan lihat latensinya.</small></div>
+            <button id="testGemini" class="btn ghost" type="button">Uji koneksi</button>
+          </div>
+          <p class="hint" id="testGeminiOut" aria-live="polite"></p>
         </div>
         <div class="group learn-add">
           <div class="field">

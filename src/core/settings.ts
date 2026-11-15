@@ -1,6 +1,17 @@
 import type { Category, Mode, Platform, Priority } from "./types";
+import { GEMINI_DEFAULT_MODEL, type ProviderId } from "./providers";
 
 export type ActionKind = "highlight" | "blur" | "hide";
+
+/** Pilihan model keputusan di Pengaturan. API key hanya disimpan di chrome.storage.local dan tidak pernah ikut ekspor pengaturan. */
+export interface ModelSettings {
+  /** "local" = mesin lokal Raphael (bawaan). "gemini" = Gemini lewat API, opt-in. */
+  provider: ProviderId;
+  geminiApiKey: string;
+  geminiModel: string;
+  /** true = Gemini menilai semua komentar ("Gemini penuh"); false = aturan judol yang jelas tetap diputuskan lokal dulu. */
+  geminiFull: boolean;
+}
 
 export interface Settings {
   enabled: boolean;
@@ -51,6 +62,7 @@ export interface Settings {
   thresholds: { high: number; medium: number };
   whitelist: string[];
   customKeywords: string[];
+  model: ModelSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -78,10 +90,11 @@ export const DEFAULT_SETTINGS: Settings = {
   thresholds: { high: 80, medium: 50 },
   whitelist: [],
   customKeywords: [],
+  model: { provider: "local", geminiApiKey: "", geminiModel: GEMINI_DEFAULT_MODEL, geminiFull: false },
 };
 
 const KEY = "settings";
-const SCHEMA = 8;
+const SCHEMA = 9;
 
 function merge<T>(base: T, patch: unknown): T {
   if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
@@ -107,6 +120,8 @@ export const LIMITS = {
   customName: 40,
   customDefinition: 400,
   threshold: [10, 100],
+  geminiApiKey: 200,
+  geminiModel: 80,
 } as const;
 
 const ACTIONS: readonly ActionKind[] = ["highlight", "blur", "hide"];
@@ -158,6 +173,25 @@ function sanitizeScan(v: Settings["scan"] | undefined): Settings["scan"] {
   };
 }
 
+/** Nama model hanya boleh berisi huruf, angka, titik, garis bawah, dan strip; nama kosong kembali ke bawaan. */
+function sanitizeModelName(v: unknown, fallback: string): string {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (!s) return fallback;
+  const clean = s.replace(/[^A-Za-z0-9._-]/g, "").slice(0, LIMITS.geminiModel);
+  return clean || fallback;
+}
+
+/** Pilihan model: provider yang tidak dikenal kembali ke lokal; API key disimpan apa adanya (maks 200 karakter). */
+function sanitizeModel(v: Settings["model"] | undefined): Settings["model"] {
+  const d = DEFAULT_SETTINGS.model;
+  return {
+    provider: v?.provider === "gemini" ? "gemini" : "local",
+    geminiApiKey: typeof v?.geminiApiKey === "string" ? v.geminiApiKey.trim().slice(0, LIMITS.geminiApiKey) : d.geminiApiKey,
+    geminiModel: sanitizeModelName(v?.geminiModel, d.geminiModel),
+    geminiFull: bool(v?.geminiFull, d.geminiFull),
+  };
+}
+
 /**
  * Pastikan setiap field punya tipe & rentang yang benar. Storage bisa berisi data lama
  * (termasuk field koneksi AI dari versi sebelumnya, yang dibuang di sini), hasil edit manual, atau nilai rusak.
@@ -186,7 +220,16 @@ export function sanitizeSettings(s: Settings): Settings {
     thresholds: { high, medium },
     whitelist: stringList(s.whitelist),
     customKeywords: stringList(s.customKeywords, 500),
+    model: sanitizeModel(s.model),
   };
+}
+
+/**
+ * Salinan pengaturan yang aman diekspor atau dibagikan: API key Gemini dikosongkan.
+ * Pakai ini setiap kali pengaturan ditulis ke file atau dibagikan, jangan pernah Settings mentah.
+ */
+export function exportableSettings(s: Settings): Settings {
+  return { ...s, model: { ...s.model, geminiApiKey: "" } };
 }
 
 /** Schema < 4 punya satu saklar "toxic"; padanan terdekatnya mode Ujaran Kebencian. Mode baru lain mulai mati. */
@@ -217,6 +260,8 @@ export async function loadSettings(): Promise<Settings> {
     if (Number(raw.schema) < 6 && stored.scan?.method === "scroll") stored.scan = { ...stored.scan, method: "manual" };
     /* Schema 7: koneksi AI (Base URL, API key, model) dihapus; semua mode dinilai mesin lokal. Jangan simpan API key lama. */
     delete (stored as { api?: unknown }).api;
+    /* Schema 9: pilihan model keputusan (Lokal/Gemini). Pengaturan lama tanpa field model tetap memakai lokal. */
+    if (!stored.model) stored.model = { ...DEFAULT_SETTINGS.model };
     /* Schema 8: scan.max dipindah ke scan.limit.perPost; batas kini berlaku di semua cara pindai, dan scan.max dibuang. */
     if (Number(raw.schema) < 8 && stored.scan) {
       const scanOld = stored.scan as Settings["scan"] & { max?: unknown };

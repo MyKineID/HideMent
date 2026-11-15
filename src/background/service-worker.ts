@@ -1,4 +1,12 @@
-import { DecisionEngine } from "../core/engine";
+import { DecisionEngine, type Decision } from "../core/engine";
+import {
+  GEMINI_DEFAULT_MODEL,
+  GeminiDecisionProvider,
+  LocalDecisionProvider,
+  fastPathVerdict,
+  type DecisionProvider,
+} from "../core/providers";
+import { VerdictCache } from "../core/verdict-cache";
 import { activeModes, DEFAULT_SETTINGS, loadSettings, onSettingsChanged, priorityOf, type Settings } from "../core/settings";
 import { EXAMPLES_KEY, learningExamples, type Example } from "../core/examples";
 import type { CommentInput, Platform, QueueItem, Verdict } from "../core/types";
@@ -27,6 +35,11 @@ let feedback: { text?: string; label?: string }[] = [];
 let engine: DecisionEngine | null = null;
 let engineDirty = true;
 const engineStats = { analyzed: 0, totalUs: 0 };
+/** Statistik Gemini (latensi dan kegagalan) dan cache verdict; cache hidup di memori saja. */
+const geminiStats = { analyzed: 0, totalMs: 0, failures: 0 };
+let cacheHits = 0;
+const verdictCache = new VerdictCache(500);
+let geminiProvider: { key: string; model: string; provider: GeminiDecisionProvider } | null = null;
 
 const examplesReady = chrome.storage.local.get([EXAMPLES_KEY, "feedback"]).then((r) => {
   examples = (r[EXAMPLES_KEY] ?? []) as Example[];
@@ -44,6 +57,19 @@ function getEngine(): DecisionEngine {
     engineDirty = false;
   }
   return engine;
+}
+
+/** Penyedia keputusan yang sedang dipilih di Pengaturan (bawaan: lokal). */
+function getProvider(): DecisionProvider {
+  if (settings.model.provider === "gemini") {
+    const key = settings.model.geminiApiKey;
+    const model = settings.model.geminiModel || GEMINI_DEFAULT_MODEL;
+    if (!geminiProvider || geminiProvider.key !== key || geminiProvider.model !== model) {
+      geminiProvider = { key, model, provider: new GeminiDecisionProvider({ apiKey: key, model }) };
+    }
+    return geminiProvider.provider;
+  }
+  return new LocalDecisionProvider(getEngine());
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -115,19 +141,77 @@ async function analyze(tabId: number, platform: Platform, url: string, comments:
   const modes = activeModes(settings);
   /* Tidak ada mode yang dinyalakan: tidak ada yang perlu dinilai (sama seperti sebelumnya, komentar tidak diberi label). */
   if (!Object.values(modes).some(Boolean)) return [];
-  const e = getEngine();
   const ctx = { modes, custom: settings.custom, customKeywords: settings.customKeywords };
-  const out: Verdict[] = [];
-  for (const c of comments) {
+  const providerId = settings.model.provider;
+  const modelName = providerId === "gemini" ? settings.model.geminiModel || GEMINI_DEFAULT_MODEL : "local";
+  const out: Verdict[] = new Array(comments.length);
+  const pending: { index: number; c: CommentInput; key: string }[] = [];
+
+  /* Pass 1: whitelist, cache, dan fast path aturan judol (gratis, tanpa model). */
+  for (let i = 0; i < comments.length; i++) {
+    const c = comments[i];
     if (isWhitelisted(c.author)) {
-      out.push({ id: c.id, mode: "judol", category: "aman", score: 0, reason: "akun di whitelist", source: "rule" });
+      out[i] = { id: c.id, mode: "judol", category: "aman", score: 0, reason: "akun di whitelist", source: "rule" };
       continue;
     }
-    const d = e.decide(c, ctx);
-    engineStats.analyzed++;
-    engineStats.totalUs += d.us;
-    out.push(d.verdict);
+    const key = verdictCache.key(providerId, modelName, c.text, modes);
+    const hit = verdictCache.get(key);
+    if (hit) {
+      cacheHits++;
+      out[i] = hit.verdict;
+      record(tabId, platform, url, c, hit.verdict);
+      continue;
+    }
+    if (providerId === "gemini" && !settings.model.geminiFull) {
+      const rule = fastPathVerdict(c, ctx);
+      if (rule) {
+        out[i] = rule;
+        verdictCache.set(key, { verdict: rule, probs: {}, similar: [], us: 0 });
+        record(tabId, platform, url, c, rule);
+        continue;
+      }
+    }
+    pending.push({ index: i, c, key });
+  }
+  if (!pending.length) return out;
+
+  const finish = (index: number, key: string, c: CommentInput, d: Decision, msPerComment?: number) => {
+    verdictCache.set(key, d);
+    out[index] = d.verdict;
+    if (msPerComment !== undefined) geminiStats.totalMs += msPerComment;
     record(tabId, platform, url, c, d.verdict);
+  };
+
+  if (providerId === "gemini") {
+    /* Gemini menilai sisanya dalam batch; kalau gagal (timeout, rate limit, parse),
+       semuanya jatuh ke mesin lokal supaya komentar tetap dinilai. */
+    const started = Date.now();
+    try {
+      const decisions = await getProvider().decide(
+        pending.map((p) => p.c),
+        ctx,
+      );
+      const msPerComment = (Date.now() - started) / pending.length;
+      geminiStats.analyzed += pending.length;
+      pending.forEach((p, j) => finish(p.index, p.key, p.c, decisions[j], msPerComment));
+    } catch {
+      geminiStats.failures++;
+      const e = getEngine();
+      for (const p of pending) {
+        const d = e.decide(p.c, ctx);
+        engineStats.analyzed++;
+        engineStats.totalUs += d.us;
+        finish(p.index, p.key, p.c, d);
+      }
+    }
+  } else {
+    const e = getEngine();
+    for (const p of pending) {
+      const d = e.decide(p.c, ctx);
+      engineStats.analyzed++;
+      engineStats.totalUs += d.us;
+      finish(p.index, p.key, p.c, d);
+    }
   }
   return out;
 }
@@ -199,14 +283,39 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       return res;
     }
     case "tryEngine": {
-      /* "Coba mesin" di Pengaturan: nilai satu kalimat dengan mesin & contoh belajar yang sama, semua mode aktif ditampilkan. */
+      /* "Coba mesin" di Pengaturan: nilai satu kalimat dengan penyedia yang sedang dipilih, semua mode aktif ditampilkan. */
       await examplesReady;
       const modes = activeModes(settings);
       const anyOn = Object.values(modes).some(Boolean);
-      return getEngine().decide(
-        { id: "uji", text: msg.text },
-        { modes: anyOn ? modes : { ...modes, judol: true }, custom: settings.custom, customKeywords: settings.customKeywords },
+      const ctx = {
+        modes: anyOn ? modes : { ...modes, judol: true },
+        custom: settings.custom,
+        customKeywords: settings.customKeywords,
+      };
+      const c = { id: "uji", text: msg.text };
+      if (settings.model.provider === "gemini") {
+        if (!settings.model.geminiFull) {
+          const rule = fastPathVerdict(c, ctx);
+          if (rule) return { verdict: rule, probs: {}, similar: [], us: 0 };
+        }
+        const [d] = await getProvider().decide([c], ctx);
+        return d;
+      }
+      return getEngine().decide(c, ctx);
+    }
+    case "testGemini": {
+      /* "Uji koneksi" di Pengaturan: satu kalimat contoh ke Gemini, kembalikan latensinya atau error. */
+      if (!settings.model.geminiApiKey) throw new Error("API key Gemini belum diisi di Pengaturan.");
+      const started = Date.now();
+      await getProvider().decide(
+        [{ id: "tes", text: "videonya bagus banget kak, makasih" }],
+        {
+          modes: { judol: true, kebencian: false, pelecehan: false, agama: false, sara: false, kustom: false },
+          custom: settings.custom,
+          customKeywords: settings.customKeywords,
+        },
       );
+      return { ok: true, latencyMs: Date.now() - started };
     }
     case "focusComment": {
       const tab = await chrome.tabs.update(msg.tabId, { active: true });
@@ -228,6 +337,11 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
           seed: e.stats.seed,
           analyzed: engineStats.analyzed,
           avgUs: engineStats.analyzed ? Math.round(engineStats.totalUs / engineStats.analyzed) : 0,
+          provider: settings.model.provider,
+          model: settings.model.provider === "gemini" ? settings.model.geminiModel || GEMINI_DEFAULT_MODEL : undefined,
+          geminiAvgMs: geminiStats.analyzed ? Math.round(geminiStats.totalMs / geminiStats.analyzed) : undefined,
+          geminiFailures: geminiStats.failures,
+          cacheHits,
         },
       };
       return info;

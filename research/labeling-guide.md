@@ -10,6 +10,8 @@ Satu komentar per baris (`.jsonl`):
 
 Dataset contoh (`dataset/sample.jsonl`, 105 komentar) adalah **komentar sintetis** yang meniru gaya komentar sosmed Indonesia. Isinya tidak diambil dari akun orang sungguhan. Nama situs judol di dalamnya fiktif, dan suku/agama ditulis sebagai placeholder `[suku X]`.
 
+Set uji utama saat ini adalah `dataset/blind4.jsonl` (150 komentar: 40 aman + 10 tiap kategori berbahaya), ditulis terpisah dan **tidak pernah dipakai tuning atau seed**. `blind.jsonl`, `blind2.jsonl`, `blind3.jsonl`, dan `holdout.jsonl` sudah jenuh (mesin lokal 100% di blind2/holdout, 99,3% di blind3 pada pengukuran ulang 15 Nov 2026) dan tidak lagi dipakai sebagai bukti utama. Varian kamuflasenya, `dataset/blind4-camouflage.jsonl`, dibuat dengan `npm run camouflage` (leetspeak, huruf hias, spasi, salah ketik, bergiliran) untuk benchmark ketahanan model.
+
 ## Sentimen (arah komentar)
 Sentimen dilabeli **terpisah** dari bahaya:
 

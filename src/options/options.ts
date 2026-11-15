@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, LIMITS, loadSettings, onSettingsChanged, priorityOf, saveSettings, type ActionKind, type DeepPartial, type Settings } from "../core/settings";
+import { GEMINI_DEFAULT_MODEL } from "../core/providers";
 import { CATEGORY_LABEL, MODE_CATEGORIES, MODE_LABEL, MODES, verdictLabel, type Category, type Platform } from "../core/types";
 import { EXAMPLES_KEY, mergeExamples, parseExamples, type Example } from "../core/examples";
 import { extractPostLinks } from "../core/links";
@@ -30,7 +31,69 @@ async function renderEngine(): Promise<void> {
   if (!st) return;
   const parts = [`database ${st.engine.seed.toLocaleString("id-ID")} contoh`, `contohmu ${st.engine.examples.toLocaleString("id-ID")}`];
   if (st.engine.avgUs) parts.push(`rata-rata ${fmtUs(st.engine.avgUs)}/komentar`);
+  if (st.engine.provider === "gemini") {
+    parts.push(`model ${st.engine.model ?? GEMINI_DEFAULT_MODEL}`);
+    if (st.engine.geminiAvgMs) parts.push(`Gemini rata-rata ${st.engine.geminiAvgMs} ms/komentar`);
+    if (st.engine.geminiFailures) parts.push(`${st.engine.geminiFailures} kali gagal, jatuh ke lokal`);
+  }
+  if (st.engine.cacheHits) parts.push(`${st.engine.cacheHits} verdict dari cache`);
   $("#engMeta").textContent = parts.join(" · ");
+}
+
+/** Tampilan pilihan model mengikuti pengaturan yang tersimpan. */
+function renderModel(): void {
+  const gemini = settings.model.provider === "gemini";
+  $<HTMLInputElement>("#modelLocal").checked = !gemini;
+  $<HTMLInputElement>("#modelGemini").checked = gemini;
+  $("#geminiPanel").hidden = !gemini;
+  $<HTMLInputElement>("#geminiApiKey").value = settings.model.geminiApiKey;
+  $<HTMLInputElement>("#geminiModel").value = settings.model.geminiModel;
+  $<HTMLInputElement>("#geminiFull").checked = settings.model.geminiFull;
+  $("#heroAi").textContent = gemini ? "Gemini" : "Lokal";
+  $("#heroAiSub").textContent = gemini ? "lewat API Google" : "tanpa AI & API";
+  $("#connText").textContent = gemini ? "Gemini aktif" : "Mesin lokal aktif";
+}
+
+function setupModel(): void {
+  $<HTMLInputElement>("#modelLocal").addEventListener("change", () => {
+    void save({ model: { provider: "local" } }, "Model keputusan: Lokal Raphael. Komentar tidak dikirim ke mana pun.").then(renderModel);
+  });
+  $<HTMLInputElement>("#modelGemini").addEventListener("change", () => {
+    void save({ model: { provider: "gemini" } }, "Model keputusan: Gemini. Teks komentar dikirim ke Google saat dinilai.").then(renderModel);
+  });
+  $<HTMLInputElement>("#geminiApiKey").addEventListener("change", (e) => {
+    const v = (e.target as HTMLInputElement).value.trim();
+    void save({ model: { geminiApiKey: v } }, v ? "API key Gemini disimpan di perangkat ini." : "API key Gemini dihapus.");
+  });
+  $<HTMLInputElement>("#geminiModel").addEventListener("change", (e) => {
+    const v = (e.target as HTMLInputElement).value.trim() || GEMINI_DEFAULT_MODEL;
+    void save({ model: { geminiModel: v } }, `Model Gemini: ${v}.`);
+  });
+  $<HTMLInputElement>("#geminiFull").addEventListener("change", (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    void save({ model: { geminiFull: on } }, on ? "Gemini penuh: semua komentar dinilai Gemini." : "Gemini menilai sisanya; judol yang jelas tetap diputuskan lokal.");
+  });
+  $("#testGemini").addEventListener("click", async () => {
+    const btn = $<HTMLButtonElement>("#testGemini");
+    const out = $("#testGeminiOut");
+    if (!settings.model.geminiApiKey) {
+      out.textContent = "Isi dulu API key Gemini.";
+      return tell("Isi dulu API key Gemini.", "info");
+    }
+    btn.disabled = true;
+    out.textContent = "Menghubungi Gemini…";
+    try {
+      const r = await send<{ ok: boolean; latencyMs: number }>({ type: "testGemini" });
+      out.textContent = `Koneksi berhasil, ${r.latencyMs} ms.`;
+      tell(`Koneksi Gemini berhasil (${r.latencyMs} ms).`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Koneksi Gemini gagal.";
+      out.textContent = msg;
+      tell(msg, "err");
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 let tryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -330,6 +393,7 @@ function fillForm(): void {
   renderCounts();
   renderSummary();
   renderCustom();
+  renderModel();
   renderPower();
   $<HTMLInputElement>("#customName").value = settings.custom.name;
   $<HTMLTextAreaElement>("#customDefinition").value = settings.custom.definition;
@@ -385,6 +449,7 @@ async function init(): Promise<void> {
     }),
   );
   $("#modesAll").addEventListener("click", () => setAllModes(true));
+  setupModel();
   setupExamples();
   void loadExamples();
   const saveCustom = async () => {
@@ -506,10 +571,18 @@ async function init(): Promise<void> {
     renderPresets();
     renderSummary();
     renderCustom();
+    renderModel();
     renderPower();
   });
 
-  say(dlg, "Halo, saya Raphael. Semua penilaian berjalan di perangkatmu tanpa AI dan tanpa API key. Pilih mode deteksi, lalu coba mesinnya di bagian Mesin lokal.", "info", 8000);
+  say(
+    dlg,
+    settings.model.provider === "gemini"
+      ? "Halo, saya Raphael. Kamu memakai Gemini: teks komentar dikirim ke Google saat dinilai. Pilih mode deteksi, lalu coba mesinnya di bagian Model keputusan."
+      : "Halo, saya Raphael. Semua penilaian berjalan di perangkatmu tanpa AI dan tanpa API key. Pilih mode deteksi, lalu coba mesinnya di bagian Model keputusan.",
+    "info",
+    8000,
+  );
 }
 
 void init();
